@@ -1,0 +1,27 @@
+{
+    "uuid": "--7oldF2S-8_chunk_0030_actions",
+    "chunk_id": "0030",
+    "chunk_size": 1200,
+    "original_video": {
+        "resolution": [
+            1080,
+            1920
+        ],
+        "video_id": "--7oldF2S-8",
+        "start_time": 600,
+        "end_time": 620,
+        "duration": 20,
+        "start_frame": 36000,
+        "end_frame": 37199,
+        "source": "youtube",
+        "url": "https://www.youtube.com/watch?v=--7oldF2S-8"
+    },
+    "game": "other",
+    "controller_type": "switch",
+    "bbox_controller_overlay": [
+        1486,
+        791,
+        423,
+        325
+    ]
+}

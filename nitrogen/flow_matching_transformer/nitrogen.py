@@ -12,6 +12,7 @@ from torch.distributions import Beta
 from transformers import SiglipVisionModel, AutoModel
 
 from .modules import DiT, DiTConfig, SelfAttentionTransformer, SelfAttentionTransformerConfig
+from ..planner import PlannerConfig, PlanHead
 
 _PAD_TOKEN = 0
 _IMG_TOKEN = 1
@@ -20,6 +21,7 @@ _LANG_TOKEN = 2
 _PROPRIO_TOKEN = 3
 _ACT_TOKEN = 4
 _GAME_ID_TOKEN = 6
+_PLAN_TOKEN = 7
 
 
 class NitroGen_Config(BaseModel):
@@ -43,11 +45,18 @@ class NitroGen_Config(BaseModel):
     vision_hidden_size: int = Field(default=768, description="Siglip hidden size.")
     add_view_embed: bool = Field(default=False, description="Whether to add view embedding.")
 
+    planner_cfg: PlannerConfig = Field(default_factory=PlannerConfig, description="Plan-conditioning configuration. Inactive unless planner_cfg.enabled is True.")
+
+    lora_dit_rank: int = Field(default=0, description="If >0, apply LoRA of this rank to the DiT cross-attention (capacity for plan routing without full fine-tuning). 0 disables.")
+    lora_dit_alpha: float = Field(default=16.0, description="LoRA alpha (scaling = alpha/rank) for the DiT LoRA.")
+
     tune_vision_tower: bool = Field(default=True, description="Tune vision if True.")
     tune_mm_projector: bool = Field(default=True, description="Tune mm projector if True.")
     tune_diffusion_model: bool = Field(default=True, description="Tune diffusion model if True.")
     tune_multi_projector: bool = Field(default=True, description="Tune multi projector if True.")
     tune_vl_mixing: bool = Field(default=True, description="Tune vl mixing if True.")
+    tune_planner: bool = Field(default=False, description="Tune the VLM planner backbone if True (Stage 2). Default frozen.")
+    tune_plan_head: bool = Field(default=True, description="Tune the plan resampler/adapter/null if True.")
 
     @classmethod
     def from_yaml(cls, yaml_path: str | Path) -> "NitroGen_Config":
@@ -183,7 +192,12 @@ class NitroGen(torch.nn.Module):
 
         if "siglip" in config.vision_encoder_name:
             model = SiglipVisionModel.from_pretrained(config.vision_encoder_name)
-            self.vision_encoder = model.vision_model
+            # transformers < 5 exposed the inner vision transformer as
+            # `model.vision_model`; transformers >= 5 makes SiglipVisionModel itself
+            # the vision model (children: embeddings/encoder/post_layernorm/head).
+            # Child module names are identical, so the saved state-dict keys
+            # (vision_encoder.*) match either way.
+            self.vision_encoder = getattr(model, "vision_model", model)
             self.vision_encoder_type = "siglip"
         else:
             self.vision_encoder = AutoModel.from_pretrained(config.vision_encoder_name)
@@ -254,12 +268,34 @@ class NitroGen(torch.nn.Module):
                 scale_grad_by_freq=True
             )
 
+        # Plan-conditioning head (resampler + adapter + null plan). The heavy VLM
+        # planner backbone lives outside the model (trainer-side) and feeds in
+        # precomputed hidden states, so checkpoints stay small.
+        self.planner_cfg = config.planner_cfg
+        if self.planner_cfg.enabled:
+            assert self.planner_cfg.plan_hidden_size == self.vision_hidden_size, (
+                f"planner plan_hidden_size {self.planner_cfg.plan_hidden_size} must equal "
+                f"vision_hidden_size {self.vision_hidden_size}"
+            )
+            self.plan_head = PlanHead(self.planner_cfg)
+
+        # Optional LoRA on the DiT cross-attention (extra capacity for plan routing
+        # without full fine-tuning). Applied AFTER base build; load_state_dict(base)
+        # still fills the wrapped Linear weights (now under `.base.`); see lora.py.
+        self.lora_dit_rank = config.lora_dit_rank
+        if config.lora_dit_rank and config.lora_dit_rank > 0:
+            from .lora import apply_lora_to_dit
+            n = apply_lora_to_dit(self.model, rank=config.lora_dit_rank,
+                                  alpha=config.lora_dit_alpha, cross_attn_only=True)
+            print(f"Applied LoRA (rank={config.lora_dit_rank}) to {n} DiT cross-attn projections")
+
         self.set_trainable_parameters(
             tune_multi_projector=config.tune_multi_projector,
             tune_diffusion_model=config.tune_diffusion_model,
             tune_vision_tower=config.tune_vision_tower,
             tune_mm_projector=config.tune_mm_projector,
             tune_vl_mixing=config.tune_vl_mixing,
+            tune_plan_head=config.tune_plan_head,
         )
 
         print(
@@ -274,12 +310,14 @@ class NitroGen(torch.nn.Module):
         tune_vision_tower: bool = True,
         tune_mm_projector: bool = True,
         tune_vl_mixing: bool = True,
+        tune_plan_head: bool = True,
     ):
         self.tune_multi_projector = tune_multi_projector
         self.tune_diffusion_model = tune_diffusion_model
         self.tune_vision_tower = tune_vision_tower
         self.tune_mm_projector = tune_mm_projector
         self.tune_vl_mixing = tune_vl_mixing
+        self.tune_plan_head = tune_plan_head
 
         for param in self.parameters():
             param.requires_grad = True
@@ -314,12 +352,23 @@ class NitroGen(torch.nn.Module):
             self.mm_projector.requires_grad_(False)
         if not tune_vl_mixing:
             self.vl_self_attention_model.requires_grad_(False)
+        if getattr(self, "planner_cfg", None) is not None and self.planner_cfg.enabled and not tune_plan_head:
+            self.plan_head.requires_grad_(False)
+
+        # LoRA params always train (even with the DiT base frozen). The wrapped base
+        # Linears stay frozen via LoRALinear; here we (re-)enable just A/B.
+        if getattr(self, "lora_dit_rank", 0):
+            from .lora import lora_parameters
+            for p in lora_parameters(self.model):
+                p.requires_grad_(True)
 
         print(f"Tune action head multi_projector: {self.tune_multi_projector}")
         print(f"Tune action head diffusion model: {self.tune_diffusion_model}")
         print(f"Tune action head vision tower: {self.tune_vision_tower}")
         print(f"Tune action head mm_projector: {self.tune_mm_projector}")
         print(f"Tune action head vl_mixing: {self.tune_vl_mixing}")
+        if getattr(self, "planner_cfg", None) is not None and self.planner_cfg.enabled:
+            print(f"Tune plan head: {self.tune_plan_head}")
         # Check if any parameters are still trainable. If not, print a warning.
         if not any(p.requires_grad for p in self.parameters()):
             print("Warning: No action head trainable parameters found.")
@@ -348,6 +397,8 @@ class NitroGen(torch.nn.Module):
                 self.mm_projector.eval()
             if not self.tune_vl_mixing:
                 self.vl_self_attention_model.eval()
+            if getattr(self, "planner_cfg", None) is not None and self.planner_cfg.enabled and not self.tune_plan_head:
+                self.plan_head.eval()
 
     # This function is supposedly incorrect
     # def sample_time(self, batch_size, device, dtype):
@@ -372,7 +423,7 @@ class NitroGen(torch.nn.Module):
             image_features = self.mm_projector(image_features)  # [B, 256, 1024] -> [B, 16, 1024]
         return image_features
 
-    def prepare_input_embs(self, vl_token_ids, sa_token_ids, vision, action, dropped_images, game_ids=None):
+    def prepare_input_embs(self, vl_token_ids, sa_token_ids, vision, action, dropped_images, game_ids=None, plan_tokens=None):
         B, T = vl_token_ids.shape
         vl_embs = torch.full(
             size=(B, T, self.vision_hidden_size), fill_value=0.0, dtype=vision.dtype, device=vision.device
@@ -423,6 +474,22 @@ class NitroGen(torch.nn.Module):
                 game_embs = self.game_embedding(game_ids)  # [B, vision_hidden_size]
                 batch_indices, token_indices = game_mask.nonzero(as_tuple=True)
                 vl_embs[batch_indices, token_indices] = game_embs[batch_indices].to(dtype=vl_embs.dtype)
+
+        # Handle Plan tokens: place the K plan tokens at the _PLAN_TOKEN positions.
+        if plan_tokens is not None:
+            plan_mask = vl_token_ids == _PLAN_TOKEN  # [B, T]
+            num_plan = plan_mask.sum().item()
+            if num_plan > 0:
+                K = plan_tokens.shape[1]
+                plan_per_batch = plan_mask.sum(dim=1)  # [B]
+                assert torch.all(plan_per_batch == K), (
+                    f"Expected exactly K={K} plan tokens per batch item, got: "
+                    f"{plan_per_batch.tolist()}."
+                )
+                # Plan tokens are contiguous per batch item; flatten in row-major
+                # order, which matches the (batch, token) ordering of nonzero().
+                batch_indices, token_indices = plan_mask.nonzero(as_tuple=True)
+                vl_embs[batch_indices, token_indices] = plan_tokens.reshape(-1, self.vision_hidden_size).to(dtype=vl_embs.dtype)
 
         # Project image separator using the learnable sep_embedding.
         sep_mask = vl_token_ids == _IMG_SEP_TOKEN  # shape: (B, T)
@@ -493,6 +560,60 @@ class NitroGen(torch.nn.Module):
     #     buttons = (buttons > 0.5).float()
     #     return j_left, j_right, buttons
 
+    # ========= Plan conditioning ============
+    def compute_plan_tokens(self, data: dict):
+        """Produce (plan_tokens (B,K,d), dropped (B,) bool | None).
+
+        In null_mode="learned", dropped rows have their plan tokens replaced by the
+        learned null embedding here. In null_mode="masked", the tokens are left
+        as-is and `dropped` is returned so the caller can mask the K plan positions
+        out of the DiT cross-attention (see apply_null_mask). Returns (None, None)
+        when plan conditioning is disabled or no plan input is present.
+        """
+        if not getattr(self, "planner_cfg", None) or not self.planner_cfg.enabled:
+            return None, None
+        plan_hidden = data.get("plan_hidden")
+        if plan_hidden is None:
+            return None, None
+        B = plan_hidden.shape[0]
+        device = plan_hidden.device
+        kpm = data.get("plan_key_padding_mask")
+        dropped = data.get("plan_dropped")
+        if dropped is None and self.training and self.planner_cfg.plan_dropout > 0:
+            dropped = (torch.rand(B, device=device) < self.planner_cfg.plan_dropout)
+        plan_hidden = plan_hidden.to(dtype=next(self.plan_head.parameters()).dtype)
+        # In "masked" mode we do NOT substitute the null embedding; masking handles it.
+        substitute = dropped if self.planner_cfg.null_mode == "learned" else None
+        cursor = data.get("plan_cursor")  # (B,) long in [0,A); None -> single-chunk/block 0
+        plan_tokens, _ = self.plan_head(plan_hidden, key_padding_mask=kpm, dropped=substitute, cursor=cursor)
+        return plan_tokens, dropped
+
+    def apply_null_mask(self, vl_token_ids, vl_attn_mask, dropped):
+        """For null_mode='masked': zero the K _PLAN_TOKEN positions in the VL
+        attention mask for dropped rows, so the DiT cross-attention cannot see them
+        (exact base-model behavior for null examples). Returns a new mask tensor.
+        """
+        if dropped is None or self.planner_cfg.null_mode != "masked":
+            return vl_attn_mask
+        mask = vl_attn_mask.clone()
+        plan_positions = (vl_token_ids == _PLAN_TOKEN)  # (B, S)
+        drop = dropped.view(-1, 1).to(torch.bool) & plan_positions
+        mask[drop] = 0
+        return mask
+
+    @staticmethod
+    def _additive_key_mask(vl_attn_mask, dtype):
+        """Convert a (B,S) 0/1 validity mask to an additive (B,1,S) key mask used by
+        the VL self-attention (0 keep, large-negative masked). Returns None when the
+        mask is all-ones (no-op) to preserve exact base behavior."""
+        if vl_attn_mask is None:
+            return None
+        m = vl_attn_mask.to(dtype=dtype)
+        if bool((m == 1).all()):
+            return None
+        return (1.0 - m)[:, None, :] * torch.finfo(dtype).min
+
+
     # ========= ActionHead required ============
     def forward(self, data: dict) -> dict:
         self.set_frozen_modules_to_eval_mode()
@@ -510,6 +631,9 @@ class NitroGen(torch.nn.Module):
         #     input_ids=data["lang_input_ids"]
         # ).last_hidden_state
         # state_features = self.state_encoder(data["state"], embodiment_id)
+
+        # 1b) Encode plan tokens (if plan conditioning is enabled)
+        plan_tokens, plan_dropped = self.compute_plan_tokens(data)
 
         # 2) Prepare noisy trajectory
         actions = data["actions"]
@@ -536,14 +660,17 @@ class NitroGen(torch.nn.Module):
             action_features,
             data["dropped_images"],
             game_ids=data.get("game_id"),
+            plan_tokens=plan_tokens,
         )
 
-        vl_embs = self.vl_self_attention_model(vl_embs)
+        vl_attn_mask = self.apply_null_mask(data["vl_token_ids"], data["vl_attn_mask"], plan_dropped)
+        vl_self_mask = self._additive_key_mask(vl_attn_mask, vl_embs.dtype)
+        vl_embs = self.vl_self_attention_model(vl_embs, attention_mask=vl_self_mask)
         # vl_embs = self.qformer(vl_embs)
         model_output, all_hidden_states = self.model(
             hidden_states=sa_embs,
             encoder_hidden_states=vl_embs,
-            encoder_attention_mask=data["vl_attn_mask"],
+            encoder_attention_mask=vl_attn_mask,
             timestep=t_discretized,
             return_all_hidden_states=True,
         )
@@ -559,10 +686,66 @@ class NitroGen(torch.nn.Module):
         action_loss = (has_real_action[:, None, None] * raw_loss).sum() / (mask.sum() + 1e-6)
 
         loss = action_loss
+        out = {"loss": loss, "action_loss": action_loss.detach()}
 
-        return {
-            "loss": loss,
-        }
+        # 7) Optional contrastive auxiliary loss on pooled plan tokens, to push
+        #    apart opposite-direction plans (breaks the left/right collinearity that
+        #    collapses continuous-stick steering; see EXPERIMENTS EXP-007).
+        if (getattr(self, "planner_cfg", None) and self.planner_cfg.enabled
+                and self.planner_cfg.contrastive_weight > 0 and plan_tokens is not None
+                and data.get("plan_label") is not None):
+            keep = ~plan_dropped if plan_dropped is not None else torch.ones(
+                plan_tokens.shape[0], dtype=torch.bool, device=plan_tokens.device)
+            labels = data["plan_label"]
+            con = self._plan_contrastive_loss(plan_tokens[keep], labels[keep])
+            if con is not None:
+                loss = loss + self.planner_cfg.contrastive_weight * con
+                out["contrastive_loss"] = con.detach()
+                out["loss"] = loss
+
+        return out
+
+    def _plan_contrastive_loss(self, plan_tokens, labels):
+        """Supervised contrastive (SupCon) loss over plan tokens.
+
+        plan_tokens: (n, K, d) for the non-dropped rows; labels: (n,). The
+        representation is selected by planner_cfg.contrastive_mode:
+          * 'mean'    -> pool over K (order-blind; opposite orderings collapse).
+          * 'flatten' -> concat the K tokens to (n, K*d) (order-aware: order info
+                         must live in position-specific tokens to satisfy the loss).
+          * 'pertoken'-> run SupCon independently at each query position k and
+                         average; forces every position to be label-discriminative.
+        Returns None if there aren't positives.
+        """
+        n = plan_tokens.shape[0]
+        if n < 2:
+            return None
+        labels = labels.view(-1)
+        eye = torch.eye(n, dtype=torch.bool, device=plan_tokens.device)
+        pos = (labels[:, None] == labels[None, :]) & ~eye
+        if pos.sum() == 0:
+            return None
+        mode = getattr(self.planner_cfg, "contrastive_mode", "mean")
+
+        def supcon(z):
+            z = F.normalize(z, dim=-1)
+            sim = (z @ z.t()) / self.planner_cfg.contrastive_temp
+            sim = sim - sim.max(dim=1, keepdim=True).values.detach()
+            exp = torch.exp(sim) * (~eye).float()
+            log_prob = sim - torch.log(exp.sum(dim=1, keepdim=True) + 1e-9)
+            pos_f = pos.float()
+            has_pos = pos_f.sum(dim=1) > 0
+            return -(log_prob * pos_f).sum(dim=1)[has_pos] / pos_f.sum(dim=1)[has_pos]
+
+        pt = plan_tokens.float()
+        if mode == "flatten":
+            loss = supcon(pt.reshape(n, -1))            # (n, K*d)
+        elif mode == "pertoken":
+            losses = [supcon(pt[:, k, :]) for k in range(pt.shape[1])]
+            loss = torch.cat(losses)
+        else:  # 'mean'
+            loss = supcon(pt.mean(dim=1))               # (n, d)
+        return loss.mean()
 
     @torch.inference_mode()
     def get_action(self, data: dict, old_layout:bool = False) -> dict:
@@ -596,6 +779,9 @@ class NitroGen(torch.nn.Module):
         # ).last_hidden_state
         # state_features = self.state_encoder(data["state"], embodiment_id)
 
+        # 2b) Encode plan tokens once (independent of the denoising step)
+        plan_tokens, plan_dropped = self.compute_plan_tokens(data)
+        vl_attn_mask = self.apply_null_mask(data["vl_token_ids"], data["vl_attn_mask"], plan_dropped)
         # 3) Start denoising the actions
         for i in range(num_steps):
             # ---- (a) Discretize continuous time in [0,1]
@@ -618,15 +804,17 @@ class NitroGen(torch.nn.Module):
                 action_features,
                 data["dropped_images"],
                 game_ids=data["game_ids"],
+                plan_tokens=plan_tokens,
             )
-            vl_embs = self.vl_self_attention_model(vl_embs)
+            vl_self_mask = self._additive_key_mask(vl_attn_mask, vl_embs.dtype)
+            vl_embs = self.vl_self_attention_model(vl_embs, attention_mask=vl_self_mask)
             # vl_embs = self.qformer(vl_embs)
             # ---- (c) Forward pass to get velocity = d/dt x(t)
             timesteps = torch.from_numpy(np.array([t_discretized])).to(device).long()
             model_output = self.model(
                 hidden_states=sa_embs,
                 encoder_hidden_states=vl_embs,
-                encoder_attention_mask=data["vl_attn_mask"],
+                encoder_attention_mask=vl_attn_mask,
                 timestep=timesteps,
             )
             pred = self.action_decoder(model_output, embodiment_id)

@@ -263,6 +263,17 @@ class DiT(ModelMixin):
         hidden_states = hidden_states.contiguous()
         encoder_hidden_states = encoder_hidden_states.contiguous()
 
+        # Build an additive cross-attention mask over the encoder (VL) tokens.
+        # encoder_attention_mask: (B, S) with 1 = valid, 0 = masked. We convert to
+        # an additive float mask (B, 1, S): 0 keep, large-negative masked. With a
+        # single context frame the VL stream is exactly filled (no left padding),
+        # so for the base model this is all-ones -> a no-op. It becomes meaningful
+        # when plan tokens are masked out (null_mode="masked").
+        cross_mask = None
+        if encoder_attention_mask is not None:
+            m = encoder_attention_mask.to(dtype=hidden_states.dtype)
+            cross_mask = (1.0 - m)[:, None, :] * torch.finfo(hidden_states.dtype).min
+
         all_hidden_states = [hidden_states]
 
         # Process through transformer blocks
@@ -278,7 +289,7 @@ class DiT(ModelMixin):
             else:
                 hidden_states = block(
                     hidden_states,
-                    attention_mask=None,
+                    attention_mask=cross_mask,
                     encoder_hidden_states=encoder_hidden_states,
                     encoder_attention_mask=None,
                     temb=temb,
@@ -349,6 +360,7 @@ class SelfAttentionTransformer(ModelMixin):
         self,
         hidden_states: torch.Tensor,  # Shape: (B, T, D)
         return_all_hidden_states: bool = False,
+        attention_mask: Optional[torch.Tensor] = None,  # additive (B,1,T) over keys
     ):
 
         # Process through transformer blocks - single pass through the blocks
@@ -357,7 +369,7 @@ class SelfAttentionTransformer(ModelMixin):
 
         # Process through transformer blocks
         for idx, block in enumerate(self.transformer_blocks):
-            hidden_states = block(hidden_states)
+            hidden_states = block(hidden_states, attention_mask=attention_mask)
             all_hidden_states.append(hidden_states)
 
         if return_all_hidden_states:

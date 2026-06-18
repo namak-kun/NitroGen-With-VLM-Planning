@@ -1,0 +1,44 @@
+======================================================================
+PoC: Plan-conditioned NitroGen  (real ng.pt + real Qwen3.5-0.8B)
+======================================================================
+
+[1] Loading real NitroGen from ng.pt ...
+    hidden_size d        = 1024
+    vision_hidden_size   = 1024
+    action_dim/horizon   = 25 / 18
+    DiT layers/interleave= 8 / True
+    state_dict load: 0 real-missing, 0 unexpected (siglip text head, expected)
+
+[2] Loading frozen Qwen3.5-0.8B planner ...
+    Qwen3.5 params       = 0.85B (frozen)
+
+[3] Building PlanHead (resampler + adapter + null) ...
+    K plan tokens        = 8
+    NEW trainable params = 29.41M
+
+[4] Fake batch: B=2, frame=256x256, action target (2,18,25)
+
+[5] Encoding plan text with frozen Qwen3.5 (text-only path) ...
+    VLM hidden states    = (2, 9, 1024)  (B, L, d)
+    -> dims match (1024); no projector needed.  [CONFIRMS warm-start claim]
+    plan tokens          = (2, 8, 1024)  (B, K, d)
+
+[6] Forward + backward (plan present) ...
+    flow-matching loss   = 2.0374
+    grad norm resampler  = 2.1506e+00
+    grad norm adapter    = 1.1281e+00
+    grad norm null_plan  = 0.0
+    GRAD FLOW INTO NEW MODULES: PASS
+
+[7] Plan EFFECT test: null-plan vs plan velocity (same frame) ...
+    ||v_plan - v_null||  = 0.5421   (rel 0.014)
+    PLAN CHANNEL HAS EFFECT: PASS
+
+[8] Bonus: confirm Qwen3.5 ingests an image natively ...
+    image+text hidden    = (1, 81, 1024)  -> Qwen3.5 sees frames. PASS
+
+======================================================================
+RESULT: wiring=OK | grad_flow=PASS | plan_effect=PASS | vlm_image=PASS
+OVERALL: *** PoC PASS ***
+elapsed 8.7s
+======================================================================

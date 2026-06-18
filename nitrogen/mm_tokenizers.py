@@ -60,6 +60,7 @@ _LANG_TOKEN = 2
 _PROPRIO_TOKEN = 3
 _ACT_TOKEN = 4
 _GAME_ID_TOKEN = 6
+_PLAN_TOKEN = 7
 
 
 _UNCONDITIONAL_ID = None  # Special ID for unconditional game
@@ -89,6 +90,8 @@ class NitrogenTokenizerConfig(BaseModel):
     max_sequence_length: int = Field(default=300, description="Maximum sequence length.")
     action_horizon: int = Field(default=16, description="Action horizon.")
     game_mapping_cfg: GameMappingConfig | None = Field(default=None, description="Game mapping configuration.")
+    num_plan_tokens: int = Field(default=0, description="K: number of plan tokens prepended to the VL stream. 0 disables plan conditioning.")
+    joystick_only_loss: bool = Field(default=False, description="If True, restrict the action loss mask to the 4 joystick dims (last 4). Use when the button-column->model-slot permutation is unverified, so button targets don't corrupt training.")
     old_layout: bool = Field(default=False, description="Whether to use the old layout for actions. If True, the action layout is [buttons, j_left, j_right]. If False, it is [j_left, j_right, buttons].")
 
 class NitrogenTokenizer(Tokenizer):
@@ -107,6 +110,8 @@ class NitrogenTokenizer(Tokenizer):
         self.max_sequence_length = config.max_sequence_length
         self.action_horizon = config.action_horizon
         self.old_layout = config.old_layout
+        self.num_plan_tokens = config.num_plan_tokens
+        self.joystick_only_loss = config.joystick_only_loss
 
         if config.game_mapping_cfg:
             self.game_mapping = get_game_mapping(config.game_mapping_cfg)
@@ -173,6 +178,10 @@ class NitrogenTokenizer(Tokenizer):
         vl_token_ids = []
         sa_token_ids = []
 
+        # 0) Add K plan token placeholders (prepended to the VL stream)
+        if self.num_plan_tokens > 0:
+            vl_token_ids.extend([_PLAN_TOKEN] * self.num_plan_tokens)
+
         # 0.5) Add a Game ID placeholder
         if self.game_mapping:
             vl_token_ids.append(_GAME_ID_TOKEN)
@@ -225,8 +234,22 @@ class NitrogenTokenizer(Tokenizer):
         j_left = (j_left + 1) / 2.
         j_right = (j_right + 1) / 2.
 
-        # Concatenate the buttons and joysticks along the last dimension
-        action = np.concatenate([buttons,j_left,j_right],axis=-1, dtype=np.float32)
+        # NitroGen's true action layout is [buttons(N-4) @ 0..N-5, j_left @ N-4:N-2,
+        # j_right @ N-2:N] where N = max_action_dim (=25): i.e. 21 button slots then
+        # the 4 joystick dims (verified empirically against the released ng.pt; the
+        # shipped unpack_actions uses the same [:-4]/[-4:] convention). We therefore
+        # pad the button block to (N-4) BEFORE appending joysticks, so the joysticks
+        # land at dims N-4..N-1 (21..24), not after the buttons with trailing pad.
+        n_button_slots = self.max_action_dim - 4
+        n_buttons = buttons.shape[-1]
+        assert n_buttons <= n_button_slots, (
+            f"got {n_buttons} buttons but only {n_button_slots} button slots")
+        if n_buttons < n_button_slots:
+            pad_width = [(0, 0)] * (buttons.ndim - 1) + [(0, n_button_slots - n_buttons)]
+            buttons = np.pad(buttons, pad_width, "constant")
+
+        # Concatenate the (padded) button block and joysticks -> max_action_dim dims
+        action = np.concatenate([buttons, j_left, j_right], axis=-1, dtype=np.float32)
 
         # Squeeze the first dimension of each input: this is the number of chunks, which is 1 here
         action = action.squeeze(0)
@@ -288,6 +311,13 @@ class NitrogenTokenizer(Tokenizer):
             transformed_data["has_real_action"] = np.ones((), dtype=bool)
 
             actions, actions_mask, n_action_tokens = self._prepare_action(data)
+            if self.joystick_only_loss:
+                # Restrict supervision to the 4 joystick dims (last 4). Button
+                # column->slot permutation is unverified, so we do not supervise
+                # button dims to avoid corrupting the pretrained policy.
+                jmask = np.zeros_like(actions_mask)
+                jmask[:, -4:] = actions_mask[:, -4:]
+                actions_mask = jmask
             transformed_data["actions"] = actions
             transformed_data["actions_mask"] = actions_mask
 

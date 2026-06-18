@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Model checkpoints & weights
+ckpts/
+runs/
+*.pt
+
+# Cached frames from video ingestion
+frame_cache/
+
+# Tokenizer artifact written by NitrogenTokenizer
+game_mapping.json
+cookies.txt
+
+# Scratch research dumps (chat exports, not part of the codebase)
+reddit_content.md
+games_recons_decomps_open_source.md
+docs/DATAFLOW.md.bak
+
+# Local data pools / extraction outputs
+/tmp/
