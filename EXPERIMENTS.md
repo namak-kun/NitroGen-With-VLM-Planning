@@ -1599,3 +1599,82 @@ CONFIRMED CONTRIBUTOR but not the whole story (b32 still short). Actionable fix 
 larger batch, fewer seq-types per run, or explicit positive mining. Existing ckpts
 unaffected. Probe (probe_order_sep.py) added for fast re-testing. Full root-cause deferred
 (not blocking; existing checkpoints carry the capability).
+
+---
+
+## EXP-033  Stage-2 transcript feasibility probe — captions EXIST but are chit-chat-heavy — 2026-06-18
+
+GO/NO-GO probe for Stage 2 (real transcripts as plans) BEFORE building the alignment
+pipeline (planner_poc/probe_transcripts.py). For the 18 unique source videos: check en
+caption availability + measure motor-plan-word density.
+
+- **Availability: 15/18 videos have English captions** (mix of manual + YouTube auto).
+  Good — the raw material exists and is fetchable with the existing cookie/yt-dlp infra.
+- **Plan-word density: ~1.5% median (range 0.7-3.0%).** Fraction of transcript words that
+  are directional/action terms (left/right/jump/dash/attack/boost/...). LOW — transcripts
+  are dominated by commentary/chit-chat, not near-term motor narration. The most
+  action-narrated clips (QOBW 3.0%, 9-FusL 2.2%, TrZlF4 2.0%) are the exceptions.
+- NOTE: the `wpm` column in the probe is BOGUS (full-video caption words / chunk-slice
+  duration -> inflated). Ignore it; the plan-word RATE is per-word and valid. Also auto-VTT
+  repeats rolling-display lines, inflating raw word counts (not the rate).
+
+**Verdict (honest): Stage 2 is a DATA-QUALITY problem, not a modeling one.** Transcripts
+exist but most words don't describe what the hands are doing. Naively conditioning on raw
+transcript text would feed the planner mostly-irrelevant chit-chat. Implications/options
+for tomorrow:
+1. **Relabel, don't raw-condition:** use an LLM to compress each transcript window into a
+   terse intent ("approaching boost, going for aerial") — turns 1.5% signal into a dense
+   plan. This is the GR00T/Hi-Robot "language relabeling" pattern.
+2. **Curate channels:** some streamers narrate intent densely; filter to those.
+3. **Hybrid:** keep synthetic plans as the backbone; use transcripts only where plan-word
+   density clears a threshold (a few % of windows).
+This also re-frames the Q-former hypothesis (EXP-032): on RAW noisy transcripts the
+resampler must do heavy filtering — exactly where query self-attn MIGHT help — but on
+LLM-relabeled terse plans the input is short/clean again (closer to synthetic, where
+self-attn didn't help). So test the Q-former A/B on RAW transcript conditioning, not
+relabeled.
+
+---
+
+## EXP-034  Probe H1 — NO latent world model in NitroGen's DiT (env-free) — 2026-06-18
+
+Tested the hypothesis (MULTICHUNK_DESIGN.md §5) that NitroGen's DiT implicitly models how
+the state evolves over an 18-action chunk, so we could decode the NEXT frame from DiT
+internals -> a free 1-step world model -> enables R2 offline. Probe
+(planner_poc/probe_h1_worldmodel.py): on 675 REAL consecutive-frame pairs (/tmp/frames_cc;
+frame_t = chunk-0 start, frame_t1 = chunk-1 start = result of executing chunk 0), predict
+mean-pooled SigLIP features of frame_t1 from pooled DiT internals (conditioned on frame_t +
+the REAL chunk-0 actions). Ridge + PCA(64), 80/20 split, vs a persistence baseline
+(predict frame_t1 from frame_t's own features).
+
+| predictor -> next-frame SigLIP feats | held-out R^2 |
+|---|---|
+| persistence (frame_t feats) | **+0.468** |
+| DiT internals only | +0.289 |
+| DiT internals + persistence | +0.423 |
+| **DiT adds over persistence** | **-0.045** |
+
+**Verdict: no evidence of a forward-predictive world model.** The DiT internals carry
+frame information (R^2 0.29 alone) but it is a SUBSET of what the current frame already
+provides — adding them to persistence does NOT improve next-frame prediction (it slightly
+hurts). So NitroGen encodes the CURRENT visual state, not a lookahead. Consistent across
+n=120 (X-only R^2 negative from overfitting) and n=675+PCA (clean). 
+
+**Caveats (honest):** linear + mean-POOLED probe; a world model's signal could be
+nonlinear and/or spatial (WHERE things move), which pooling+linear destroys. Horizon is 36
+source frames (~0.6s); persistence R^2=0.47 means consecutive frames are similar, so the
+predictable "delta" is small. A stronger test = spatial (un-pooled) features + a conv/MLP
+decoder predicting the frame DELTA. But for the cheap-readout question the answer is clear:
+**extracting a world model from NitroGen internals is NOT cheap.** Combined with the
+cross-game dynamics difficulty (one action space, many games), this argues against the
+offline-world-model route; a real environment (games) remains the principled R2 path.
+
+## Strategic synthesis (EXP-033 + EXP-034, for tomorrow)
+- Stage 2 transcripts: captions EXIST (15/18) but are chit-chat (plan-word ~1.5%) ->
+  need LLM RELABELING into terse intents, not raw conditioning.
+- World model: NOT latent in NitroGen (cheap probe) -> offline WM is not free; training one
+  across many games with a shared action space is hard (low data/compute).
+- => The two tractable frontiers are (a) Stage 2 with relabeled transcripts (env-free,
+  on-thesis) and (b) a real game environment for genuine R2 (infra-heavy but principled).
+  "Abstractions across the many games" (user's note) is the interesting third axis to think
+  about tomorrow — a game-agnostic plan/skill space.
