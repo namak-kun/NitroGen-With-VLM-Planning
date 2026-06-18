@@ -1791,3 +1791,115 @@ game. This is the SAME cross-game-action-space problem that killed the world-mod
   GENERATE (VLM) but hard to GROUND to gamepad actions without either synthetic control or
   an environment. The "abstractions across games" idea is exactly about learning a
   game-agnostic goal space that bridges this gap.
+
+---
+
+## EXP-038  Action-conditioned VLM plans — grounded by construction (the fix) — 2026-06-18
+
+Acting on the EXP-036/037 failure (VLM can't infer gamepad from pixels): GIVE the VLM the
+real action chunk as context so it explains intent in game terms instead of guessing.
+LOCKED cadence/context spec (user-confirmed): VLM fires every A chunks (A in {4,8}); per
+window it gets N frames (sweepable), an ACTION SUMMARY of the real gamepad inputs
+(planner_poc/action_summary.py), the last >=2 PRIOR PLANS (plan->reaction loop), the
+transcript window (same A-chunk span), and the game name. Plans generated sequentially with
+rolling history. Pipeline: planner_poc/stage2_plan_gen.py (all knobs are CLI flags).
+
+First run (A=4=2.4s, n_frames=12, n_prior=2, Qwen3.5-4B, 3 videos): **plans are now grounded
+in the real actions** —
+- "Climb the wall and press B to interact" <- actions: left stick up-right; B throughout
+- "Hold the ball, accelerate right, and jump to maintain possession" <- RT/accelerate + A/jump
+- "Move left and shoot the ball into the open net" <- left stick down-left; LB throughout
+- "Dodge the attack then shoot..." <- up-right; B throughout
+The action summary ANCHORS the plan; the VLM elevates literal inputs to game-contextual
+intent (vs EXP-035 fluent-but-ungrounded, EXP-037 chance-aligned). The frame count (12 vs
+5) and the explicit action ground-truth are the changes that fixed grounding.
+
+**Why this works where EXP-036/037 didn't:** we no longer ASK the VLM to recover the
+controller action from pixels (it can't). We GIVE it the action and ask for the *intent*.
+The plan is grounded by construction (derived from the real chunk) -> training on these
+plans teaches a real plan->action mapping, not the VLM's prior.
+
+**Observations / to fix in the sweep:**
+1. Idle windows -> generic "hold position and observe" (correct but low-value; flag/skip
+   idle windows when building the dataset).
+2. Rolling history can OVER-anchor (rocket_league repeated "hold the ball, accelerate
+   right, jump" across windows even as actions changed) -> tune n_prior / instruct the VLM
+   that the plan should track the CURRENT window, using history only for continuity.
+3. Transcript adds little when it's chit-chat/[Music] (expected); it helps when on-topic.
+
+**Next:** sweep A in {4,8}, n_frames, and model size (4B vs 9B vs Gemma-4-12B) for plan
+quality; decide the final config; then wire these grounded plans into the Stage-2 dataset
+(plan_text from here; target = the real chunk -> R0 post-hoc but with rich GOAL plans).
+
+---
+
+## EXP-039  Stage-2 plan quality: prompt + model sweep -> tactical prompt, Gemma-4-12B best — 2026-06-18
+
+Goal (user principle): plans must be INFORMATIVE tactical intent, NOT per-action directive
+(no button/stick prescriptions); System 1 does fast reactions. Built a cached-window harness
+(cache_s2_windows.py: 17 active windows w/ frames+action-summary+transcript) + a fast sweep
+(s2_prompt_sweep.py) scoring each plan: directive-word count (LOW good), game-object
+specificity (HIGH good).
+
+**Prompt sweep (Qwen3.5-4B, 12 windows):**
+| prompt | avg directive | avg specificity | avg len |
+|---|---|---|---|
+| baseline (current) | 1.00 | 0.75 | 9.4 |
+| **tactical** (goal-only, "never mention controls") | **0.00** | **1.17** | 9.1 |
+| situation (situation+goal) | 0.42 | 0.83 | 10.7 |
+-> the `tactical` prompt ELIMINATES controller-leakage and is most specific. Examples:
+baseline "Hold B to interact with the NPC" -> tactical "Intercept the enemy and secure the
+kill"; baseline "Accelerate and jump to catch the ball" -> tactical "Maintain offensive
+pressure and intercept the ball before it reaches the net".
+
+**Model sweep (tactical prompt, 10 windows):**
+| model | avg directive | avg specificity | notes |
+|---|---|---|---|
+| Qwen3.5-4B | 0.00 | 1.17 | clean, concise |
+| Qwen3.5-9B | 0.60 | 0.90 | WORSE — leaks "position/dash right/jump" more |
+| **Gemma-4-12B-it** | **0.00** | 0.80 | cleanest + most natural, best game-grounding |
+Bigger Qwen (9B) was NOT better (more directive). Gemma-4-12B reads best: "Position the car
+to intercept the ball and defend the goal", "Navigate the platforming section and reach the
+next ledge", "Maintain distance and dodge the boss's melee attacks" — all grounded in the
+real actions (down-left+LB -> "position in the corner") with zero input prescription.
+
+**Decision:** Stage-2 plan generation = **Gemma-4-12B-it + tactical prompt** (Qwen3.5-4B a
+fast fallback). Action summary stays as VLM CONTEXT (grounding), never in the plan text.
+The plan abstraction is now correct: tactical goal, System-1 does the controls.
+
+**Still open / next:** (1) the action summary grounds the VLM but is itself coarse — could
+add d-pad/right-stick/aim; (2) "plan + reaction" narrative (user) — when the transcript or
+prior plans show intent->outcome, the plan should reflect adjustment; current rolling
+history gives continuity but isn't explicitly reaction-aware; (3) build the Stage-2 dataset
+(plan_text = these tactical plans; target = real chunk) and a first conditioning run.
+
+---
+
+## EXP-040  Reaction-aware Stage-2 plans (plan -> outcome -> adjustment) — 2026-06-18
+
+User insight: plans/transcripts should capture plan -> REACTION (intent, then how it turned
+out, then the adjustment), not just continuity. Built s2_reaction_plans.py: the VLM sees its
+OWN prior plan + what the player ACTUALLY did next (the outcome), and produces the new plan
+as an explicit ADJUSTMENT when the situation changed. Gemma-4-12B + tactical prompt.
+
+Result — coherent evolving tactics grounded in the action sequence:
+- rocket_league: "Maintain momentum and prepare to challenge for the ball" -> (player went
+  aerial: RT/accel + A/jump) -> "Adjust: land the car and reposition to intercept the ball."
+- combat (Fihy): "Maintain defensive stance and wait for the enemy to commit" -> (moved) ->
+  "Adjust: circle the enemy and look for an opening to strike" -> "Adjust: keep circling,
+  maintain distance, wait for a clear opening."
+
+The plan now reflects the prior plan's OUTCOME and adjusts — a real plan->reaction narrative,
+not a static description. (When the window is idle/neutral, the plan repeats — expected,
+nothing to react to; idle windows should be flagged/skipped in the dataset.)
+
+**Why this matters for Stage 2:** each window yields a (prior_plan, outcome, new_plan)
+triple — a small temporal-intent narrative the planner can learn from, and exactly the
+"plan + reaction to plan" structure the user wanted. Combined with EXP-038/039 (action-
+grounded, tactical-abstraction, Gemma-12B), the Stage-2 plan-generation recipe is now:
+  Gemma-4-12B-it + tactical/reaction-aware prompt + (frames + action-summary-as-context +
+  prior-plan + outcome + transcript), A=4, plans are tactical GOALS (never controls).
+
+**Next:** scale plan generation across many consecutive windows/videos to build the actual
+Stage-2 dataset (plan_text = reaction-aware tactical plan; target = real chunk); then a first
+plan-conditioned training run on REAL VLM-generated plans (vs Stage-1 synthetic).
