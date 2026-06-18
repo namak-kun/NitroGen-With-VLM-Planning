@@ -1678,3 +1678,116 @@ offline-world-model route; a real environment (games) remains the principled R2 
   on-thesis) and (b) a real game environment for genuine R2 (infra-heavy but principled).
   "Abstractions across the many games" (user's note) is the interesting third axis to think
   about tomorrow — a game-agnostic plan/skill space.
+
+---
+
+## EXP-035  VLM-on-frames generates grounded game-contextual plans (vs transcripts) — 2026-06-18
+
+User insight: we need REAL game-contextual plans ("I need to go to Hyrule Castle") and the
+Qwen3.5 models are vision-capable. So instead of (only) relabeling streamer transcripts,
+feed the gameplay FRAME to a vision LM and ask for the player's near-term intent.
+
+Setup: Qwen3.5-4B (instruction+vision, from HF cache; needs `accelerate`, thinking mode
+DISABLED via enable_thinking=False), one cached frame per chunk, prompt = "in one short
+imperative sentence state the player's most likely immediate goal/next action." Compared
+side-by-side with the chunk-aligned transcript window (planner_poc/vtt_align.py parses VTT
+with word timestamps + dedups auto-caption rolling repetition).
+Script: planner_poc/vlm_plan_from_frame.py.
+
+**Result: VLM frame-plans are clean, grounded, game-contextual motor intents; transcripts
+are mostly chit-chat.** Examples (VLM plan | transcript):
+- skate_sim:     "land the trick on the rail"                | "oh finally that's one thing I get super confused with..."
+- rocket_league: "chase the ball and shoot"                  | "everything, unfortunately I had no more boost..."
+- streets_of_rage_2: "Run right toward the door to enter the next area" | "if it's his real last name but..."
+- bullet-hell:   "Shoot the red orbs while avoiding the black square" | "what comes after and also until you have shift..."
+- action-RPG:    "attack the enemy with the sword"           | "I'm going back and I'm going to heal..."
+
+The VLM correctly identifies the game (Kingdom Hearts, SoR2, ...) and emits exactly the
+kind of contextual plan we want. Transcripts for the SAME chunk are dominated by
+commentary/meta-talk, confirming EXP-033: transcripts need heavy relabeling; the VLM gives
+us grounded plans DIRECTLY from pixels.
+
+**Caveats (honest):**
+1. NOT perfect: a couple of SoR2 frames returned "chase the ball and shoot" (wrong/
+   leakage-looking), so the VLM hallucinates on ambiguous frames. Need a quality filter.
+2. Single frame -> the plan is about the static scene, not motion. A short multi-frame clip
+   (Qwen3.5 supports video) would capture WHAT IS HAPPENING (player moving left, ball
+   incoming), likely giving more action-predictive plans. Worth testing.
+3. These VLM plans are not yet GROUNDED to the real actions — they describe intent, but we
+   haven't verified the plan predicts the streamer's actual next chunk. That's the key
+   alignment test before training on them.
+4. The plan vocabulary is open/natural-language (good for Stage 2 generality, but the
+   resampler must distill it; this is exactly where the Q-former A/B (EXP-032) should be
+   re-tested on REAL variable plans).
+
+**Implication:** this reframes Stage 2 — the plan source is the VLM watching the game, not
+the streamer's mouth. Pipeline: frame(s) -> vision LM -> contextual plan text -> (existing)
+PlanEncoder -> plan tokens -> NitroGen. Next: (a) multi-frame/video plans, (b) verify
+VLM-plan predicts the real action chunk (alignment), (c) build the Stage-2 dataset path.
+
+---
+
+## EXP-036  VLM single-frame plans do NOT predict the real action (chance-level) — 2026-06-18
+
+Critical alignment test (planner_poc/vlm_plan_alignment.py): for 60 chunks with a CLEAR
+real dominant direction, does the VLM's single-frame plan direction match the streamer's
+ACTUAL direction? Qwen3.5-4B, prompt asks "which way should the player move right now".
+
+**Result: 25% exact / 50% axis agreement == CHANCE (4 cardinals).** The VLM plan is NOT
+action-predictive from a single frame.
+
+**Smoking gun:** the VLM says "move RIGHT to dodge" for ~70% of ALL frames regardless of
+the real action (flutter_barn: 11/11 "move right..."; rocket_league: most "move right to
+dodge"). It has a strong directional PRIOR and describes a plausible-but-generic intent,
+not the player's actual motion. A static frame literally does not contain velocity, so the
+VLM can't know which way the player is going -> it guesses (biased to "right"/"dodge").
+
+**Conclusion:** EXP-035's plans LOOKED great (fluent, game-contextual) but EXP-036 shows
+they are NOT grounded in the real actions -> training on them would teach the model the
+VLM's prior, not the streamer's behavior. Single-frame VLM planning is insufficient.
+
+**Fix to test (user's hint): MULTI-FRAME / VIDEO input.** Motion (where things moved over
+the last N frames) is what reveals direction. Qwen3.5 supports video. Next: feed a short
+real clip (several frames from the cached mp4 slice) and re-run the SAME alignment test. If
+agreement jumps above chance, video-grounded VLM plans are the Stage-2 path; if still
+chance, the VLM can't recover low-level direction and we need a different plan abstraction
+(higher-level goals, not directions) or to derive plans from the actions themselves.
+
+---
+
+## EXP-037  Multi-frame VLM plans: marginal lift, still ~chance; the deeper mismatch — 2026-06-18
+
+Tested the multi-frame fix for EXP-036: feed a 5-frame CLIP (real frames spanning the
+chunk) so the VLM sees MOTION, ask which way the player is moving
+(planner_poc/vlm_plan_alignment_multiframe.py, 34 chunks across games).
+
+**Result: 32% exact direction (vs single-frame 25%), still ~chance.** Marginal improvement;
+the "right"/"forward" prior persists ("moving right along the platform", "driving forward").
+
+**The deeper mismatch (the real lesson):** the failures are systematic, not noisy. Racing
+(art_of_rally): real=right/left but VLM="driving FORWARD" every time (6/6). The VLM
+describes SCREEN-SPACE / SEMANTIC motion ("driving forward along the road"), but NitroGen's
+action is a CONTROLLER INPUT (stick LEFT/RIGHT = steering while the car visually goes
+"forward"). These are different spaces with a GAME-SPECIFIC mapping (steering vs translation,
+camera-relative vs world-relative, platformer "right" vs twin-stick aim). So a VLM motion
+description cannot be used as a low-level controller-direction LABEL — not because the VLM
+is wrong, but because it doesn't speak "gamepad", and the goal->gamepad mapping differs per
+game. This is the SAME cross-game-action-space problem that killed the world-model idea
+(EXP-034), now showing up on the planning side.
+
+**Synthesis of the VLM-plan investigation (EXP-035/036/037):**
+- VLM plans from frames LOOK excellent and are game-contextual (EXP-035) — great as
+  HIGH-LEVEL GOALS ("chase the ball", "go to the door", "dodge").
+- But they are NOT aligned to low-level controller directions (EXP-036 single 25%, EXP-037
+  multi 32% — both chance) because goal/screen-motion != gamepad input (game-specific map).
+- => You CANNOT supervise Stage-2 by matching VLM-plan-direction to action-direction. The
+  plan->action grounding MUST be LEARNED (as Stage 1 did with SYNTHETIC plans where we
+  controlled the action). For real VLM plans, you need either:
+  (a) treat VLM plans as high-level goals and learn goal->action grounding from data where
+      the goal provably correlates with the action (hard: our test shows weak correlation),
+  (b) derive the plan FROM the actions (post-hoc, EXP-031 style) but phrased as a goal, or
+  (c) a closed-loop env where the goal can be rewarded (the games route).
+- This is consistent with the project's core tension: high-level semantic plans are easy to
+  GENERATE (VLM) but hard to GROUND to gamepad actions without either synthetic control or
+  an environment. The "abstractions across games" idea is exactly about learning a
+  game-agnostic goal space that bridges this gap.
