@@ -277,6 +277,9 @@ class NitroGen(torch.nn.Module):
                 f"planner plan_hidden_size {self.planner_cfg.plan_hidden_size} must equal "
                 f"vision_hidden_size {self.vision_hidden_size}"
             )
+            # EXP-048: tell the plan head the DiT temb (inner) dim so its plan-adaLN projection
+            # can map pooled-plan -> a global temb offset.
+            self.planner_cfg.dit_temb_dim = self.model.inner_dim
             self.plan_head = PlanHead(self.planner_cfg)
 
         # Optional LoRA on the DiT cross-attention (extra capacity for plan routing
@@ -667,12 +670,16 @@ class NitroGen(torch.nn.Module):
         vl_self_mask = self._additive_key_mask(vl_attn_mask, vl_embs.dtype)
         vl_embs = self.vl_self_attention_model(vl_embs, attention_mask=vl_self_mask)
         # vl_embs = self.qformer(vl_embs)
+        plan_cond = self.plan_head.adaln_cond(plan_tokens, plan_dropped) \
+            if (getattr(self, "planner_cfg", None) and self.planner_cfg.enabled
+                and plan_tokens is not None) else None
         model_output, all_hidden_states = self.model(
             hidden_states=sa_embs,
             encoder_hidden_states=vl_embs,
             encoder_attention_mask=vl_attn_mask,
             timestep=t_discretized,
             return_all_hidden_states=True,
+            plan_cond=plan_cond,
         )
         pred = self.action_decoder(model_output, embodiment_id)
         pred_actions = pred[:, -actions.shape[1] :]
@@ -823,6 +830,9 @@ class NitroGen(torch.nn.Module):
         # 2b) Encode plan tokens once (independent of the denoising step)
         plan_tokens, plan_dropped = self.compute_plan_tokens(data)
         vl_attn_mask = self.apply_null_mask(data["vl_token_ids"], data["vl_attn_mask"], plan_dropped)
+        plan_cond = self.plan_head.adaln_cond(plan_tokens, plan_dropped) \
+            if (getattr(self, "planner_cfg", None) and self.planner_cfg.enabled
+                and plan_tokens is not None) else None
         # 3) Start denoising the actions
         for i in range(num_steps):
             # ---- (a) Discretize continuous time in [0,1]
@@ -857,6 +867,7 @@ class NitroGen(torch.nn.Module):
                 encoder_hidden_states=vl_embs,
                 encoder_attention_mask=vl_attn_mask,
                 timestep=timesteps,
+                plan_cond=plan_cond,
             )
             pred = self.action_decoder(model_output, embodiment_id)
             pred_velocity = pred[:, -actions.shape[1] :]

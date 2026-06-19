@@ -42,6 +42,8 @@ class PlannerConfig(BaseModel):
     distill_weight: float = Field(default=0.0, description="Weight of the privileged-info DISTILLATION loss (EXP-045): pull the (base-plan) student plan tokens toward precomputed teacher plan tokens from the action-augmented prompt P+. 0 disables. Combines a per-token MSE (transfer steering) with an InfoNCE/CLIP term (per-chunk positive vs cross-chunk negatives; de-collinearize).")
     distill_temp: float = Field(default=0.1, description="Temperature for the InfoNCE term of the distillation loss.")
     plan_hidden_size: int = Field(default=1024, description="Hidden size of the planner backbone (== NitroGen vision_hidden_size).")
+    plan_adaln: bool = Field(default=False, description="EXP-048: in ADDITION to the K cross-attention plan tokens, give the plan GLOBAL authority by adding a zero-init plan offset into the DiT timestep embedding (adaLN/FiLM). The plan then multiplicatively gates every DiT block + the output. Identity at init (zero-init proj) and null-masked -> base-exact; the override fix for the plan being structurally outvoted (8 plan tokens vs ~256 vision tokens). 0/False disables.")
+    dit_temb_dim: int = Field(default=0, description="DiT timestep-embedding (inner) dim; set by NitroGen at construction so the plan-adaLN projection can map plan_dim -> temb_dim. 0 = unset/disabled.")
     freeze_backbone: bool = Field(default=True, description="Freeze the VLM backbone (Stage 1).")
     backbone_dtype: str = Field(default="bfloat16", description="Dtype for the (frozen) backbone.")
 
@@ -192,6 +194,14 @@ class PlanHead(nn.Module):
         )
         self.adapter = PlanAdapter(dim=dim, hidden=config.adapter_hidden)
         self.null_plan = nn.Parameter(torch.randn(config.num_plan_tokens, dim) * 0.02)
+        # EXP-048 plan-adaLN: map the pooled plan tokens -> a DiT-temb offset (global FiLM
+        # authority, in addition to the K cross-attention tokens). Zero-init -> identity at
+        # start (base-exact); null rows are masked to 0 in adaln_cond() so null == base.
+        self.adaln_proj = None
+        if config.plan_adaln and config.dit_temb_dim > 0:
+            self.adaln_proj = nn.Linear(dim, config.dit_temb_dim)
+            nn.init.zeros_(self.adaln_proj.weight)
+            nn.init.zeros_(self.adaln_proj.bias)
 
     def forward(self, vlm_hidden: torch.Tensor,
                 key_padding_mask: Optional[torch.Tensor] = None,
@@ -219,3 +229,15 @@ class PlanHead(nn.Module):
 
     def null_tokens(self, bsz: int) -> torch.Tensor:
         return self.null_plan.unsqueeze(0).expand(bsz, -1, -1)
+
+    def adaln_cond(self, plan_tokens: torch.Tensor,
+                   dropped: Optional[torch.Tensor] = None) -> Optional[torch.Tensor]:
+        """EXP-048: pooled-plan -> DiT-temb offset (B, dit_temb_dim). Returns None if plan-adaLN
+        is disabled. Dropped/null rows are forced to 0 so null == base exactly (and so plan-CFG
+        amplifies only the real plan's adaLN delta). Zero-init proj -> 0 at start."""
+        if self.adaln_proj is None or plan_tokens is None:
+            return None
+        cond = self.adaln_proj(plan_tokens.mean(dim=1))  # (B, temb_dim)
+        if dropped is not None:
+            cond = cond * (~dropped).view(-1, 1).to(cond.dtype)
+        return cond

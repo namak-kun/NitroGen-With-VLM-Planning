@@ -2228,3 +2228,34 @@ low w regardless of how we supervise. Two real levers remain (NOT pursued tonigh
       CFG (95% @ w=12); push the teacher / distill harder to lower the required w.
 Best override model stays EXP-045 (runs/stage2_student). Counterfactual ckpts: runs/stage2_cf,
 runs/stage2_cf_lora (kept for the record; not recommended).
+
+## EXP-048  Plan-adaLN (global FiLM authority) — alone it DAMPENS, doesn't steer — 2026-06-19
+
+Architectural lever for the "plan is outvoted (8 plan tokens vs ~256 vision)" problem: in
+ADDITION to the K cross-attention plan tokens, add a zero-init plan offset into the DiT
+TIMESTEP embedding (temb), which drives every block's AdaLayerNorm + the output proj -> the
+plan gets GLOBAL multiplicative authority over the whole DiT stream. Identity at init (zero-init
+proj) + null-masked -> base-exact; checkpoint-compatible.
+Impl: PlannerConfig.plan_adaln + dit_temb_dim; PlanHead.adaln_proj (Linear d->temb, zero-init)
++ adaln_cond() (pooled-plan -> temb offset, dropped rows forced to 0); DiT.forward plan_cond
+arg added to temb; NitroGen threads plan_cond in forward + get_action; counterfactual_eval /
+eval_stage2_dir auto-detect plan_head.adaln_proj. Verified: identity at init, null row -> 0,
+params named plan_head.adaln_proj.* (plan LR, not frozen by --freeze-dit). +1.1M params.
+
+EXP-048 = EXP-043 recipe (outcome-contrastive, frozen DiT, FACTUAL base plans) + --plan-adaln.
+counterfactual_eval low-w steering matrix (abs left-stick), n=20:
+| w | left x | right x | (null x +0.481) |
+|---|---|---|---|
+| 1 | +0.442 | +0.430 | both ~ null |
+| 5 | +0.120 | +0.094 | BOTH pull DOWN; left~=right |
+Counterfactual flip 0% (w1-3), 10% (w5). **adaLN ALONE made steering WORSE: left and right
+collapse to the same generic DAMPENING shift, not direction-specific steering.**
+
+WHY: the adaLN cond is a SINGLE pooled vector with NO direction-specific supervision (the
+outcome-contrastive loss shapes only the K cross-attn plan tokens, not the adaLN projection),
+and on FACTUAL plans (plan agrees with frame) there is no override pressure -> the global path
+just learns a mild common-mode dampening. The global authority is real but UNDIRECTED.
+
+=> adaLN needs an OVERRIDE TARGET to learn to use its authority directionally -> EXP-048b:
+adaLN + counterfactual training (the user's "both would be needed": global authority FROM adaLN
++ override signal FROM counterfactual pairs). This is the decisive synergy test.

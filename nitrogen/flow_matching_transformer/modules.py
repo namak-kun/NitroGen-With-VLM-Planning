@@ -255,9 +255,17 @@ class DiT(ModelMixin):
         timestep: Optional[torch.LongTensor] = None,
         encoder_attention_mask: Optional[torch.Tensor] = None,
         return_all_hidden_states: bool = False,
+        plan_cond: Optional[torch.Tensor] = None,  # EXP-048: (B, D) plan-adaLN temb offset
     ):
         # Encode timesteps
         temb = self.timestep_encoder(timestep)
+
+        # EXP-048 plan-adaLN: add the plan offset to the GLOBAL conditioning vector. temb drives
+        # every block's AdaLayerNorm and the output projection, so this gives the plan
+        # multiplicative authority over the whole DiT stream (vs the K cross-attention tokens
+        # that are outvoted by the ~256 vision tokens). None / base model -> no change.
+        if plan_cond is not None:
+            temb = temb + plan_cond.to(temb.dtype)
 
         # Process through transformer blocks - single pass through the blocks
         hidden_states = hidden_states.contiguous()

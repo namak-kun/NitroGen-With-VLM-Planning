@@ -172,6 +172,8 @@ def main():
                     help="Stage-2 COUNTERFACTUAL (EXP-047): path to {uuid:{buttons,j_left,j_right,dir}} (gen_stage2_index.py); enables transplanting a real (plan,action) from a different direction cluster")
     ap.add_argument("--s2-cf-ratio", type=float, default=0.0,
                     help="Stage-2: fraction of PLAN examples that are counterfactual (frame_i + plan_j/action_j from a DIFFERENT dir cluster; target follows the PLAN). Teaches the plan to OVERRIDE the frame -> low-guidance counterfactual control (EXP-047).")
+    ap.add_argument("--plan-adaln", action="store_true",
+                    help="EXP-048: add a zero-init plan-adaLN path (plan offset into the DiT timestep embedding) ON TOP of the K cross-attention plan tokens, giving the plan global FiLM authority over the DiT. Identity at init + null-masked -> base-exact.")
     ap.add_argument("--init-from", default=None,
                     help="warm-start plan head (and DiT) from a prior Stage-1 checkpoint")
     ap.add_argument("--lora-dit", type=int, default=0,
@@ -201,6 +203,7 @@ def main():
     mc.planner_cfg.contrastive_weight = args.contrastive_weight
     mc.planner_cfg.contrastive_mode = args.contrastive_mode
     mc.planner_cfg.distill_weight = args.distill_weight
+    mc.planner_cfg.plan_adaln = args.plan_adaln
     mc.planner_cfg.resampler_query_self_attn = args.resampler_self_attn
     mc.planner_cfg.num_chunks = args.num_chunks
     mc.lora_dit_rank = args.lora_dit

@@ -57,8 +57,12 @@ def load(path, which="model"):
     lk = [k for k in sd if k.endswith(".lora_A")]
     if lk:
         mc.lora_dit_rank = int(sd[lk[0]].shape[0])
+    # EXP-048: rebuild the plan-adaLN proj if the checkpoint has it (else adaln_cond -> None).
+    if any(k.endswith("plan_head.adaln_proj.weight") for k in sd):
+        mc.planner_cfg.plan_adaln = True
     m = NitroGen(config=mc, game_mapping=None)
-    m.load_state_dict(sd, strict=False)
+    miss, unexp = m.load_state_dict(sd, strict=False)
+    assert not unexp, unexp[:5]
     return m.to(device).eval()
 
 
@@ -111,20 +115,25 @@ def sample_stick_cfg(m, png, plan_text, w, seed):
         pt_u, pdp_u = m.compute_plan_tokens(duncond)
         vlm_c = m.apply_null_mask(d["vl_token_ids"], d["vl_attn_mask"], pdp_c)
         vlm_u = m.apply_null_mask(d["vl_token_ids"], d["vl_attn_mask"], pdp_u)
+        # EXP-048 plan-adaLN offset: real plan for cond, masked-to-0 for uncond (so CFG
+        # amplifies the adaLN delta too). adaln_cond returns None if plan-adaLN is disabled.
+        pc_c = m.plan_head.adaln_cond(pt_c, torch.tensor([False], device=device)) if pt_c is not None else None
+        pc_u = m.plan_head.adaln_cond(pt_u, torch.tensor([True], device=device)) if pt_u is not None else None
         actions = torch.randn(1, H_, A_dim, generator=g, device=device, dtype=torch.float32)
 
-        def vel(acts, tb, pt, vlm):
+        def vel(acts, tb, pt, vlm, pc):
             af = m.action_encoder(acts.to(vis.dtype), tb, d["embodiment_id"])
             vl, sa = m.prepare_input_embs(d["vl_token_ids"], d["sa_token_ids"], vis, af,
                                           d["dropped_images"], game_ids=d["game_ids"], plan_tokens=pt)
             vl = m.vl_self_attention_model(vl, attention_mask=m._additive_key_mask(vlm, vl.dtype))
-            mo = m.model(hidden_states=sa, encoder_hidden_states=vl, encoder_attention_mask=vlm, timestep=tb)
+            mo = m.model(hidden_states=sa, encoder_hidden_states=vl, encoder_attention_mask=vlm,
+                         timestep=tb, plan_cond=pc)
             return m.action_decoder(mo, d["embodiment_id"])[:, -H_:].float()
 
         for i in range(num_steps):
             tb = torch.tensor([int((i / num_steps) * m.num_timestep_buckets)], device=device)
-            v_c = vel(actions, tb, pt_c, vlm_c)
-            v_u = vel(actions, tb, pt_u, vlm_u)
+            v_c = vel(actions, tb, pt_c, vlm_c, pc_c)
+            v_u = vel(actions, tb, pt_u, vlm_u, pc_u)
             actions = actions + dt * (v_u + w * (v_c - v_u))
     a = actions[0].float().cpu().numpy()
     return float(a[:, JLX].mean()), float(a[:, JLY].mean())

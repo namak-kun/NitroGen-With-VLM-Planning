@@ -48,6 +48,8 @@ def load(path, which):
     lk = [k for k in sd if k.endswith(".lora_A")]
     if lk:
         mc.lora_dit_rank = int(sd[lk[0]].shape[0])
+    if any(k.endswith("plan_head.adaln_proj.weight") for k in sd):
+        mc.planner_cfg.plan_adaln = True
     m = NitroGen(config=mc, game_mapping=None)
     m.load_state_dict(sd, strict=False)
     return m.to(device).eval()
