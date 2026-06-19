@@ -2156,3 +2156,75 @@ not the usual 1-3) because the plan is a light signal vs the strong frame prior,
 axis flip), n=20 frames; (2) up needs the most guidance (y-axis/data imbalance, EXP-026); (3)
 high CFG extrapolates far -- worth checking action realism/per-step saturation at scale. Eval:
 counterfactual_eval.py (CFG=... AUGMENT_PLANS=... env).
+
+## EXP-047  Training-time CFG / counterfactual pairs on a FROZEN DiT does NOT give low-w override (NEGATIVE) — 2026-06-19
+
+Goal: make counterfactual override work at LOW guidance (w~1-3) instead of EXP-046's w=8-12.
+DESIGN BOUNDARY first (user): counterfactual training is fundamentally SINGLE-CHUNK (motor
+override). A counterfactual plan has NO ground-truth action; the only valid supervision is
+TRANSPLANTING a real action chunk from another frame, valid only for frame-agnostic short
+motor primitives. NAVIGATIONAL multichunk counterfactual needs game DYNAMICS = the world model
+/env we don't have -> out of scope. Multichunk stays FACTUAL.
+
+Mechanism (single-chunk): dataset s2_cf_ratio -> with prob 0.5, pair frame_i with a real
+(plan_j, action_j) from a DIFFERENT direction cluster; target follows the PLAN (transplanted
+motor primitive). null keeps the FACTUAL frame-following target, so plan vs null form a CFG
+pair that should teach the plan to OVERRIDE the frame. Code: gen_stage2_index.py (uuid ->
+chunk+dir), dataset s2_index/s2_dir_pools + cf branch (label = cf_dir). Verified the branch
+fires: 38 vlm_cf / 56 vlm / 56 null per 150 (not a bug). Frozen DiT, outcome-contrastive on.
+
+counterfactual_eval.py low-w sweep (absolute stick override, flip = reverse a committed frame
+action), n=20 frames:
+| w | EXP-043 (no cf) flip | EXP-045 distilled flip | EXP-047 (cf, frozen) flip |
+|---|---|---|---|
+| 1 | 0% | 0% | 0% |
+| 2 | - | - | 0% |
+| 3 | - | - | 0% |
+| 5 | 35% | 40% | **5%** |
+EXP-047 left-stick x at w=3: +0.16 (vs distilled +0.09) -- WEAKER plan delta, not stronger.
+
+**NEGATIVE: counterfactual training on a FROZEN DiT made the plan signal WORSE, not better.**
+Interpretation: the frozen DiT CAPS plan authority -- plan tokens enter via frozen cross-attn;
+to override a strong frame prior the plan needs more authority than the frozen pathway can
+express. Adding harder, conflicting counterfactual targets just dilutes the signal the frozen
+model can represent. => the lever is CAPACITY in the plan pathway: counterfactual + LoRA/unfreeze
+the DiT (the override gradient needs somewhere to live) -> EXP-047b. (User always expected to
+train the DiT; env-free/param-efficiency are Stage-1 sidenotes only.)
+
+## EXP-047b  Counterfactual + LoRA also fails; explicit override training UNDERPERFORMS distillation for CFG override — 2026-06-19
+
+Tested the EXP-047 implication (frozen DiT caps plan authority -> add capacity). Same
+counterfactual pairs (s2_cf_ratio 0.5) + outcome-contrastive + LoRA(16) on DiT cross-attn,
+lr-dit 2e-4. counterfactual_eval.py flip rate (n=20):
+| w | distilled student (EXP-045) | EXP-047 cf frozen | EXP-047b cf+LoRA |
+|---|---|---|---|
+| 1  | 0%  | 0% | 0% |
+| 3  | -   | 0% | 20% |
+| 5  | 40% | 5% | 20% |
+| 8  | 85% | -  | 20% |
+| 12 | 95% | -  | 20% (PLATEAU) |
+
+**Double negative + a real insight:** (1) LoRA capacity barely helps counterfactual training
+(5%->20%) and does NOT yield low-w override. (2) Explicit counterfactual training PLATEAUS at
+20% override even at high CFG -- far BELOW the plain distilled student (95%), which never saw a
+counterfactual example.
+
+WHY: CFG override amplifies (v_cond - v_uncond); clean override needs STRONG, CONSISTENT,
+direction-encoding plan tokens. Distillation (EXP-045) gives a crisp token-space target ->
+strong consistent tokens -> CFG amplifies cleanly to 95%. Explicit counterfactual training asks
+a (frozen/LoRA) DiT to make ONE plan override MANY different frames; it settles for a weak
+compromise representation whose (v_cond - v_uncond) is inconsistent across frames, so CFG
+amplification saturates at 20%. **Token strength/consistency (distillation) matters MORE for
+override than explicit counterfactual supervision.**
+
+CONCLUSION for "training-time CFG": the counterfactual-pairs approach is a DEAD END for
+low-guidance override on this architecture. The plan is structurally a weak side-channel (K=8
+plan tokens vs ~256 vision tokens in the DiT cross-attn KV), so the frame prior dominates at
+low w regardless of how we supervise. Two real levers remain (NOT pursued tonight):
+  (A) ARCHITECTURAL: give the plan GLOBAL authority via adaLN/FiLM modulation (like NitroGen's
+      timestep conditioning) instead of 8/264 cross-attn tokens -> the proper fix for low-w
+      override; needs a checkpoint-compatible plan-adaLN head.
+  (B) STRONGER DISTILLATION: the winning override recipe is EXP-045 distillation + inference
+      CFG (95% @ w=12); push the teacher / distill harder to lower the required w.
+Best override model stays EXP-045 (runs/stage2_student). Counterfactual ckpts: runs/stage2_cf,
+runs/stage2_cf_lora (kept for the record; not recommended).

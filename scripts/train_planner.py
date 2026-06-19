@@ -168,6 +168,10 @@ def main():
                     help="Stage-2 STUDENT (EXP-045): path to torch-saved {uuid: (K,d) teacher plan tokens} (gen_teacher_tokens.py) for privileged-info distillation")
     ap.add_argument("--distill-weight", type=float, default=0.0,
                     help="Weight of the distillation loss (student base-plan tokens -> teacher P+ tokens). 0 disables (EXP-045).")
+    ap.add_argument("--s2-index", default=None,
+                    help="Stage-2 COUNTERFACTUAL (EXP-047): path to {uuid:{buttons,j_left,j_right,dir}} (gen_stage2_index.py); enables transplanting a real (plan,action) from a different direction cluster")
+    ap.add_argument("--s2-cf-ratio", type=float, default=0.0,
+                    help="Stage-2: fraction of PLAN examples that are counterfactual (frame_i + plan_j/action_j from a DIFFERENT dir cluster; target follows the PLAN). Teaches the plan to OVERRIDE the frame -> low-guidance counterfactual control (EXP-047).")
     ap.add_argument("--init-from", default=None,
                     help="warm-start plan head (and DiT) from a prior Stage-1 checkpoint")
     ap.add_argument("--lora-dit", type=int, default=0,
@@ -295,6 +299,8 @@ def main():
         s2_outcome_contrastive=args.s2_outcome_contrastive,
         s2_augment_plan=args.s2_augment_plan,
         teacher_token_lookup=args.teacher_token_lookup,
+        s2_index=args.s2_index,
+        s2_cf_ratio=args.s2_cf_ratio,
         group_weights=group_weights,
     )
     ds = NitrogenPlanDataset(ds_cfg, frame_provider, img_proc)

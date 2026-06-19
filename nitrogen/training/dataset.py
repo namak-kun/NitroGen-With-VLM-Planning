@@ -143,6 +143,8 @@ class PlanDatasetConfig:
     s2_outcome_contrastive: bool = False  # Stage-2: label each VLM plan by its real chunk's dominant direction so contrastive de-collinearizes plan tokens along the action axis (EXP-043)
     s2_augment_plan: bool = False    # Stage-2 TEACHER: append the real chunk's action summary to the plan text (privileged-info P+ = P + "...take these actions <seq>") (EXP-044)
     teacher_token_lookup: str | None = None  # Stage-2 STUDENT (EXP-045): path to a torch-saved {uuid: (K,d) teacher plan tokens} (gen_teacher_tokens.py); attaches teacher_tokens for distillation
+    s2_index: str | None = None      # Stage-2 COUNTERFACTUAL (EXP-047): path to {uuid: {buttons,j_left,j_right,dir}} (gen_stage2_index.py); enables transplanting a real (plan,action) from a different direction cluster
+    s2_cf_ratio: float = 0.0         # Stage-2: fraction of PLAN examples that are counterfactual (frame_i + plan_j/action_j from a DIFFERENT dir cluster; target follows the PLAN). 0 disables. Teaches the plan to OVERRIDE the frame -> low-guidance counterfactual control.
     seed: int = 0
 
 
@@ -171,6 +173,17 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         self.teacher_tokens = None
         if config.teacher_token_lookup and os.path.exists(config.teacher_token_lookup):
             self.teacher_tokens = torch.load(config.teacher_token_lookup, map_location="cpu")
+        # Stage-2 COUNTERFACTUAL (EXP-047): chunk index {uuid: {buttons,j_left,j_right,dir}} +
+        # per-direction uuid pools, for transplanting a real (plan, action) from a DIFFERENT
+        # direction cluster onto a frame (target follows the PLAN -> override training).
+        self.s2_index = None
+        self.s2_dir_pools = None
+        if config.s2_index and os.path.exists(config.s2_index):
+            self.s2_index = torch.load(config.s2_index, map_location="cpu", weights_only=False)
+            pools: dict[str, list] = {}
+            for uu, v in self.s2_index.items():
+                pools.setdefault(v["dir"], []).append(uu)
+            self.s2_dir_pools = pools
 
         if tokenizer is None:
             tok_cfg = NitrogenTokenizerConfig(
@@ -276,22 +289,52 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
             # chunk (the plan describes what the streamer did). plan-dropout -> null = base.
             entry = self.vlm_plans.get(meta.get("uuid"))
             if use_plan and entry and entry.get("plan"):
-                plan_name = "vlm"; plan_text = entry["plan"]; target = real_chunk
+                # COUNTERFACTUAL (EXP-047, single-chunk motor override): with prob s2_cf_ratio,
+                # transplant a real (plan_j, action_j) from a DIFFERENT direction cluster onto
+                # THIS frame -> target follows the PLAN, not the frame. The null case (below)
+                # keeps the factual frame-following target, so plan vs null form a CFG pair that
+                # teaches the plan to OVERRIDE the frame at low guidance. Only single-chunk:
+                # transplanting a multichunk trajectory would need game dynamics (no env).
+                cf = (self.s2_index is not None and self.s2_dir_pools is not None
+                      and self.cfg.s2_cf_ratio > 0 and self.rng.random() < self.cfg.s2_cf_ratio)
+                cf_dir = None
+                if cf:
+                    own_dir = chunk_dominant_dir(real_chunk) if real_chunk is not None else None
+                    other_dirs = [d for d in ("left", "right", "up", "down")
+                                  if d != own_dir and self.s2_dir_pools.get(d)]
+                    if other_dirs:
+                        cf_dir = self.rng.choice(other_dirs)
+                        uj = self.rng.choice(self.s2_dir_pools[cf_dir])
+                        ej = self.vlm_plans.get(uj)
+                        ij = self.s2_index.get(uj)
+                        if ej and ej.get("plan") and ij is not None:
+                            plan_name = "vlm_cf"; plan_text = ej["plan"]
+                            target = {"buttons": np.asarray(ij["buttons"]),
+                                      "j_left": np.asarray(ij["j_left"]),
+                                      "j_right": np.asarray(ij["j_right"])}
+                        else:
+                            cf_dir = None
+                    if cf_dir is None:
+                        cf = False
+                if not cf:
+                    plan_name = "vlm"; plan_text = entry["plan"]; target = real_chunk
                 plan_dropped = False
                 # TEACHER (EXP-044): append the real action sequence to the plan -> privileged
                 # P+ = P + "...take these actions <seq>". The student (base P) is later distilled
                 # to match this teacher (contrastive), transferring finer-than-direction action
-                # grounding without seeing the actions at test time.
-                if self.cfg.s2_augment_plan and real_chunk is not None:
+                # grounding without seeing the actions at test time. (Augment the chunk the plan
+                # actually describes -> for counterfactual that is the transplanted target.)
+                if self.cfg.s2_augment_plan and target is not None:
                     plan_text = plan_text + " To do this I take the following actions: " \
-                        + summarize_chunk(real_chunk) + "."
-                # Action-outcome contrastive label: group plans by the REAL chunk's dominant
-                # direction so contrastive de-collinearizes plan tokens ALONG the action axis
-                # (EXP-042: distinct plans were collinear cos~0.84 -> DiT content-blind, own==
-                # swapped). The plan TEXT stays tactical; only the supervision is the coarse
-                # outcome. None (no clear dir) -> 'idle' class.
+                        + summarize_chunk(target) + "."
+                # Action-outcome contrastive label: group plans by the dominant direction of the
+                # chunk the plan describes (the TARGET) so contrastive de-collinearizes plan
+                # tokens ALONG the action axis (EXP-042). For counterfactual, that is cf_dir.
                 if self.cfg.s2_outcome_contrastive:
-                    dd = chunk_dominant_dir(real_chunk) if real_chunk is not None else None
+                    if cf and cf_dir is not None:
+                        dd = cf_dir
+                    else:
+                        dd = chunk_dominant_dir(real_chunk) if real_chunk is not None else None
                     key = f"dir_{dd}" if dd is not None else "idle"
                     plan_label_override = _PLAN_LABEL_TO_ID.get(key, _PLAN_LABEL_TO_ID.get("idle", 0))
                 else:
