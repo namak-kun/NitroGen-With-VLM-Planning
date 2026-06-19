@@ -88,14 +88,21 @@ def make_video_frame_provider(fetch_cfg: VideoFetchConfig) -> FrameProvider:
 def make_dir_frame_provider(frames_dir: str) -> FrameProvider:
     """Frame provider that reads pre-extracted (already controller-masked) PNGs
     named '<uuid>.png'. Fully local — no network — for fast/robust training once
-    frames have been pre-extracted from cached video slices.
+    frames have been pre-extracted from cached video slices. `frames_dir` may be a
+    comma-separated list of dirs (searched in order) so frames split across pools
+    (e.g. frames_pre + frames_more) resolve without copying/symlinking.
     """
     import os
     from PIL import Image
 
+    dirs = [d for d in frames_dir.split(",") if d]
+
     def provide(meta: dict, frame_idx: int) -> np.ndarray:
-        path = os.path.join(frames_dir, meta["uuid"] + ".png")
-        return np.asarray(Image.open(path).convert("RGB"))
+        for d in dirs:
+            path = os.path.join(d, meta["uuid"] + ".png")
+            if os.path.exists(path):
+                return np.asarray(Image.open(path).convert("RGB"))
+        raise FileNotFoundError(f"{meta['uuid']}.png not in {dirs}")
 
     return provide
 
@@ -199,6 +206,23 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
             self.chunks.extend(discover_chunks(root))
         if not self.chunks:
             raise RuntimeError(f"No chunks found under {config.shard_roots}")
+        # Stage-2: restrict to chunks that actually have a VLM plan (the only valid training
+        # examples), so a moving/partial download pool (extra chunks without plans/frames)
+        # cannot break training. Keyed by uuid == metadata["uuid"].
+        if self.vlm_plans is not None:
+            keep = []
+            for cd in self.chunks:
+                try:
+                    uu = json.load(open(os.path.join(cd, "metadata.json")))["uuid"]
+                except Exception:
+                    continue
+                if uu in self.vlm_plans:
+                    keep.append(cd)
+            self.chunks = keep
+            print(f"[dataset] Stage-2: {len(self.chunks)} chunks with plans "
+                  f"(of {sum(1 for _ in self.vlm_plans)} in lookup)")
+            if not self.chunks:
+                raise RuntimeError("No Stage-2 chunks with plans found")
 
     def __len__(self):
         return len(self.chunks)

@@ -44,10 +44,20 @@ ip = AutoImageProcessor.from_pretrained("google/siglip2-large-patch16-256")
 pl = PlanEncoder(PlannerConfig(backbone_name_or_path=f"{REPO}/ckpts/qwen35-0.8b")); pl.load()
 cache = PlanHiddenCache(pl, device)
 tok = NitrogenTokenizer(NitrogenTokenizerConfig(training=False, num_plan_tokens=K, action_horizon=H, max_sequence_length=256 + K))
-LOOKUP = json.load(open("/tmp/stage2_plan_lookup.json"))
+LOOKUP = json.load(open(os.environ.get("LOOKUP", "/tmp/stage2_plan_lookup.json")))
+FRAME_DIRS = os.environ.get("FRAME_DIRS", "/tmp/frames_pre").split(",")
+META_ROOTS = os.environ.get("META_ROOTS", "/tmp/stage1_big").split(",")
 AUG = os.environ.get("AUGMENT_PLANS") == "1"
 if AUG:
     from nitrogen.training.actions import summarize_chunk
+
+
+def _frame_path(uuid):
+    for d in FRAME_DIRS:
+        p = os.path.join(d, uuid + ".png")
+        if os.path.exists(p):
+            return p
+    return None
 
 
 def load(path, which="model"):
@@ -143,10 +153,13 @@ def build():
     """clusters {dir:[plan]}, and frames [(png, real_dir)]."""
     clusters = {"left": [], "right": [], "up": [], "down": []}
     frames = []
-    for md in sorted(glob.glob("/tmp/stage1_big/**/metadata.json", recursive=True)):
+    mds = []
+    for root in META_ROOTS:
+        mds += sorted(glob.glob(f"{root}/**/metadata.json", recursive=True))
+    for md in mds:
         m_ = json.load(open(md)); uuid = m_["uuid"]
-        png = f"/tmp/frames_pre/{uuid}.png"
-        if uuid not in LOOKUP or not os.path.exists(png):
+        png = _frame_path(uuid)
+        if uuid not in LOOKUP or png is None:
             continue
         pq = os.path.join(os.path.dirname(md), "actions_processed.parquet")
         if not os.path.exists(pq):
@@ -172,11 +185,21 @@ def build():
 def cfg_sweep(m, scales):
     clusters, frames = build()
     rng = np.random.RandomState(0)
-    n_plan = 3
+    n_plan = int(os.environ.get("NPLAN", "3"))
+    n_frames = int(os.environ.get("FRAMES_N", "20"))
     pool_plans = {d: [clusters[d][i] for i in rng.choice(len(clusters[d]), min(n_plan, len(clusters[d])), replace=False)]
                   for d in AX}
-    fr_pool = frames[:20]
-    print(f"CFG sweep: frames {len(fr_pool)}, plans/dir {n_plan}, scales {scales}")
+    # Balance the frame pool across the null's committed direction so up-override is not masked
+    # by a down-biased pool: bucket frames by their REAL dominant dir, take a balanced sample.
+    by_dir = {"left": [], "right": [], "up": [], "down": [], None: []}
+    for fp, dd in frames:
+        by_dir.setdefault(dd, []).append((fp, dd))
+    per = max(1, n_frames // 4)
+    fr_pool = []
+    for d in ["left", "right", "up", "down"]:
+        fr_pool += by_dir.get(d, [])[:per]
+    print(f"CFG sweep: frames {len(fr_pool)} (balanced by real dir), plans/dir {n_plan}, scales {scales}")
+    print(f"  frame real-dir counts: " + ", ".join(f"{d}:{len(by_dir.get(d,[]))}" for d in ['left','right','up','down']))
     print("(w=0 -> frame alone; w=1 -> plain plan; w>1 -> amplify plan delta past the frame prior)\n")
     for w in scales:
         # absolute stick per command at this guidance scale
@@ -196,7 +219,11 @@ def cfg_sweep(m, scales):
             tag = "x" if ax == JLX else "y"
             print(f"    {d:6s} x{mx:+.3f} y{my:+.3f}  (abs {tag}{'<0' if want<0 else '>0'} -> {'OK' if ok else 'MISS'})")
         # counterfactual flip: command OPPOSITE of the null's committed axis-dir; absolute flip?
+        # Report overall AND broken down by the commanded (override-target) direction, so a
+        # systematically-hard direction (e.g. up) is visible rather than averaged away.
         flip = flip_tot = 0
+        per_dir = {d: [0, 0] for d in AX}  # commanded dir -> [hits, total]
+        sat = 0
         for fp, _ in fr_pool:
             nx_, ny_ = null_xy[fp]
             if max(abs(nx_), abs(ny_)) < 0.05:
@@ -207,8 +234,14 @@ def cfg_sweep(m, scales):
                 g = "down" if ny_ > 0 else "up"
             opp = OPP[g]; oax, owant = AX[opp]
             comp = cmd_xy[opp][fp][0] if oax == JLX else cmd_xy[opp][fp][1]
-            flip_tot += 1; flip += (np.sign(comp) == owant)
-        print(f"    => steering {steer_ok}/4 (absolute);  counterfactual FLIP {flip}/{flip_tot} = {flip/max(flip_tot,1):.0%}\n")
+            hit = (np.sign(comp) == owant)
+            flip_tot += 1; flip += hit
+            per_dir[opp][0] += hit; per_dir[opp][1] += 1
+            if abs(comp) > 1.05:
+                sat += 1
+        pd = "  ".join(f"{d}:{per_dir[d][0]}/{per_dir[d][1]}" for d in ["left", "right", "up", "down"])
+        print(f"    => steering {steer_ok}/4 abs;  FLIP {flip}/{flip_tot}={flip/max(flip_tot,1):.0%}  "
+              f"[by target: {pd}]  saturated(|stick|>1.05): {sat}/{flip_tot}\n")
 
 
 def main(ckpt, which="model"):

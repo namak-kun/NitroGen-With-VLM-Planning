@@ -28,7 +28,8 @@ ck = torch.load(f"{REPO}/ckpts/nitrogen/ng.pt", map_location="cpu", weights_only
 CC = CkptConfig.model_validate(ck["ckpt_config"])
 pl = PlanEncoder(PlannerConfig(backbone_name_or_path=f"{REPO}/ckpts/qwen35-0.8b")); pl.load()
 cache = PlanHiddenCache(pl, device)
-LOOKUP = json.load(open("/tmp/stage2_plan_lookup.json"))
+LOOKUP = json.load(open(os.environ.get("LOOKUP", "/tmp/stage2_plan_lookup.json")))
+ROOTS = os.environ.get("ROOTS", "/tmp/stage1_big").split(",")
 
 
 def load(path):
@@ -56,7 +57,9 @@ def plan_tokens(m, text):
 def main():
     m = load(TEACHER)
     out = {}
-    mds = sorted(glob.glob("/tmp/stage1_big/**/metadata.json", recursive=True))
+    mds = []
+    for root in ROOTS:
+        mds += sorted(glob.glob(f"{root}/**/metadata.json", recursive=True))
     for md in mds:
         m_ = json.load(open(md)); uuid = m_["uuid"]
         if uuid not in LOOKUP:
