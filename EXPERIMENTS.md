@@ -2300,3 +2300,93 @@ DATA SCALE + BALANCE: we have 48,084 chunks on disk but plans for only 225. Gene
 larger, direction-BALANCED subset (up/left upsampled), retrain distillation, re-eval override --
 that should sharpen low-w override and fix the up/left failure far more than any new module.
 adaLN/counterfactual kept in-tree (flags off by default) but NOT recommended.
+
+## EXP-049  DATA SCALE-UP (225 -> 768 plans) makes counterfactual override WORSE, not better — 2026-06-19
+
+Hypothesis (from EXP-048b synthesis): the binding constraint is DATA, not conditioning; scale +
+balance should fix the up/left override failure. Tested it. Also CORRECTED two things first:
+- Census: the full shard is dir-BALANCED (1500 chunks @ frame303: right 18%, left 17%, UP 16.5%,
+  down 15%, idle 33%). up is NOT scarce (the EXP-026 "up rarest" was per-step density, not
+  per-chunk dominant dir). So "up fails because rare" was WRONG.
+- Eval was down-biased: counterfactual_eval used ~20 frames with a right+down prior. Rebuilt it
+  to BALANCE the frame pool by real dir and report flip BY override-target dir + saturation.
+
+Scaled plans 225 -> 768 (gen_stage2_lookup over frames_pre+frames_more, zero new model code),
+retrained the FULL winning pipeline: teacher-768 (con 1.23) -> teacher tokens -> distilled
+student-768 (distill loss 1.33, LOWER than 225's 1.50 = better fit). cookies reset+validated;
+banked 662 frames for future scale.
+
+CLEAN comparison on the IDENTICAL frames_pre balanced pool (40 frames, real-dir
+left29/right44/up49/down22), distilled student, same recipe:
+| @ w=12 | left x | up y | abs steering | counterfactual FLIP |
+|---|---|---|---|---|
+| 225 student (EXP-045) | -0.216 OK | -0.235 OK | 4/4 | 25/40 = **62%** |
+| 768 student (EXP-049) | +0.547 MISS | +0.002 MISS | 2/4 | 9/40 = **22%** |
+left override: 225 hits 10/16, 768 hits 0/16. up override: 225 15/24, 768 12/24.
+
+**NEGATIVE: scaling plan data 3.4x DEGRADED counterfactual override (62% -> 22% flip; left
+override collapsed 10/16 -> 0/16).** The 768 student fit its teacher BETTER yet overrides WORSE
+-> more diverse plans (768 semantic intents across more games) DILUTE the per-direction override
+authority that CFG amplifies. The standard "more data" lever FAILS here, and reveals a tension:
+semantic richness (needed for real planning) trades off against crude directional override
+authority (needed for counterfactual control). EXP-049b tests if adding outcome-contrastive to
+the 768 student recovers it (guard against "scaled wrong").
+
+NOTE the metric saga (95% EXP-046 -> 62% balanced-225 -> 22% scaled-768): our override proxy
+kept MISLEADING us (down-biased pools inflated it). This itself is evidence that PROXY metrics
+are unreliable for this question and a closed-loop env is needed to actually adjudicate.
+
+## EXP-049b  Contrastive does NOT rescue the scale degradation -> the data negative is ROBUST — 2026-06-19
+
+Guard test for EXP-049 ("maybe pure-distill at scale needs contrastive structure"): retrain the
+768 student with distill (1.0) + outcome-contrastive (1.0). Eval on the IDENTICAL frames_pre
+balanced pool:
+| @ w=12 | left override | up override | abs steering | FLIP |
+|---|---|---|---|---|
+| 225 distilled | 10/16 | 15/24 | 4/4 | **62%** |
+| 768 distilled | 0/16 | 12/24 | 2/4 | 22% |
+| 768 distill+contrastive | 0/16 | 12/24 | 3/4 | 30% |
+Contrastive nudges 22%->30% but LEFT override stays fully collapsed (0/16) and it's far below
+the 225 model's 62%. **The scale degradation is robust to the conditioning recipe.** More data
+does not help override and cannot be recovered by contrastive -> the binding issue is NOT the
+recipe; semantic diversity intrinsically dilutes directional override authority.
+
+## VERDICT (2026-06-19 night): does ENV-FREE plan-conditioning work? — characterized ceiling
+
+WHAT WORKS env-free (solid, reproducible):
+- Plan CONDITIONING: VLM plans measurably steer the frozen DiT (EXP-041, +8% informativeness).
+- DIRECTION-level content specificity: outcome-contrastive de-collinearizes plan tokens
+  (cos 0.84->0.60) -> 4/4 direction-specific steering on deltas (EXP-043).
+- Privileged-teacher DISTILLATION: a base-plan student recovers an action-augmented teacher's
+  steering (EXP-044/045) -> infers action from semantic intent, no actions at test time.
+- PARTIAL counterfactual override via plan-CFG: reliable into directions aligned with weak frame
+  priors; into HARD directions (left/up) only with the small 225 model at high CFG (62% flip
+  @ w=12, balanced eval).
+
+WHERE IT HITS A CEILING (neither architecture NOR data breaks it):
+- Override AGAINST a strong frame prior (left/up here) is unreliable, needs extreme guidance
+  (w=8-12), tops out ~62% even best-case, and up barely crosses zero.
+- NO conditioning mechanism fixed it: LoRA (042), counterfactual training (047), adaLN (048) all
+  failed or DESTABILIZED CFG (actions exploded to +/-3.5).
+- SCALING DATA 3.4x made it WORSE (049: 62%->22%), robust to contrastive (049b: 30%). The
+  standard ML lever BACKFIRED: semantic richness trades against directional override authority.
+- Multichunk counterfactual is fundamentally out of reach env-free (needs game dynamics).
+- PROXY metrics proved unreliable: the same "success" read 95% -> 62% -> 22% as we removed eval
+  bias. We cannot VALIDATE planning quality env-free.
+
+VERDICT: env-free yields a genuinely working System-2->System-1 plan interface with direction-
+level steering and PARTIAL, fragile counterfactual control -- a real, characterized result -- but
+with a CEILING below reliable arbitrary-direction / semantic OOD planning that neither better
+conditioning nor more data breaks. The failures concentrate exactly where an environment's signal
+(reward/rollout against a learned prior) would help, and the proxy-metric unreliability means we
+cannot even adjudicate success env-free.
+
+RECOMMENDATION (honest, despite the env build falling on me):
+1. EVALUATION env -- YES, high-value, do first: one controllable game + success detection
+   (emulator RAM predicate for bounded goals; MineCLIP/VLM-judge for plan-adherence). Converts
+   our misleading proxies to ground truth and tests whether the partial env-free wins translate
+   to real play. Cheap relative to RL.
+2. TRAINING env (reward/rollout) -- PROBABLY needed to break the override ceiling (imitation on
+   logged actions cannot teach overriding its own prior), but DEFER until the eval env confirms.
+The data result is the clincher: I expected scale to help and it degraded -- the single strongest
+piece of evidence that env-free has a real ceiling, not just an untuned recipe.
