@@ -139,6 +139,8 @@ class PlanDatasetConfig:
     cc_posthoc: bool = False         # R0 post-hoc: target = REAL chunk a actions, plan = post-hoc dominant-dir description
     cc_posthoc_ratio: float = 0.5    # fraction of cross-chunk plan examples that are post-hoc (rest synthetic, to keep plan causal)
     cc_starts: tuple = (100, 250, 400)  # candidate window starts (must match scripts/extract_cc_frames.py)
+    vlm_plan_lookup: str | None = None  # Stage-2: path to {uuid: {plan: text}} VLM-generated tactical plans; when set, plan_text comes from here (target = real chunk at frame 303) and plan_label is a single 'vlm' class
+    s2_outcome_contrastive: bool = False  # Stage-2: label each VLM plan by its real chunk's dominant direction so contrastive de-collinearizes plan tokens along the action axis (EXP-043)
     seed: int = 0
 
 
@@ -158,6 +160,10 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
             self.cc_sampler = CrossChunkPlanSampler(
                 action_horizon=config.action_horizon, modality=config.modality,
                 seed=config.seed, pool=config.cc_pool)
+        # Stage-2: load VLM-generated tactical plans keyed by uuid (gen_stage2_lookup.py).
+        self.vlm_plans = None
+        if config.vlm_plan_lookup and os.path.exists(config.vlm_plan_lookup):
+            self.vlm_plans = json.load(open(config.vlm_plan_lookup))
 
         if tokenizer is None:
             tok_cfg = NitrogenTokenizerConfig(
@@ -195,13 +201,23 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         acts = load_chunk_actions(pq)
 
         cc_real = self.cfg.cross_chunk and self.cfg.cc_real_frames
+        stage2 = self.vlm_plans is not None
         # In cross-chunk R0 (real frames) we sample the cursor FIRST so the context frame
         # can be the REAL frame at chunk-a-start (frame_idx = start + a*H*stride). The
         # window start is drawn from cc_starts (the offsets pre-extracted to disk).
         cc_pre = None
         posthoc_data = None
         cursor = 0
-        if cc_real and self.cc_sampler is not None:
+        if stage2:
+            # Stage-2: plan generated at frame 303 (gen_stage2_lookup.py); target = real
+            # chunk there, frame = the pre-extracted context frame (frame_idx ignored by the
+            # single-frame provider). Plan text comes from the VLM lookup keyed by uuid.
+            ctx_frame_idx = 303
+            chunk_start = 303
+            if 303 + self.cfg.action_horizon * self.cfg.frame_stride >= acts["buttons"].shape[0]:
+                chunk_start = self.cfg.action_shift
+            ctx_frame_idx = chunk_start
+        elif cc_real and self.cc_sampler is not None:
             T = acts["buttons"].shape[0]
             span = (self.cfg.num_chunks - 1) * self.cfg.action_horizon * self.cfg.frame_stride
             span += self.cfg.action_horizon * self.cfg.frame_stride + self.cfg.action_shift
@@ -248,7 +264,28 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
                    (idle or not self.cfg.idle_only_for_plan)
         plan_cursor = 0
         plan_label_override = None
-        if use_plan and self.cc_sampler is not None and cc_real and posthoc_data is not None:
+        if stage2:
+            # Stage-2: VLM tactical plan (real text) vs null. Target is ALWAYS the real
+            # chunk (the plan describes what the streamer did). plan-dropout -> null = base.
+            entry = self.vlm_plans.get(meta.get("uuid"))
+            if use_plan and entry and entry.get("plan"):
+                plan_name = "vlm"; plan_text = entry["plan"]; target = real_chunk
+                plan_dropped = False
+                # Action-outcome contrastive label: group plans by the REAL chunk's dominant
+                # direction so contrastive de-collinearizes plan tokens ALONG the action axis
+                # (EXP-042: distinct plans were collinear cos~0.84 -> DiT content-blind, own==
+                # swapped). The plan TEXT stays tactical; only the supervision is the coarse
+                # outcome. None (no clear dir) -> 'idle' class.
+                if self.cfg.s2_outcome_contrastive:
+                    dd = chunk_dominant_dir(real_chunk) if real_chunk is not None else None
+                    key = f"dir_{dd}" if dd is not None else "idle"
+                    plan_label_override = _PLAN_LABEL_TO_ID.get(key, _PLAN_LABEL_TO_ID.get("idle", 0))
+                else:
+                    plan_label_override = _PLAN_LABEL_TO_ID.get("idle", 0)  # single class; contrastive off
+            else:
+                plan_name, plan_text, target = "null", "", real_chunk
+                plan_dropped = True
+        elif use_plan and self.cc_sampler is not None and cc_real and posthoc_data is not None:
             # R0 post-hoc: plan describes the streamer's real per-chunk dirs; target = REAL chunk.
             plan_text, target, label_key = posthoc_data
             plan_name = "posthoc"; plan_cursor = cursor

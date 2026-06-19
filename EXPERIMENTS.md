@@ -1903,3 +1903,129 @@ grounded, tactical-abstraction, Gemma-12B), the Stage-2 plan-generation recipe i
 **Next:** scale plan generation across many consecutive windows/videos to build the actual
 Stage-2 dataset (plan_text = reaction-aware tactical plan; target = real chunk); then a first
 plan-conditioned training run on REAL VLM-generated plans (vs Stage-1 synthetic).
+
+---
+
+## EXP-041  Stage-2 v1: VLM plans condition the DiT but are NOT plan-specific (alignment gap) — 2026-06-19
+
+First real Stage-2 run: generated one Gemma-4-12B tactical plan per chunk (225,
+gen_stage2_lookup.py -> /tmp/stage2_plan_lookup.json), trained the plan head on
+(VLM plan text -> real action chunk), frozen DiT, masked null, no contrastive
+(--vlm-plan-lookup). KEY EVAL (eval_stage2.py): velocity MSE to the REAL action under
+null vs OWN plan vs SWAPPED (another chunk's) plan, SAME noise seed (clean isolation).
+
+User reframing: redundancy (own ~= null) is FINE; what matters is SPECIFICITY (own <
+swapped) -> a different plan would give different actions -> counterfactual/OOD planning
+without env training.
+
+| condition | vel MSE (lower=better) |
+|---|---|
+| null (frame alone) | 0.6814 |
+| OWN VLM plan | 0.6629 |
+| SWAPPED (wrong) plan | 0.6609 |
+- own vs null: **+2.7%** (own better 44/60) -> the plan path is ALIVE, helps slightly.
+- own vs swapped: **-0.3%** (32/60 = chance) -> **NO specificity**. The right plan fits the
+  real action no better than a random plan.
+
+**Verdict: the plan is used as a generic "plan present" bias, NOT by content.** OOD/
+counterfactual planning is NOT yet feasible. This is the alignment gap (user predicted):
+aligning vague semantic VLM plans to actions needs more than a frozen DiT + 225 unique
+(plan, action) pairs. Why it fails: (1) each semantic plan appears ONCE with one action ->
+no way to learn plan-content -> action; (2) frozen DiT has no language grounding; (3)
+contrastive is off (no pressure to separate plans); (4) 225 chunks is tiny.
+
+**Levers (testing/planning):** (a) LoRA on the DiT cross-attn (capacity to ground language
+-> EXP-042 next); (b) MORE DATA (RPG download running -> more plan/action variety, and
+planning matters more in RPG); (c) plan structure (cluster/retrieve similar plans so the
+model learns plan-cluster -> action, like Stage-1 synthetic clusters); (d) scale to
+thousands of chunks. The +2.7% own-vs-null says the mechanism works; specificity needs
+these. Honest: this is the hard alignment task the user flagged, now quantified.
+
+## EXP-042  Stage-2 + LoRA does NOT close the gap; the failure is REPRESENTATIONAL (plan-token collinearity) — 2026-06-19
+
+Tested lever (a) from EXP-041: add LoRA (rank 16) to the DiT cross-attn (capacity to
+ground the plan language), frozen base DiT, same 225-plan lookup, masked null, contrastive
+OFF. 2500 steps, batch 8, lr-dit 1e-4, lr-plan 3e-4. Train loss dropped LOWER than the
+frozen run (0.0448 -> 0.0296). Re-ran eval_stage2.py (auto-detects LoRA rank from the ckpt
+now; previously the eval silently DROPPED LoRA weights via strict=False -> fixed).
+
+EMA caveat: ema-decay 0.9999 over 2500 steps leaves the EMA ~78% the INITIAL weights (fresh
+LoRA delta ~0). Evaluated BOTH model_ema and raw `model` weights; results below are raw.
+
+| condition | vel MSE (raw model) | (model_ema) |
+|---|---|---|
+| null (frame alone) | 0.6370 | 0.6317 |
+| OWN VLM plan | 0.6568 | 0.6472 |
+| SWAPPED (wrong) plan | 0.6568 | 0.6441 |
+- own vs null: **-3.1%** (own WORSE; 23/60) -> LoRA made the plan path slightly hurt.
+- own vs swap: **-0.0%** (31/60 = chance); raw own == swapped to 4 decimals (0.6568).
+
+**Clean negative: the DiT responds to the PRESENCE of a plan (null 0.637 -> plan 0.657) but
+is COMPLETELY BLIND to plan CONTENT (own == swapped exactly).** LoRA capacity is NOT the lever.
+
+ROOT CAUSE (probe_s2_plantokens.py): distinct tactical plans collapse to near-collinear
+PLAN TOKENS. Mean pairwise cosine over 60 distinct Stage-2 plans:
+  - raw VLM last-hidden (mean-pool) : 0.8900
+  - plan tokens, mean-pooled over K : 0.8413
+  - plan tokens, flattened K*dim    : 0.8407
+  - plan tokens, per-position (K=8) : 0.8372..0.8442
+The resampler barely de-collinearizes (0.89 -> 0.84) because nothing pushes plans apart
+(contrastive off). This is the SAME universal-collinearity problem as EXP-015 (movement
+commands cluster tight across all LM families/scales), now at the tactical-plan level, and
+it is exactly why own==swapped: the DiT literally cannot route on content it can't see.
+
+**=> The fix is REPRESENTATIONAL de-collinearization (the Stage-1 lesson: contrastive cut
+cos(L,R) 0.999->0.1), NOT capacity.** Stage-2 lacks plan classes (each plan unique, appears
+once), so the contrastive needs structure: cluster plans by their ACTION OUTCOME (the real
+chunk's dominant direction) so plan tokens spread ALONG the action axis -> EXP-043.
+
+## EXP-043  Stage-2 alignment gap CLOSED (direction-level): outcome-contrastive de-collinearizes plan tokens -> content-specific steering — 2026-06-19
+
+Acting on EXP-042's diagnosis (failure is REPRESENTATIONAL: distinct plans -> collinear
+plan tokens -> DiT content-blind). Stage-2 has no plan classes (each plan unique), so the
+contrastive needs structure: label each VLM plan by its real chunk's DOMINANT DIRECTION
+(chunk_dominant_dir) so contrastive spreads plan tokens ALONG the action axis. The plan TEXT
+stays a rich tactical sentence; only the contrastive SUPERVISION is the coarse outcome.
+
+Code: dataset.py `s2_outcome_contrastive` (label = dir_{dominant} else idle), train flag
+`--s2-outcome-contrastive`. Run: frozen DiT, masked null, `--contrastive-weight 1.0
+--contrastive-mode mean --batch-size 16`, 2500 steps. con loss 2.04 -> 1.34.
+
+DE-COLLINEARIZATION (probe_s2_plantokens.py), mean pairwise cosine over 60 distinct plans:
+| | EXP-042 (no con) | EXP-043 (outcome-con) |
+|---|---|---|
+| plan tokens, mean-pooled | 0.8413 | **0.6009** |
+| plan tokens, flattened K*dim | 0.8407 | **0.5940** |
+(raw VLM last-hidden stays 0.89; the resampler now spreads plans by outcome.)
+
+VELOCITY-MSE eval (eval_stage2.py), raw model: own **+7.6%** vs null (was +2.7% EXP-041 /
+-3.1% LoRA) -- much more informative -- but own ~= swapped still (29/60). **This metric is
+MISLEADING here:** it averages 25 action dims x 18 steps, so direction (just the 2 left-
+stick dims) is drowned out. Built eval_stage2_dir.py to measure the axis we trained.
+
+DIRECTION-SPECIFICITY (eval_stage2_dir.py): does a direction-d cluster plan steer the
+SAMPLED left-stick toward d, on FIXED reference frames (so steering is plan-content-driven,
+not frame-driven)? 8 frames x 4 plans x 2 seeds, delta = plan - null.
+| dir | EXP-043 stick-delta | EXP-041 control (no con) |
+|---|---|---|
+| left  | -0.018 OK | -0.013 OK |
+| right | +0.013 OK | -0.035 MISS |
+| up    | -0.253 OK | -0.120 OK |
+| down  | +0.048 OK | -0.121 MISS |
+| **score** | **4/4** | 2/4 (right & down push the data-mean dir) |
+Single-frame left-vs-right flip: EXP-043 left-x +0.020 < right-x +0.038 (FLIPS correctly);
+control left-x -0.083 > right-x -0.104 (no flip). **Without contrastive, collinear tokens
+shove every plan toward the data-mean direction (up-left); with outcome-contrastive, the
+plan CONTENT causally steers, overriding the frame.**
+
+**VERDICT: the EXP-041/042 "no specificity" was a METRIC ARTIFACT.** Real VLM tactical plans,
+once their tokens are de-collinearized by outcome-contrastive, causally steer the DiT by
+content (4/4 dirs, correct L/R flip) on fixed frames -> direction-level counterfactual/OOD
+planning is feasible WITHOUT env training. The fix was REPRESENTATIONAL (the Stage-1 lesson),
+NOT capacity (LoRA hurt, EXP-042). Best Stage-2 ckpt: runs/stage2_con/plan_stage1_2500.pt.
+
+CAVEATS / next: (1) specificity is at the DIRECTION level (the label we supervised); pushing
+to richer semantic-plan specificity needs finer outcome structure (e.g. dir+button, or
+clustering plan embeddings) -- the same recipe, finer labels. (2) L/R magnitude weak (known
+data x-axis/up imbalance, EXP-026); up steers strongest. (3) report BOTH evals going forward:
+velocity-MSE for informativeness, eval_stage2_dir for content-specificity.

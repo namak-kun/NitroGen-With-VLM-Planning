@@ -25,6 +25,9 @@ def main():
     ap.add_argument("--max-chunks", type=int, default=400)
     ap.add_argument("--max-videos", type=int, default=40)
     ap.add_argument("--chunks-per-video", type=int, default=12)
+    ap.add_argument("--games", default=None,
+                    help="comma-separated substrings to filter games (e.g. elden_ring,dark_souls); "
+                         "prioritizes videos whose chunks match (planning matters more for RPG/action)")
     args = ap.parse_args()
     os.makedirs(OUT_CHUNKS, exist_ok=True)
     os.makedirs(OUT_FRAMES, exist_ok=True)
@@ -34,8 +37,26 @@ def main():
     ))
 
     have = have_videos()
+    game_filter = [g.strip().lower() for g in args.games.split(",")] if args.games else None
+
+    def video_matches(vdir):
+        """True if any chunk in this video has a game matching the filter."""
+        if game_filter is None:
+            return True
+        for c in glob.glob(os.path.join(vdir, "*", "metadata.json"))[:3]:
+            try:
+                g = str(json.load(open(c)).get("game", "")).lower()
+            except Exception:
+                continue
+            if any(gf in g for gf in game_filter):
+                return True
+        return False
+
     vids = [d for d in sorted(glob.glob(f"{SHARD}/*/")) if os.path.basename(d.rstrip("/")) not in have]
-    print(f"{len(vids)} new videos available; targeting <= {args.max_videos} videos / {args.max_chunks} chunks", flush=True)
+    if game_filter:
+        vids = [d for d in vids if video_matches(d)]
+    print(f"{len(vids)} new videos available (game filter={game_filter}); "
+          f"targeting <= {args.max_videos} videos / {args.max_chunks} chunks", flush=True)
 
     saved = vid_done = 0
     for vdir in vids:

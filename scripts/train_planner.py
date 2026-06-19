@@ -158,6 +158,10 @@ def main():
                     help="R0 post-hoc: target = REAL chunk actions, plan = post-hoc dominant-dir description (mixed with synthetic to keep plan causal); requires --cc-real-frames")
     ap.add_argument("--cc-posthoc-ratio", type=float, default=0.5,
                     help="fraction of cross-chunk plan examples that are post-hoc (rest synthetic forced)")
+    ap.add_argument("--vlm-plan-lookup", default=None,
+                    help="Stage-2: path to {uuid: {plan}} VLM-generated tactical plans; plan_text comes from here, target = real chunk (gen_stage2_lookup.py)")
+    ap.add_argument("--s2-outcome-contrastive", action="store_true",
+                    help="Stage-2: label each VLM plan by its real chunk's dominant direction so contrastive de-collinearizes plan tokens along the action axis (EXP-043; pair with --contrastive-weight>0)")
     ap.add_argument("--init-from", default=None,
                     help="warm-start plan head (and DiT) from a prior Stage-1 checkpoint")
     ap.add_argument("--lora-dit", type=int, default=0,
@@ -280,6 +284,8 @@ def main():
         num_chunks=args.num_chunks, cross_chunk=args.cross_chunk,
         cc_real_frames=args.cc_real_frames, cc_pool=args.cc_pool,
         cc_posthoc=args.cc_posthoc, cc_posthoc_ratio=args.cc_posthoc_ratio,
+        vlm_plan_lookup=args.vlm_plan_lookup,
+        s2_outcome_contrastive=args.s2_outcome_contrastive,
         group_weights=group_weights,
     )
     ds = NitrogenPlanDataset(ds_cfg, frame_provider, img_proc)
