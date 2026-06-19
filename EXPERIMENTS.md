@@ -2113,3 +2113,46 @@ here, combining with outcome-contrastive is the obvious EXP-046.
 Full chain: EXP-041 (gap) -> 042 (collinearity, not capacity) -> 043 (outcome-contrastive,
 metric artifact) -> 044 (privileged teacher) -> 045 (distill teacher into base-plan student).
 Student ckpt: runs/stage2_student/plan_stage1_2500.pt.
+
+## EXP-046  Counterfactual generalization (env-free OOD planning) EMERGES under plan-CFG — 2026-06-19
+
+User: check counterfactual generalization -- if the streamer (and frame-alone model) goes
+RIGHT, does commanding "go LEFT" produce a LEFT *absolute* action (plan OVERRIDES the frame)?
+All prior steering was plan-vs-null DELTAS; this tests ABSOLUTE reversal. counterfactual_eval.py
+samples the absolute left-stick under null and each commanded direction over a fixed frame
+pool, reporting a steering matrix + counterfactual FLIP rate (command OPPOSITE of the null's
+committed axis-dir; does the absolute sign flip?).
+
+At guidance w=1 (plain plan): the plan is a sub-threshold NUDGE -- it moves the stick the right
+way (left: x +0.47->+0.21) but does NOT cross zero. Counterfactual flip 0%, override 0/80.
+=> delta-steering (EXP-043/045) is NOT counterfactual control by itself.
+
+PLAN-CFG (the mechanism this whole approach relies on): at each flow step combine
+v = v_uncond(null) + w*(v_cond(plan) - v_uncond). Sweeping w (distilled student EXP-045):
+| w | abs steering | counterfactual FLIP (n=20) |
+|---|---|---|
+| 1  | 2/4 | 0% |
+| 5  | 3/4 | 40% (left x crosses 0: -0.07) |
+| 8  | 4/4 | 85% (up finally flips: y -0.005) |
+| 12 | 4/4 | 95% (up y -0.30, left x -0.26) |
+Magnitudes stay sane (no +/-1 saturation). => with enough guidance the plan REVERSES a
+committed frame action ~95% of the time -> env-free, rollout-free counterfactual OOD planning.
+
+DISTILLATION is what makes CFG-override work (counterfactual flip vs w):
+| model | w1 | w5 | w8 | w12 |
+|---|---|---|---|---|
+| EXP-043 outcome-contrastive (no distill) | 0% | 35% | 50% | 40% (degrades) |
+| EXP-045 distilled student | 0% | 40% | **85%** | **95%** |
+| EXP-044 teacher (augmented, upper-bound) | 0% | 10% | 60% | - |
+The distilled student's tokens (pulled to the privileged teacher) are strong AND consistent
+enough that CFG amplifies them into reliable override; the no-distill control degrades at high
+w (weak/noisy tokens extrapolate badly), and even the teacher's longer augmented prompts are
+less CFG-consistent than the distilled student.
+
+VERDICT: counterfactual/OOD planning IS achievable WITHOUT environments -- the plan, amplified
+by CFG, overrides the streamer's frame prior (95% flip at w=12). It needs HIGH guidance (w~8-12,
+not the usual 1-3) because the plan is a light signal vs the strong frame prior, and DISTILLATION
+(EXP-045) is the key enabler. CAVEATS: (1) coarse direction-level metric (mean stick + dominant-
+axis flip), n=20 frames; (2) up needs the most guidance (y-axis/data imbalance, EXP-026); (3)
+high CFG extrapolates far -- worth checking action realism/per-step saturation at scale. Eval:
+counterfactual_eval.py (CFG=... AUGMENT_PLANS=... env).
