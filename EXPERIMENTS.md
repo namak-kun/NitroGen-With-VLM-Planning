@@ -2259,3 +2259,44 @@ just learns a mild common-mode dampening. The global authority is real but UNDIR
 => adaLN needs an OVERRIDE TARGET to learn to use its authority directionally -> EXP-048b:
 adaLN + counterfactual training (the user's "both would be needed": global authority FROM adaLN
 + override signal FROM counterfactual pairs). This is the decisive synergy test.
+
+## EXP-048b  adaLN + counterfactual: directional but DESTABILIZES CFG; the binding constraint is DATA — 2026-06-19
+
+The synergy test (user's "both needed"): plan-adaLN (global authority) + counterfactual pairs
+(override target) + outcome-contrastive, frozen DiT. con loss bottomed 1.23 (lowest yet).
+counterfactual_eval low-w + high-w (abs left-stick; null x+0.481 y+0.475), n=20:
+| w | left x | right x | up y | down y | flip | action sanity |
+|---|---|---|---|---|---|---|
+| 1 | +0.220 | +0.476 | +0.104 | +0.555 | 0%  | sane |
+| 3 | +0.121 | +0.781 | +0.032 | +0.862 | 0%  | right climbing |
+| 5 | +0.046 | +1.454 | +0.036 | +0.722 | 20% | right SATURATES (>1) |
+| 8 | -0.216 | +2.396 | +0.058 | +1.196 | 45% | BLOWS UP |
+| 12| -3.159 | +3.551 | +0.087 | +1.954 | 60% | GARBAGE (x=+/-3.5) |
+
+adaLN+cf DOES separate directions (unlike adaLN-alone EXP-048), but: (1) left/up still don't
+cross zero until very high w; (2) UP NEVER overrides (y stays +0.03..+0.09 at every w); (3)
+adaLN's global authority + CFG makes actions EXPLODE far past the valid +/-1 stick range. Worse
+than the distilled student, which stayed SANE and hit 95% flip.
+
+### SYNTHESIS over the override line (EXP-046..048b) -- the binding constraint is DATA, not conditioning
+| model | w5 flip | w12 flip | actions |
+|---|---|---|---|
+| EXP-045 distilled + inference CFG | 40% | **95%** | **sane** (x in [-0.26,0.79]) |
+| EXP-047 counterfactual, frozen | 5% | - | sane |
+| EXP-047b counterfactual + LoRA | 20% | 20% (plateau) | sane |
+| EXP-048 plan-adaLN (factual) | 10% | - | dampened |
+| EXP-048b adaLN + counterfactual | 20% | 60% | EXPLODES (x=+/-3.5) |
+
+**No conditioning mechanism beat the simple distilled-student + inference-CFG (EXP-045/046),
+and NONE achieve clean override into the RARE directions: UP override FAILS at every w in every
+model** (up is the rarest action, ~5%, EXP-026 data imbalance; left is also hard). We are
+circling on the CONDITIONING architecture (cross-attn vs LoRA vs counterfactual vs adaLN) when
+the bottleneck is DATA: only 225 chunks, heavily biased away from up/left, so the model cannot
+learn to override into directions it barely sees.
+
+**DECISION: stop adding conditioning mechanisms.** Best override recipe stays EXP-045 distilled
+student + inference CFG (w~8-12, sane actions, 95% flip on common dirs). The next real lever is
+DATA SCALE + BALANCE: we have 48,084 chunks on disk but plans for only 225. Generate plans for a
+larger, direction-BALANCED subset (up/left upsampled), retrain distillation, re-eval override --
+that should sharpen low-w override and fix the up/left failure far more than any new module.
+adaLN/counterfactual kept in-tree (flags off by default) but NOT recommended.
