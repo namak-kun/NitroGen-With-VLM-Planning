@@ -18,8 +18,12 @@ from nitrogen.training.actions import load_chunk_actions, assemble_chunk
 from action_summary import summarize_chunk
 
 MODEL = os.environ.get("VLM", "google/gemma-4-12B-it")
-FRAMES = "/tmp/frames_pre"
-OUT = "/tmp/stage2_plan_lookup.json"
+OUT = os.environ.get("OUT", "/tmp/stage2_plan_lookup.json")
+# Scan one or more (frames_dir, metadata_root) pairs so we can label BOTH the original
+# frames_pre/stage1_big set AND the already-downloaded frames_more/stage1_more set (scale-up
+# with zero extra downloading). Override via SCAN="framesdir:metaroot,framesdir2:metaroot2".
+_DEFAULT_SCAN = "/tmp/frames_pre:/tmp/stage1_big,/tmp/frames_more:/tmp/stage1_more"
+SCAN = [tuple(p.split(":")) for p in os.environ.get("SCAN", _DEFAULT_SCAN).split(",")]
 H, STRIDE = 18, 2
 
 TACTICAL = (
@@ -36,13 +40,17 @@ def main():
     proc = AutoProcessor.from_pretrained(MODEL)
     model = AutoModelForImageTextToText.from_pretrained(MODEL, dtype=torch.bfloat16, device_map="cuda").eval()
     lookup = json.load(open(OUT)) if os.path.exists(OUT) else {}
-    mds = sorted(glob.glob("/tmp/stage1_big/**/metadata.json", recursive=True))
     done = 0
-    for md in mds:
+    mds = []
+    for frames_dir, meta_root in SCAN:
+        for md in sorted(glob.glob(f"{meta_root}/**/metadata.json", recursive=True)):
+            mds.append((frames_dir, md))
+    print(f"scanning {len(mds)} chunks across {len(SCAN)} sources; {len(lookup)} already labeled", flush=True)
+    for frames_dir, md in mds:
         m = json.load(open(md)); uuid = m["uuid"]; game = m.get("game", "?")
         if uuid in lookup:
             continue
-        png = os.path.join(FRAMES, uuid + ".png")
+        png = os.path.join(frames_dir, uuid + ".png")
         if not os.path.exists(png):
             continue
         pq = os.path.join(os.path.dirname(md), "actions_processed.parquet")
