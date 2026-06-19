@@ -703,7 +703,48 @@ class NitroGen(torch.nn.Module):
                 out["contrastive_loss"] = con.detach()
                 out["loss"] = loss
 
+        # 8) Optional privileged-info DISTILLATION (EXP-045): pull the (base-plan) student
+        #    plan tokens toward precomputed teacher tokens from the action-augmented prompt
+        #    P+. The teacher (EXP-044) steers 2-3x stronger; distilling transfers that to a
+        #    student that sees only the base plan at test time.
+        if (getattr(self, "planner_cfg", None) and self.planner_cfg.enabled
+                and getattr(self.planner_cfg, "distill_weight", 0.0) > 0
+                and plan_tokens is not None and data.get("teacher_tokens") is not None
+                and data.get("has_teacher") is not None):
+            keep = data["has_teacher"].bool()
+            if plan_dropped is not None:
+                keep = keep & (~plan_dropped)
+            if keep.sum() >= 1:
+                dist = self._plan_distill_loss(
+                    plan_tokens[keep], data["teacher_tokens"][keep].to(plan_tokens.dtype))
+                loss = loss + self.planner_cfg.distill_weight * dist
+                out["distill_loss"] = dist.detach()
+                out["loss"] = loss
+
         return out
+
+    def _plan_distill_loss(self, student, teacher):
+        """Privileged-info distillation of student plan tokens toward (frozen, precomputed)
+        teacher plan tokens. student/teacher: (n, K, d) in the SAME plan-token space (both
+        condition the same frozen DiT). Combines:
+          * MSE per token -> transfer the teacher's actual steering vector (magnitude+dir).
+          * InfoNCE on the pooled tokens -> student_i matches teacher_i and is pushed from
+            teacher_j (per-chunk positive vs cross-chunk negatives), which de-collinearizes
+            (the EXP-042/043 lesson: regression alone to collinear targets would collapse;
+            here teacher targets are already de-collinearized, and InfoNCE keeps them so).
+        """
+        s = student.float(); t = teacher.float()
+        mse = F.mse_loss(s, t)
+        n = s.shape[0]
+        info = s.new_zeros(())
+        if n >= 2:
+            sz = F.normalize(s.mean(dim=1), dim=-1)
+            tz = F.normalize(t.mean(dim=1), dim=-1)
+            logits = (sz @ tz.t()) / self.planner_cfg.distill_temp
+            target = torch.arange(n, device=s.device)
+            info = 0.5 * (F.cross_entropy(logits, target)
+                          + F.cross_entropy(logits.t(), target))
+        return mse + info
 
     def _plan_contrastive_loss(self, plan_tokens, labels):
         """Supervised contrastive (SupCon) loss over plan tokens.

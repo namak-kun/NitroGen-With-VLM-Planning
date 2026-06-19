@@ -164,6 +164,10 @@ def main():
                     help="Stage-2: label each VLM plan by its real chunk's dominant direction so contrastive de-collinearizes plan tokens along the action axis (EXP-043; pair with --contrastive-weight>0)")
     ap.add_argument("--s2-augment-plan", action="store_true",
                     help="Stage-2 TEACHER: append the real chunk's action summary to the plan text (privileged P+ = P + actions) (EXP-044; train a teacher to later distill the base-plan student toward)")
+    ap.add_argument("--teacher-token-lookup", default=None,
+                    help="Stage-2 STUDENT (EXP-045): path to torch-saved {uuid: (K,d) teacher plan tokens} (gen_teacher_tokens.py) for privileged-info distillation")
+    ap.add_argument("--distill-weight", type=float, default=0.0,
+                    help="Weight of the distillation loss (student base-plan tokens -> teacher P+ tokens). 0 disables (EXP-045).")
     ap.add_argument("--init-from", default=None,
                     help="warm-start plan head (and DiT) from a prior Stage-1 checkpoint")
     ap.add_argument("--lora-dit", type=int, default=0,
@@ -192,6 +196,7 @@ def main():
     mc.planner_cfg.null_mode = args.null_mode
     mc.planner_cfg.contrastive_weight = args.contrastive_weight
     mc.planner_cfg.contrastive_mode = args.contrastive_mode
+    mc.planner_cfg.distill_weight = args.distill_weight
     mc.planner_cfg.resampler_query_self_attn = args.resampler_self_attn
     mc.planner_cfg.num_chunks = args.num_chunks
     mc.lora_dit_rank = args.lora_dit
@@ -289,6 +294,7 @@ def main():
         vlm_plan_lookup=args.vlm_plan_lookup,
         s2_outcome_contrastive=args.s2_outcome_contrastive,
         s2_augment_plan=args.s2_augment_plan,
+        teacher_token_lookup=args.teacher_token_lookup,
         group_weights=group_weights,
     )
     ds = NitrogenPlanDataset(ds_cfg, frame_provider, img_proc)
@@ -315,6 +321,7 @@ def main():
     data_iter = iter(loader)
     running = 0.0
     running_con = 0.0
+    running_dist = 0.0
     while step < args.steps:
         opt.zero_grad(set_to_none=True)
         accum_loss = 0.0
@@ -335,6 +342,8 @@ def main():
             accum_loss += loss.item()
             if "contrastive_loss" in out_dict:
                 running_con += float(out_dict["contrastive_loss"])
+            if "distill_loss" in out_dict:
+                running_dist += float(out_dict["distill_loss"])
 
         # LR schedule
         mult = wsd_lr(step, args.warmup, args.steps)
@@ -350,10 +359,11 @@ def main():
         if step % args.log_every == 0:
             avg = running / args.log_every
             con = running_con / args.log_every
-            running = 0.0; running_con = 0.0
+            dist = running_dist / args.log_every
+            running = 0.0; running_con = 0.0; running_dist = 0.0
             sps = step / (time.time() - t0)
-            print(f"step {step}/{args.steps} loss {avg:.4f} con {con:.4f} lr_mult {mult:.3f} "
-                  f"{sps:.2f} it/s")
+            print(f"step {step}/{args.steps} loss {avg:.4f} con {con:.4f} dist {dist:.4f} "
+                  f"lr_mult {mult:.3f} {sps:.2f} it/s")
 
         if step % args.save_every == 0 or step == args.steps:
             path = os.path.join(args.out_dir, f"plan_stage1_{step}.pt")

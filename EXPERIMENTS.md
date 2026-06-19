@@ -2072,3 +2072,44 @@ student can recover by INFERRING action from semantic intent.
 Infra: summarize_chunk moved to nitrogen/training/actions.py (canonical; planner_poc re-
 exports). dataset `s2_augment_plan` + `--s2-augment-plan`. Teacher ckpt:
 runs/stage2_teacher/plan_stage1_2500.pt.
+
+## EXP-045  Privileged-info DISTILLATION works: base-plan student recovers ~teacher steering — 2026-06-19
+
+Closing the user's distillation idea (step 1). The EXP-044 teacher (action-augmented P+)
+steers 2-3x stronger but is privileged (reads the action). Distill a STUDENT that sees only
+the base plan P toward it: precompute frozen-teacher plan tokens per uuid (deterministic, the
+Stage-2 window is fixed at frame 303; gen_teacher_tokens.py -> /tmp/stage2_teacher_tokens.pt),
+then train the student plan head with a distillation loss = per-token MSE (transfer the
+steering vector) + InfoNCE/CLIP (student_i <-> teacher_i positive, cross-chunk negatives;
+keeps the de-collinearization). Pure distillation (contrastive OFF), frozen DiT, base plan P.
+Code: planner_cfg.distill_weight + _plan_distill_loss; dataset teacher_token_lookup (attaches
+teacher_tokens/has_teacher); train `--teacher-token-lookup --distill-weight 1.0`. dist loss
+2.94 -> 1.50 (floors: the student can only partially match a privileged teacher).
+
+eval_stage2_dir.py on BASE plans (student sees no actions), N=16x6x3:
+| dir | base student (EXP-043) | teacher P+ (EXP-044) | DISTILLED student P (EXP-045) |
+|---|---|---|---|
+| left  | -0.062, 78%  | -0.198, 100% | **-0.206, 100%** (=teacher) |
+| right | +0.002, 43% (broken) | +0.094, 95% | **+0.054, 82%** (recovered) |
+| up    | -0.234, 99%  | -0.320, 100% | **-0.318, 100%** (=teacher) |
+| down  | +0.046, 86%  | +0.065, 93%  | +0.020, 58% (weak) |
+| flip  | -0.039/+0.024 | -0.238/+0.150 | **-0.120/+0.106** (3x base) |
+
+**The base-plan-only student recovers most of the privileged teacher's steering: left & up
+MATCH the teacher (100% sign-acc, ~same magnitude), the previously-broken RIGHT is fixed
+(+0.054 @82%), flip 3x stronger than EXP-043.** => the user's distillation idea is validated:
+a student distilled toward an action-augmented teacher infers the action content from the
+SEMANTIC plan alone (works because the plans are action-grounded by construction, EXP-038) and
+steers the DiT accordingly -- no actions seen at test time.
+
+CAVEATS: (1) `down` stays weak (58%, near chance) -- smallest cluster (22) + known up/down
+y-axis imbalance (EXP-026); likely fixed by distill+contrastive combined (EXP-046) or more
+data. (2) Still DIRECTION-level; the teacher reads the action near-literally, and the student
+matches because plans here are grounded in the SHOWN actions -- genuine OOD/counterfactual
+plans (betraying the video) are the next test, needing plans NOT derived from the real chunk.
+(3) Distillation (EXP-045) > outcome-contrastive (EXP-043) on left/right/up; pure-distill used
+here, combining with outcome-contrastive is the obvious EXP-046.
+
+Full chain: EXP-041 (gap) -> 042 (collinearity, not capacity) -> 043 (outcome-contrastive,
+metric artifact) -> 044 (privileged teacher) -> 045 (distill teacher into base-plan student).
+Student ckpt: runs/stage2_student/plan_stage1_2500.pt.

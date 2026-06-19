@@ -39,6 +39,8 @@ class PlannerConfig(BaseModel):
     contrastive_weight: float = Field(default=0.0, description="Weight of the supervised-contrastive auxiliary loss on pooled plan tokens (groups by plan_label) to push apart opposite-direction plans. 0 disables.")
     contrastive_temp: float = Field(default=0.1, description="Temperature for the SupCon plan-token loss.")
     contrastive_mode: str = Field(default="mean", description="Representation used by the SupCon plan-token loss: 'mean' pools over the K tokens (order-blind; opposite orderings share a mean and stay collinear); 'flatten' concatenates the K tokens (order-aware: forces order info into position-specific tokens); 'pertoken' applies SupCon independently per query position and averages (strongest per-position discriminability).")
+    distill_weight: float = Field(default=0.0, description="Weight of the privileged-info DISTILLATION loss (EXP-045): pull the (base-plan) student plan tokens toward precomputed teacher plan tokens from the action-augmented prompt P+. 0 disables. Combines a per-token MSE (transfer steering) with an InfoNCE/CLIP term (per-chunk positive vs cross-chunk negatives; de-collinearize).")
+    distill_temp: float = Field(default=0.1, description="Temperature for the InfoNCE term of the distillation loss.")
     plan_hidden_size: int = Field(default=1024, description="Hidden size of the planner backbone (== NitroGen vision_hidden_size).")
     freeze_backbone: bool = Field(default=True, description="Freeze the VLM backbone (Stage 1).")
     backbone_dtype: str = Field(default="bfloat16", description="Dtype for the (frozen) backbone.")

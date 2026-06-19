@@ -142,6 +142,7 @@ class PlanDatasetConfig:
     vlm_plan_lookup: str | None = None  # Stage-2: path to {uuid: {plan: text}} VLM-generated tactical plans; when set, plan_text comes from here (target = real chunk at frame 303) and plan_label is a single 'vlm' class
     s2_outcome_contrastive: bool = False  # Stage-2: label each VLM plan by its real chunk's dominant direction so contrastive de-collinearizes plan tokens along the action axis (EXP-043)
     s2_augment_plan: bool = False    # Stage-2 TEACHER: append the real chunk's action summary to the plan text (privileged-info P+ = P + "...take these actions <seq>") (EXP-044)
+    teacher_token_lookup: str | None = None  # Stage-2 STUDENT (EXP-045): path to a torch-saved {uuid: (K,d) teacher plan tokens} (gen_teacher_tokens.py); attaches teacher_tokens for distillation
     seed: int = 0
 
 
@@ -165,6 +166,11 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         self.vlm_plans = None
         if config.vlm_plan_lookup and os.path.exists(config.vlm_plan_lookup):
             self.vlm_plans = json.load(open(config.vlm_plan_lookup))
+        # Stage-2 STUDENT: precomputed teacher plan tokens keyed by uuid (gen_teacher_tokens.py)
+        # for privileged-info distillation (EXP-045).
+        self.teacher_tokens = None
+        if config.teacher_token_lookup and os.path.exists(config.teacher_token_lookup):
+            self.teacher_tokens = torch.load(config.teacher_token_lookup, map_location="cpu")
 
         if tokenizer is None:
             tok_cfg = NitrogenTokenizerConfig(
@@ -350,6 +356,20 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         ex["plan_label"] = plan_label_override if plan_label_override is not None else plan_label_id(plan_name)
         ex["plan_cursor"] = int(plan_cursor)
         ex["is_idle"] = bool(idle)
+        # Stage-2 STUDENT distillation (EXP-045): attach the precomputed teacher tokens for
+        # this uuid; only valid when a (non-dropped) plan is used and a teacher exists.
+        K = self.cfg.num_plan_tokens
+        d = getattr(self, "_teacher_dim", None)
+        if self.teacher_tokens is not None and not plan_dropped and uuid in self.teacher_tokens:
+            tt = np.asarray(self.teacher_tokens[uuid], dtype=np.float32)
+            self._teacher_dim = tt.shape[-1]
+            ex["teacher_tokens"] = tt
+            ex["has_teacher"] = True
+        elif self.teacher_tokens is not None:
+            dim = d if d is not None else int(np.asarray(next(iter(self.teacher_tokens.values()))).shape[-1])
+            self._teacher_dim = dim
+            ex["teacher_tokens"] = np.zeros((K, dim), dtype=np.float32)
+            ex["has_teacher"] = False
         return ex
 
 
@@ -393,6 +413,10 @@ def make_collate_fn(plan_cache: Optional[PlanHiddenCache] = None, plan_dim: int 
         out["plan_dropped"] = torch.tensor([b["plan_dropped"] for b in batch], dtype=torch.bool)
         out["plan_label"] = torch.tensor([b.get("plan_label", -1) for b in batch], dtype=torch.long)
         out["plan_cursor"] = torch.tensor([b.get("plan_cursor", 0) for b in batch], dtype=torch.long)
+        if "teacher_tokens" in batch[0]:
+            out["teacher_tokens"] = torch.stack(
+                [torch.as_tensor(np.asarray(b["teacher_tokens"])) for b in batch], 0)
+            out["has_teacher"] = torch.tensor([b.get("has_teacher", False) for b in batch], dtype=torch.bool)
 
         if plan_cache is not None:
             hs, masks = [], []
