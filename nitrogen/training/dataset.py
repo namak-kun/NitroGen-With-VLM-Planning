@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 from ..mm_tokenizers import NitrogenTokenizer, NitrogenTokenizerConfig
-from .actions import load_chunk_actions, is_idle_window, assemble_chunk, chunk_dominant_dir
+from .actions import load_chunk_actions, is_idle_window, assemble_chunk, chunk_dominant_dir, summarize_chunk
 from .plans import SyntheticPlanSampler
 from .video import VideoFrameFetcher, VideoFetchConfig
 
@@ -141,6 +141,7 @@ class PlanDatasetConfig:
     cc_starts: tuple = (100, 250, 400)  # candidate window starts (must match scripts/extract_cc_frames.py)
     vlm_plan_lookup: str | None = None  # Stage-2: path to {uuid: {plan: text}} VLM-generated tactical plans; when set, plan_text comes from here (target = real chunk at frame 303) and plan_label is a single 'vlm' class
     s2_outcome_contrastive: bool = False  # Stage-2: label each VLM plan by its real chunk's dominant direction so contrastive de-collinearizes plan tokens along the action axis (EXP-043)
+    s2_augment_plan: bool = False    # Stage-2 TEACHER: append the real chunk's action summary to the plan text (privileged-info P+ = P + "...take these actions <seq>") (EXP-044)
     seed: int = 0
 
 
@@ -271,6 +272,13 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
             if use_plan and entry and entry.get("plan"):
                 plan_name = "vlm"; plan_text = entry["plan"]; target = real_chunk
                 plan_dropped = False
+                # TEACHER (EXP-044): append the real action sequence to the plan -> privileged
+                # P+ = P + "...take these actions <seq>". The student (base P) is later distilled
+                # to match this teacher (contrastive), transferring finer-than-direction action
+                # grounding without seeing the actions at test time.
+                if self.cfg.s2_augment_plan and real_chunk is not None:
+                    plan_text = plan_text + " To do this I take the following actions: " \
+                        + summarize_chunk(real_chunk) + "."
                 # Action-outcome contrastive label: group plans by the REAL chunk's dominant
                 # direction so contrastive de-collinearizes plan tokens ALONG the action axis
                 # (EXP-042: distinct plans were collinear cos~0.84 -> DiT content-blind, own==

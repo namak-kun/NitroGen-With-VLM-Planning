@@ -2034,3 +2034,41 @@ to richer semantic-plan specificity needs finer outcome structure (e.g. dir+butt
 clustering plan embeddings) -- the same recipe, finer labels. (2) L/R magnitude weak (known
 data x-axis/up imbalance, EXP-026); up steers strongest. (3) report BOTH evals going forward:
 velocity-MSE for informativeness, eval_stage2_dir for content-specificity.
+
+## EXP-044  Privileged TEACHER (action-augmented plan P+) steers 2-3x stronger -> distillation target exists — 2026-06-19
+
+User's distillation idea: teacher prompt P+ = base plan P + " ...take these actions <real
+action summary>" (privileged info); later distill a student that sees only P toward it.
+Step (2) first: is there a teacher signal worth distilling? Two checks:
+
+PREMISE (probe_distill_premise.py): does appending the action text de-collinearize the raw
+VLM rep? NO -- mean-pool cosine base 0.89 -> augmented 0.95 -> action-only 0.95 (MORE
+collinear; movement-text collinearity EXP-015 + template dilution). A faint direction
+structure persists (same-dir < across-dir). => naive REGRESSION distillation would reproduce
+collinearity (content-blind, like EXP-042); the teacher must be TRAINED + the objective
+CONTRASTIVE.
+
+FREE-LUNCH CHECK: feed P+ to the base-trained EXP-043 adapter (OOD) -> 3/4, slightly WORSE
+than base P (4/4). No free lunch from prompting; the student must be trained to read it.
+
+TRAINED TEACHER (EXP-044): train the EXP-043 recipe (outcome-contrastive, frozen DiT) with
+prompts = P+ (`--s2-augment-plan --s2-outcome-contrastive --contrastive-weight 1.0`). con
+loss bottomed 0.79 (vs 1.34 base) -- the action text makes plans trivially separable by dir.
+eval_stage2_dir.py (matched P+ prompts), N=16x6x3:
+| dir | base P student (EXP-043) | teacher P+ (EXP-044) |
+|---|---|---|
+| left  | -0.062, 78%, *sig | **-0.198, 100%, *sig** |
+| right | +0.002, 43% (weak)| **+0.094, 95%, *sig** |
+| up    | -0.234, 99%, *sig | **-0.320, 100%, *sig** |
+| down  | +0.046, 86%, *sig | **+0.065, 93%, *sig** |
+| flip  | -0.039 / +0.024 | **-0.238 / +0.150** |
+**Teacher steers 2-3x stronger, 4/4 ALL significant (93-100% sign-acc), fixes the broken
+RIGHT, huge clean flip.** The privileged action text, once trained on, produces dramatically
+better content-specific steering. => a strong distillation TARGET exists (EXP-045: distill
+student-P -> teacher-P+ via contrastive/CLIP, eval student alone). Caveat: the teacher reads
+the action almost literally (privileged); the open question is how much a base-plan-only
+student can recover by INFERRING action from semantic intent.
+
+Infra: summarize_chunk moved to nitrogen/training/actions.py (canonical; planner_poc re-
+exports). dataset `s2_augment_plan` + `--s2-augment-plan`. Teacher ckpt:
+runs/stage2_teacher/plan_stage1_2500.pt.

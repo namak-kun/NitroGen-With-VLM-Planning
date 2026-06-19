@@ -92,7 +92,12 @@ def build_clusters():
             continue
         dd = chunk_dominant_dir(rc)
         if dd in clusters:
-            clusters[dd].append(LOOKUP[uuid]["plan"])
+            plan = LOOKUP[uuid]["plan"]
+            if os.environ.get("AUGMENT_PLANS") == "1":
+                # privileged-info TEACHER prompt P+ = base plan + the real action sequence.
+                from action_summary import summarize_chunk
+                plan = plan + " To do this I take the following actions: " + summarize_chunk(rc) + "."
+            clusters[dd].append(plan)
             frames[uuid] = png
     return clusters, list(frames.values())
 

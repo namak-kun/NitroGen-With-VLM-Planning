@@ -162,6 +162,8 @@ def main():
                     help="Stage-2: path to {uuid: {plan}} VLM-generated tactical plans; plan_text comes from here, target = real chunk (gen_stage2_lookup.py)")
     ap.add_argument("--s2-outcome-contrastive", action="store_true",
                     help="Stage-2: label each VLM plan by its real chunk's dominant direction so contrastive de-collinearizes plan tokens along the action axis (EXP-043; pair with --contrastive-weight>0)")
+    ap.add_argument("--s2-augment-plan", action="store_true",
+                    help="Stage-2 TEACHER: append the real chunk's action summary to the plan text (privileged P+ = P + actions) (EXP-044; train a teacher to later distill the base-plan student toward)")
     ap.add_argument("--init-from", default=None,
                     help="warm-start plan head (and DiT) from a prior Stage-1 checkpoint")
     ap.add_argument("--lora-dit", type=int, default=0,
@@ -286,6 +288,7 @@ def main():
         cc_posthoc=args.cc_posthoc, cc_posthoc_ratio=args.cc_posthoc_ratio,
         vlm_plan_lookup=args.vlm_plan_lookup,
         s2_outcome_contrastive=args.s2_outcome_contrastive,
+        s2_augment_plan=args.s2_augment_plan,
         group_weights=group_weights,
     )
     ds = NitrogenPlanDataset(ds_cfg, frame_provider, img_proc)

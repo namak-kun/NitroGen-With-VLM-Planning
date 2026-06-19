@@ -137,3 +137,57 @@ def chunk_dominant_dir(chunk: dict, eps: float = 0.15) -> str | None:
     if abs(x) >= abs(y):
         return "right" if x > 0 else "left"
     return "down" if y > 0 else "up"
+
+# Human-readable names for the buttons that matter for play (Xbox-ish gamepad).
+_BTN_LABEL = {
+    "south": "A/jump", "east": "B", "west": "X/attack", "north": "Y",
+    "left_shoulder": "LB", "right_shoulder": "RB",
+    "left_trigger": "LT/brake", "right_trigger": "RT/accelerate",
+    "left_thumb": "L3", "right_thumb": "R3", "start": "start", "back": "back",
+    "dpad_up": "dpad-up", "dpad_down": "dpad-down", "dpad_left": "dpad-left", "dpad_right": "dpad-right",
+}
+_BTN_IDX = {n: i for i, n in enumerate(BUTTON_ORDER)}
+
+
+def _stick_dir(xy, eps: float = 0.25) -> str:
+    x, y = float(xy[0]), float(xy[1])
+    if max(abs(x), abs(y)) < eps:
+        return "neutral"
+    parts = []
+    if y < -eps: parts.append("up")
+    if y > eps: parts.append("down")
+    if x < -eps: parts.append("left")
+    if x > eps: parts.append("right")
+    return "-".join(parts) if parts else "neutral"
+
+
+def summarize_chunk(chunk: dict, n_seg: int = 3) -> str:
+    """Terse natural-language description of an 18-step action chunk: left-stick motion over
+    n_seg sub-segments + any buttons pressed (with rough duration). Used as the action-grounded
+    CONTEXT for VLM plan generation and as the privileged action text for distillation teachers.
+    Canonical home (planner_poc/action_summary.py re-exports this)."""
+    H = chunk["buttons"].shape[0]
+    jl = chunk["j_left"]; btn = chunk["buttons"]
+    seg = max(1, H // n_seg)
+    seg_descs = []
+    for k in range(n_seg):
+        lo, hi = k * seg, (H if k == n_seg - 1 else (k + 1) * seg)
+        seg_descs.append(_stick_dir(jl[lo:hi].mean(0)))
+    collapsed = []
+    for d in seg_descs:
+        if not collapsed or collapsed[-1] != d:
+            collapsed.append(d)
+    parts = []
+    if all(d == "neutral" for d in collapsed):
+        parts.append("left stick: mostly neutral")
+    else:
+        parts.append("left stick: " + " then ".join(collapsed))
+    held = []
+    for name, idx in _BTN_IDX.items():
+        frac = float((btn[:, idx] > 0.5).mean())
+        if frac > 0.1:
+            label = _BTN_LABEL.get(name, name)
+            when = "throughout" if frac > 0.7 else ("briefly" if frac < 0.35 else "for a while")
+            held.append(f"{label} {when}")
+    parts.append("buttons: " + ", ".join(held) if held else "no buttons")
+    return "; ".join(parts)
