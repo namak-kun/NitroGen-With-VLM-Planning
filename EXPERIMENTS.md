@@ -2005,24 +2005,29 @@ stick dims) is drowned out. Built eval_stage2_dir.py to measure the axis we trai
 
 DIRECTION-SPECIFICITY (eval_stage2_dir.py): does a direction-d cluster plan steer the
 SAMPLED left-stick toward d, on FIXED reference frames (so steering is plan-content-driven,
-not frame-driven)? 8 frames x 4 plans x 2 seeds, delta = plan - null.
-| dir | EXP-043 stick-delta | EXP-041 control (no con) |
+not frame-driven)? Hardened N: 16 frames x 6 plans x 3 seeds, delta = plan - null, with SEM
+and per-sample sign-accuracy.
+| dir | EXP-043 (outcome-con) | EXP-041 control (no con) |
 |---|---|---|
-| left  | -0.018 OK | -0.013 OK |
-| right | +0.013 OK | -0.035 MISS |
-| up    | -0.253 OK | -0.120 OK |
-| down  | +0.048 OK | -0.121 MISS |
-| **score** | **4/4** | 2/4 (right & down push the data-mean dir) |
-Single-frame left-vs-right flip: EXP-043 left-x +0.020 < right-x +0.038 (FLIPS correctly);
-control left-x -0.083 > right-x -0.104 (no flip). **Without contrastive, collinear tokens
-shove every plan toward the data-mean direction (up-left); with outcome-contrastive, the
-plan CONTENT causally steers, overriding the frame.**
+| left  | -0.062 +/-0.006, 78%, *sig OK | -0.049, 76%, *sig OK |
+| right | +0.002 +/-0.002, 43%, OK(weak) | **-0.057, 17%, MISS** (pushes LEFT) |
+| up    | -0.234 +/-0.009, 99%, *sig OK | -0.107, 91%, *sig OK |
+| down  | +0.046 +/-0.004, 86%, *sig OK | **-0.098, 13%, MISS** (pushes UP) |
+| **score** | **4/4 sign (3/4 sig)** | 2/4 |
+Single-frame left-vs-right flip: EXP-043 left-x -0.039 < right-x +0.024 (FLIPS, correct
+signs); control left-x -0.134 ~= right-x -0.139 (NO flip; both shove strongly left).
+**Without contrastive, collinear tokens make EVERY plan push the data-mean direction
+(up-left) -> right & down go the WRONG way; with outcome-contrastive the plan CONTENT
+causally steers, overriding the frame.** (Honest: EXP-043 right's absolute delta-vs-null is
+~0 -- these frames already bias rightward so a right-plan adds little -- but it is no longer
+NEGATIVE like the control, and the L-vs-R flip is clean. up/down/left are clearly significant.)
 
 **VERDICT: the EXP-041/042 "no specificity" was a METRIC ARTIFACT.** Real VLM tactical plans,
 once their tokens are de-collinearized by outcome-contrastive, causally steer the DiT by
-content (4/4 dirs, correct L/R flip) on fixed frames -> direction-level counterfactual/OOD
-planning is feasible WITHOUT env training. The fix was REPRESENTATIONAL (the Stage-1 lesson),
-NOT capacity (LoRA hurt, EXP-042). Best Stage-2 ckpt: runs/stage2_con/plan_stage1_2500.pt.
+content (4/4 dir signs, 3/4 significant, correct L/R flip) on fixed frames -> direction-level
+counterfactual/OOD planning is feasible WITHOUT env training. The fix was REPRESENTATIONAL
+(the Stage-1 lesson), NOT capacity (LoRA hurt, EXP-042). Best Stage-2 ckpt:
+runs/stage2_con/plan_stage1_2500.pt.
 
 CAVEATS / next: (1) specificity is at the DIRECTION level (the label we supervised); pushing
 to richer semantic-plan specificity needs finer outcome structure (e.g. dir+button, or

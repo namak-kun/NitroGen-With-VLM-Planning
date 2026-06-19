@@ -103,8 +103,8 @@ def main(ckpt, which="model"):
     print("cluster sizes:", {k: len(v) for k, v in clusters.items()})
     # Fixed reference frames (steering must be plan-driven, not frame-driven). Use a handful
     # of distinct frames; average the (plan - null) stick delta over frames x plans x seeds.
-    ref_frames = all_frames[:8]
-    n_plan = 4; n_seed = 2
+    ref_frames = all_frames[:16]
+    n_plan = 6; n_seed = 3
     rng = np.random.RandomState(0)
     print(f"\nref frames: {len(ref_frames)}  plans/dir: {n_plan}  seeds: {n_seed}")
     print("does a direction-d cluster plan steer the sampled left-stick toward d? (same frames)\n")
@@ -120,9 +120,14 @@ def main(ckpt, which="model"):
                 for sd in range(n_seed):
                     dv = sample(m, fp, pt, False, sd) - sample(m, fp, "", True, sd)
                     deltas.append(dv[:, axis].mean())
-        v = float(np.mean(deltas)); good = int(np.sign(v) == want)
+        deltas = np.array(deltas)
+        v = float(deltas.mean()); sem = float(deltas.std() / np.sqrt(len(deltas)))
+        sign_acc = float(np.mean(np.sign(deltas) == want))
+        good = int(np.sign(v) == want)
+        sig = abs(v) > 2 * sem  # mean is >2 SEM from zero (rough p<0.05)
         correct += good; total += 1
-        print(f"  dir={d:5s}: mean stick-delta on axis = {v:+.4f}  want sign {want:+d}  -> {'OK' if good else 'MISS'}")
+        print(f"  dir={d:5s}: delta {v:+.4f} +/-{sem:.4f}  sign-acc {sign_acc:.0%}  "
+              f"want {want:+d} -> {'OK' if good else 'MISS'}{' *sig' if sig and good else ''}")
     print(f"\n  direction-specific steering: {correct}/{total} dirs correct")
     print("  (4/4 => real VLM plans causally steer by CONTENT on a fixed frame => the plan")
     print("   overrides the frame => counterfactual/OOD planning feasible w/o env training.)")
