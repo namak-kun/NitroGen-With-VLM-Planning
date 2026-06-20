@@ -9,16 +9,14 @@ sys.path.insert(0, "/home/t-nagupta/NitroGen")
 from nitrogen.eval import Scenario, ACTION_DIM, JLX
 from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK
 
-# Menu macro (GAMEPAD) from the title -> in-game: Start Game -> New Save -> Normal ->
-# Single Player, then advance the opening text boxes.
-BOOT_TO_GAME = [
-    ("wait", 1.0), ("btn", MENU_OK),   # Start Game
-    ("wait", 1.0), ("btn", MENU_OK),   # New Save (slot 1)
-    ("wait", 1.0), ("btn", MENU_OK),   # Normal difficulty
-    ("wait", 1.0), ("btn", MENU_OK),   # Single Player
-    ("wait", 5.0),
-    ("btn", MENU_OK), ("wait", 0.5), ("btn", MENU_OK), ("wait", 0.5),  # advance intro text
-]
+# Menu + intro macro (GAMEPAD) from the title -> FREE-ROAM gameplay (First Cave "Start Point").
+# Start Game -> New Save -> Normal -> Single Player, then spam confirm to clear the opening
+# cutscene ("Connecting to network... Logged on...") until Quote is controllable.
+BOOT_TO_GAME = (
+    [("wait", 1.2), ("btn", MENU_OK)] * 4          # 4 menu confirms
+    + [("wait", 4.0)]
+    + [("wait", 1.0), ("btn", MENU_OK)] * 18       # clear the opening cutscene
+)
 
 
 def main():
