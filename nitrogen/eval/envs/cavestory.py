@@ -55,13 +55,19 @@ class CaveStoryEnv(GameEnv):
     def __init__(self, drs_dir: str = "/tmp/doukutsu-rs/target/release",
                  width: int = 640, height: int = 480, display: int | None = None,
                  reset_macro: list | None = None, boot_wait: float = 10.0,
-                 chunk_seconds: float = 0.6, launch: bool = True, use_gamepad: bool = True):
+                 chunk_seconds: float = 0.6, launch: bool = True, use_gamepad: bool = True,
+                 freeze_during_inference: bool = True):
         self.drs_dir = drs_dir
         self.width, self.height = width, height
         self.display = display if display is not None else _free_display()
         self.boot_wait = boot_wait
         self.chunk_seconds = chunk_seconds
         self.use_gamepad = use_gamepad
+        # freeze_during_inference: replicate NitroGen's GamepadEnv — keep the game (near-)frozen
+        # except while applying an action, so the ~0.4s/chunk GPU inference doesn't let the game
+        # run uncontrolled (the real-time gap). Uses the LD_PRELOAD speedhack (set_speed).
+        self.freeze_during_inference = freeze_during_inference
+        self._sh = None
         # reset_macro: list of ("key", keysym) | ("wait", seconds) to drive menus to a known
         # start (e.g. New Save -> Normal -> Single Player -> gameplay). Game-flow-specific, so
         # the caller/scenario supplies it. Default = boot only.
@@ -103,6 +109,12 @@ class CaveStoryEnv(GameEnv):
             self._pad = VirtualGamepad()
             time.sleep(0.3)
             self._fix_input_perms()
+        # Speedhack (LD_PRELOAD) so we can freeze the game during inference. Built lazily.
+        game_env = self._env()
+        if self.freeze_during_inference:
+            from ..speedhack import SpeedHack
+            self._sh = SpeedHack()           # pause_scale ~0.02 near-freeze (0.0 hangs doukutsu-rs)
+            game_env = {**game_env, **self._sh.env()}
         self._xvfb = subprocess.Popen(
             ["Xvfb", f":{self.display}", "-screen", "0", f"{self.width}x{self.height}x24"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -110,7 +122,7 @@ class CaveStoryEnv(GameEnv):
         binp = os.path.join(self.drs_dir, "doukutsu-rs")
         self._game = subprocess.Popen(
             [binp, "--window-width", str(self.width), "--window-height", str(self.height)],
-            cwd=self.drs_dir, env=self._env(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            cwd=self.drs_dir, env=game_env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(self.boot_wait)
         # window id only needed for keyboard injection; gamepad reads the device directly.
         self._wid = None if self.use_gamepad else self._find_window()
@@ -149,15 +161,26 @@ class CaveStoryEnv(GameEnv):
     def _apply_chunk(self, action_chunk: np.ndarray) -> None:
         """Replay the (H,25) chunk on the virtual gamepad, one row at a time, preserving the
         analog stick signal AND intra-chunk timing (each row held chunk_seconds/H). This is the
-        faithful embodiment: NitroGen's analog output -> analog axes (vs. discretized keys)."""
+        faithful embodiment: NitroGen's analog output -> analog axes (vs. discretized keys).
+
+        Mirrors NitroGen GamepadEnv.perform_action: if freeze_during_inference, the game is
+        (near-)frozen between steps and UNPAUSED only while the action is applied, so inference
+        latency doesn't let the game run uncontrolled. We busy-wait (not time.sleep) per row so
+        the real elapsed time is precise."""
         a = np.asarray(action_chunk, dtype=np.float32)
         if a.ndim == 1:
             a = a[None]
         h = a.shape[0]
         per = self.chunk_seconds / max(h, 1)
+        if self._sh is not None:
+            self._sh.unpause()
         for row in a:
             self._pad.set_action(row)
-            time.sleep(per)
+            t = time.perf_counter()
+            while time.perf_counter() - t < per:
+                pass
+        if self._sh is not None:
+            self._sh.pause()                 # near-freeze again until the next step
 
     # ---- GameEnv interface -------------------------------------------------------------
     def reset(self, scenario: Scenario) -> Observation:
@@ -166,6 +189,10 @@ class CaveStoryEnv(GameEnv):
         #   ("dir", dx, dy)     hold the left stick (menu cursor move)
         #   ("wait", seconds)   wait for loads/cutscenes
         #   ("key", keysym)     keyboard (only when use_gamepad=False)
+        # The menu macro runs at NORMAL speed (game must advance to load); we (near-)freeze only
+        # after reaching the start state, so the first inference doesn't let the game run.
+        if self._sh is not None:
+            self._sh.unpause()
         if self._pad is not None:
             self._pad.neutral()
         macro = (scenario.success_spec or {}).get("reset_macro", self.reset_macro)
@@ -179,6 +206,8 @@ class CaveStoryEnv(GameEnv):
                 time.sleep(float(entry[1]))
             elif kind == "key":
                 self._press(entry[1])
+        if self._sh is not None:
+            self._sh.pause()
         self._step = 0
         return Observation(frame=self._grab(), state={"step": 0}, step_idx=0, done=False)
 
@@ -217,6 +246,9 @@ class CaveStoryEnv(GameEnv):
         if self._pad is not None:
             self._pad.close()
             self._pad = None
+        if self._sh is not None:
+            self._sh.close()
+            self._sh = None
         for proc in (self._game, self._xvfb):
             if proc is not None and proc.poll() is None:
                 try:
