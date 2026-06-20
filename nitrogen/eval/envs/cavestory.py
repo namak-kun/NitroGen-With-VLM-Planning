@@ -1,13 +1,18 @@
 """CaveStoryEnv — closed-loop GameEnv backed by doukutsu-rs (open-source Rust reimplementation
-of the freeware Metroidvania Cave Story). FEASIBILITY-PROVEN backend: the whole I/O loop runs
-HEADLESS with ZERO engine modifications —
+of the freeware Metroidvania Cave Story). FEASIBILITY-PROVEN, HEADLESS, purely GAMEPAD-driven —
   * render/observe: the game runs under Xvfb with software OpenGL (Mesa llvmpipe); we grab the
     framebuffer with ffmpeg x11grab -> the RGB frame the policy sees.
-  * act: we inject the 25-dim NitroGen gamepad as X11 key events (xdotool XTEST) to the focused
-    game window, using doukutsu-rs's default keyboard map (arrows=move, Z=jump/confirm,
-    X=shoot, A/S=weapon switch).
-Validated end-to-end: launched the game, navigated the menus, started a new game, reached
-gameplay (stage 13) — all programmatically, headless.
+  * act: NitroGen outputs a GAMEPAD action (analog sticks + buttons), so we drive a VIRTUAL
+    XBOX-360 GAMEPAD (uinput) — the faithful embodiment match — which doukutsu-rs's SDL2
+    GameController subsystem auto-detects ("Connected gamepad: Xbox 360 Controller"). This
+    preserves the analog stick signal and per-step timing (vs. discretizing to keyboard keys).
+    SDL reads the pad directly from the device (evdev), so NO window focus / xdotool is needed —
+    even menu navigation goes through the gamepad.
+Validated end-to-end: gamepad detected, drove the title menu (A=confirm), reached gameplay.
+
+REQUIRES the doukutsu-rs build patched so Player 1 defaults to Gamepad(0) (on desktop Linux it
+defaults to Keyboard, leaving the pad unused). One-line change in src/game/settings.rs
+`default_p1_controller_type` -> ControllerType::Gamepad(0); see scripts/setup_cavestory.md.
 
 This v1 is REAL-TIME and asynchronous (the game keeps running while the GPU policy thinks),
 which actually matches the intended System-2(async)/System-1(real-time) deployment. A future
@@ -29,15 +34,11 @@ import time
 import numpy as np
 
 from ..core import JLX, JLY, N_BUTTONS, GameEnv, Observation, Scenario
+from .virtual_gamepad import VirtualGamepad, B_SOUTH, B_EAST, B_DUP, B_DDOWN, B_DLEFT, B_DRIGHT
 
-# Cave Story key bindings (doukutsu-rs p1_default_keymap) as X11 keysyms for xdotool.
-KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN = "Left", "Right", "Up", "Down"
-KEY_JUMP, KEY_SHOOT = "z", "x"           # jump / confirm, shoot / back
-KEY_WPREV, KEY_WNEXT = "a", "s"          # prev / next weapon
-# NitroGen button indices (xbox-ish, see nitrogen/training/actions.py BUTTON_ORDER):
-BTN_JUMP, BTN_SHOOT, BTN_WPREV, BTN_WNEXT = 0, 1, 4, 5
-MOVE_THRESH = 0.4                         # stick deflection that counts as a held direction
-BTN_FRAC = 0.30                           # press a button if active in >= this fraction of a chunk
+# Named gamepad buttons for reset macros (menu navigation). doukutsu-rs default gamepad map:
+# menu_ok=South(A), menu_back=East(B), move=d-pad/left-stick.
+MENU_OK, MENU_BACK = B_SOUTH, B_EAST
 
 
 def _free_display() -> int:
@@ -54,12 +55,13 @@ class CaveStoryEnv(GameEnv):
     def __init__(self, drs_dir: str = "/tmp/doukutsu-rs/target/release",
                  width: int = 640, height: int = 480, display: int | None = None,
                  reset_macro: list | None = None, boot_wait: float = 10.0,
-                 chunk_seconds: float = 0.6, launch: bool = True):
+                 chunk_seconds: float = 0.6, launch: bool = True, use_gamepad: bool = True):
         self.drs_dir = drs_dir
         self.width, self.height = width, height
         self.display = display if display is not None else _free_display()
         self.boot_wait = boot_wait
         self.chunk_seconds = chunk_seconds
+        self.use_gamepad = use_gamepad
         # reset_macro: list of ("key", keysym) | ("wait", seconds) to drive menus to a known
         # start (e.g. New Save -> Normal -> Single Player -> gameplay). Game-flow-specific, so
         # the caller/scenario supplies it. Default = boot only.
@@ -67,18 +69,40 @@ class CaveStoryEnv(GameEnv):
         self._xvfb = None
         self._game = None
         self._wid = None
+        self._pad = None
         self._step = 0
-        for tool in ("Xvfb", "ffmpeg", "xdotool"):
+        req = ("Xvfb", "ffmpeg") if use_gamepad else ("Xvfb", "ffmpeg", "xdotool")
+        for tool in req:
             if shutil.which(tool) is None:
                 raise RuntimeError(f"{tool} not found; see scripts/setup_cavestory.md")
         if launch:
             self._boot()
 
+    def _press_btn(self, idx: int, hold: float = 0.12):
+        """Press a gamepad button (by NitroGen button index) for menu navigation."""
+        row = np.zeros(25, np.float32); row[idx] = 1.0
+        self._pad.set_action(row); time.sleep(hold); self._pad.neutral(); time.sleep(0.25)
+
+    def _hold_dir(self, dx: int, dy: int, hold: float = 0.15):
+        """Hold the left stick in a direction (menu cursor move / nudge)."""
+        row = np.zeros(25, np.float32); row[JLX] = dx; row[JLY] = dy
+        self._pad.set_action(row); time.sleep(hold); self._pad.neutral(); time.sleep(0.2)
+
     # ---- process / display management --------------------------------------------------
     def _env(self):
         return dict(os.environ, DISPLAY=f":{self.display}")
 
+    def _fix_input_perms(self):
+        # New uinput nodes are root:root 0600; SDL (our user) needs read access. Best-effort.
+        subprocess.run("sudo chmod 666 /dev/input/event* /dev/input/js* 2>/dev/null",
+                       shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     def _boot(self):
+        # Create the virtual gamepad BEFORE launching the game so SDL enumerates it at startup.
+        if self.use_gamepad:
+            self._pad = VirtualGamepad()
+            time.sleep(0.3)
+            self._fix_input_perms()
         self._xvfb = subprocess.Popen(
             ["Xvfb", f":{self.display}", "-screen", "0", f"{self.width}x{self.height}x24"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -88,7 +112,8 @@ class CaveStoryEnv(GameEnv):
             [binp, "--window-width", str(self.width), "--window-height", str(self.height)],
             cwd=self.drs_dir, env=self._env(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(self.boot_wait)
-        self._wid = self._find_window()
+        # window id only needed for keyboard injection; gamepad reads the device directly.
+        self._wid = None if self.use_gamepad else self._find_window()
 
     def _find_window(self) -> str:
         out = subprocess.run(["xdotool", "search", "--name", "Cave Story"],
@@ -120,54 +145,78 @@ class CaveStoryEnv(GameEnv):
             return np.zeros((self.height, self.width, 3), np.uint8)
         return np.frombuffer(buf[:n], np.uint8).reshape(self.height, self.width, 3).copy()
 
-    # ---- action: chunk -> held keys ----------------------------------------------------
-    def _chunk_keys(self, action_chunk: np.ndarray) -> list[str]:
-        """Map an (H,25) chunk to the keys to HOLD this control step. v1 collapses intra-chunk
-        timing to a dominant hold (mean stick -> direction; button if pressed in a fraction of
-        steps). A v2 engine patch would honor per-step timing."""
+    # ---- action: drive the virtual gamepad with per-step timing ------------------------
+    def _apply_chunk(self, action_chunk: np.ndarray) -> None:
+        """Replay the (H,25) chunk on the virtual gamepad, one row at a time, preserving the
+        analog stick signal AND intra-chunk timing (each row held chunk_seconds/H). This is the
+        faithful embodiment: NitroGen's analog output -> analog axes (vs. discretized keys)."""
         a = np.asarray(action_chunk, dtype=np.float32)
         if a.ndim == 1:
             a = a[None]
-        keys: list[str] = []
-        mx, my = float(a[:, JLX].mean()), float(a[:, JLY].mean())
-        if mx < -MOVE_THRESH: keys.append(KEY_LEFT)
-        if mx > MOVE_THRESH: keys.append(KEY_RIGHT)
-        if my < -MOVE_THRESH: keys.append(KEY_UP)
-        if my > MOVE_THRESH: keys.append(KEY_DOWN)
-        btn = a[:, :N_BUTTONS]
-        if (btn[:, BTN_JUMP] > 0.5).mean() >= BTN_FRAC: keys.append(KEY_JUMP)
-        if (btn[:, BTN_SHOOT] > 0.5).mean() >= BTN_FRAC: keys.append(KEY_SHOOT)
-        if (btn[:, BTN_WPREV] > 0.5).mean() >= BTN_FRAC: keys.append(KEY_WPREV)
-        if (btn[:, BTN_WNEXT] > 0.5).mean() >= BTN_FRAC: keys.append(KEY_WNEXT)
-        return keys
+        h = a.shape[0]
+        per = self.chunk_seconds / max(h, 1)
+        for row in a:
+            self._pad.set_action(row)
+            time.sleep(per)
 
     # ---- GameEnv interface -------------------------------------------------------------
     def reset(self, scenario: Scenario) -> Observation:
+        # Menu-setup macro navigates to a known start via the GAMEPAD. Entry forms:
+        #   ("btn", idx)        press a gamepad button (e.g. MENU_OK to confirm)
+        #   ("dir", dx, dy)     hold the left stick (menu cursor move)
+        #   ("wait", seconds)   wait for loads/cutscenes
+        #   ("key", keysym)     keyboard (only when use_gamepad=False)
+        if self._pad is not None:
+            self._pad.neutral()
         macro = (scenario.success_spec or {}).get("reset_macro", self.reset_macro)
-        for kind, val in macro:
-            if kind == "key":
-                self._press(val)
+        for entry in macro:
+            kind = entry[0]
+            if kind == "btn":
+                self._press_btn(int(entry[1]))
+            elif kind == "dir":
+                self._hold_dir(float(entry[1]), float(entry[2]))
             elif kind == "wait":
-                time.sleep(float(val))
+                time.sleep(float(entry[1]))
+            elif kind == "key":
+                self._press(entry[1])
         self._step = 0
         return Observation(frame=self._grab(), state={"step": 0}, step_idx=0, done=False)
 
     def step(self, action_chunk: np.ndarray) -> Observation:
-        keys = self._chunk_keys(action_chunk)
+        if self._pad is not None:
+            self._apply_chunk(action_chunk)
+            self._pad.neutral()
+        else:  # keyboard fallback (discretized) — not recommended; loses analog
+            self._step_keyboard(action_chunk)
+        self._step += 1
+        return Observation(frame=self._grab(), state={"step": self._step},
+                           step_idx=self._step, done=False)
+
+    def _step_keyboard(self, action_chunk: np.ndarray) -> None:
+        a = np.asarray(action_chunk, dtype=np.float32)
+        if a.ndim == 1:
+            a = a[None]
+        keys = []
+        mx, my = float(a[:, JLX].mean()), float(a[:, JLY].mean())
+        if mx < -MOVE_THRESH: keys.append("Left")
+        if mx > MOVE_THRESH: keys.append("Right")
+        if my < -MOVE_THRESH: keys.append("Up")
+        if my > MOVE_THRESH: keys.append("Down")
+        if (a[:, :N_BUTTONS][:, 0] > 0.5).mean() >= 0.3: keys.append(KEY_JUMP)
         for k in keys:
             self._xdo("keydown", "--window", self._wid, k)
         time.sleep(self.chunk_seconds)
         for k in keys:
             self._xdo("keyup", "--window", self._wid, k)
-        self._step += 1
-        return Observation(frame=self._grab(), state={"step": self._step},
-                           step_idx=self._step, done=False)
 
     def save_frame(self, path: str) -> None:
         from PIL import Image
         Image.fromarray(self._grab()).save(path)
 
     def close(self) -> None:
+        if self._pad is not None:
+            self._pad.close()
+            self._pad = None
         for proc in (self._game, self._xvfb):
             if proc is not None and proc.poll() is None:
                 try:

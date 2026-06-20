@@ -7,34 +7,39 @@ import numpy as np
 sys.path.insert(0, "/home/t-nagupta/NitroGen")
 
 from nitrogen.eval import Scenario, ACTION_DIM, JLX
-from nitrogen.eval.envs.cavestory import CaveStoryEnv
+from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK
 
-# Menu macro from the title screen -> in-game: Start Game -> New Save -> Normal -> Single Player.
+# Menu macro (GAMEPAD) from the title -> in-game: Start Game -> New Save -> Normal ->
+# Single Player, then advance the opening text boxes.
 BOOT_TO_GAME = [
-    ("wait", 1.0), ("key", "z"),   # Start Game
-    ("wait", 1.0), ("key", "z"),   # New Save (slot 1)
-    ("wait", 1.0), ("key", "z"),   # Normal difficulty
-    ("wait", 1.0), ("key", "z"),   # Single Player
-    ("wait", 5.0),                  # intro stage loads
-    ("key", "z"), ("wait", 0.5), ("key", "z"), ("wait", 0.5),  # advance intro text
+    ("wait", 1.0), ("btn", MENU_OK),   # Start Game
+    ("wait", 1.0), ("btn", MENU_OK),   # New Save (slot 1)
+    ("wait", 1.0), ("btn", MENU_OK),   # Normal difficulty
+    ("wait", 1.0), ("btn", MENU_OK),   # Single Player
+    ("wait", 5.0),
+    ("btn", MENU_OK), ("wait", 0.5), ("btn", MENU_OK), ("wait", 0.5),  # advance intro text
 ]
 
 
 def main():
-    env = CaveStoryEnv(width=640, height=480, boot_wait=11.0)
+    env = CaveStoryEnv(width=640, height=480, boot_wait=11.0, use_gamepad=True)
     try:
         sc = Scenario("demo", plan="explore right", objective="move right",
                       success_spec={"reset_macro": BOOT_TO_GAME}, max_steps=6)
         obs = env.reset(sc)
         env.save_frame("/tmp/cs_env_reset.png")
-        print(f"reset ok; frame {obs.frame.shape}, mean px {obs.frame.mean():.1f}")
-        # scripted "move right" chunk
+        print(f"reset ok; gamepad={'yes' if env._pad else 'no'}; frame {obs.frame.shape}")
+        # analog: full left-stick RIGHT (JLX=+1) faithfully via the virtual pad
         right = np.zeros((18, ACTION_DIM), np.float32); right[:, JLX] = 1.0
+        left = np.zeros((18, ACTION_DIM), np.float32); left[:, JLX] = -1.0
+        prev = obs.frame.astype(np.int16)
         for t in range(5):
-            obs = env.step(right)
+            obs = env.step(right if t < 3 else left)
             env.save_frame(f"/tmp/cs_env_step{t}.png")
-            print(f"  step {t}: frame mean px {obs.frame.mean():.1f}")
-        print("DONE — frames saved to /tmp/cs_env_*.png")
+            diff = float(np.abs(obs.frame.astype(np.int16) - prev).mean())
+            print(f"  step {t} ({'RIGHT' if t<3 else 'LEFT'}): frame-delta vs prev = {diff:.2f}")
+            prev = obs.frame.astype(np.int16)
+        print("DONE — frames saved to /tmp/cs_env_*.png (nonzero frame-delta => player/world moved)")
     finally:
         env.close()
 
