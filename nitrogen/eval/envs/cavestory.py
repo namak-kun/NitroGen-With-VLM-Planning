@@ -34,11 +34,11 @@ import time
 import numpy as np
 
 from ..core import JLX, JLY, N_BUTTONS, GameEnv, Observation, Scenario
-from .virtual_gamepad import VirtualGamepad, B_SOUTH, B_EAST, B_DUP, B_DDOWN, B_DLEFT, B_DRIGHT
+from .virtual_gamepad import VirtualGamepad, B_SOUTH, B_EAST, B_WEST, B_DUP, B_DDOWN, B_DLEFT, B_DRIGHT
 
 # Named gamepad buttons for reset macros (menu navigation). doukutsu-rs default gamepad map:
-# menu_ok=South(A), menu_back=East(B), move=d-pad/left-stick.
-MENU_OK, MENU_BACK = B_SOUTH, B_EAST
+# menu_ok=South(A), menu_back=East(B), skip=West(X), move=d-pad/left-stick.
+MENU_OK, MENU_BACK, SKIP = B_SOUTH, B_EAST, B_WEST
 
 
 def _free_display() -> int:
@@ -93,6 +93,12 @@ class CaveStoryEnv(GameEnv):
         """Hold the left stick in a direction (menu cursor move / nudge)."""
         row = np.zeros(25, np.float32); row[JLX] = dx; row[JLY] = dy
         self._pad.set_action(row); time.sleep(hold); self._pad.neutral(); time.sleep(0.2)
+
+    def _hold_btn(self, idx: int, seconds: float):
+        """Hold a gamepad button down for `seconds` — used to fast-skip cutscenes (doukutsu-rs
+        4x's the textscript while the skip button (West/X) is HELD)."""
+        row = np.zeros(25, np.float32); row[idx] = 1.0
+        self._pad.set_action(row); time.sleep(seconds); self._pad.neutral(); time.sleep(0.2)
 
     # ---- process / display management --------------------------------------------------
     def _env(self):
@@ -200,6 +206,8 @@ class CaveStoryEnv(GameEnv):
             kind = entry[0]
             if kind == "btn":
                 self._press_btn(int(entry[1]))
+            elif kind == "hold":
+                self._hold_btn(int(entry[1]), float(entry[2]))
             elif kind == "dir":
                 self._hold_dir(float(entry[1]), float(entry[2]))
             elif kind == "wait":
