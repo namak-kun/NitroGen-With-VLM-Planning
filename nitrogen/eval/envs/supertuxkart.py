@@ -15,7 +15,7 @@ from ..core import JLX
 
 # NitroGen button indices used for racing
 I_RTRIG, I_LTRIG, I_RSHLD, I_LSHLD, I_WEST = 16, 9, 14, 7, 20
-STEER_THRESH = 0.25
+STEER_THRESH = 0.2   # stick is [0,1] w/ 0.5 neutral; 'right' = JLX > 0.5+thresh, 'left' = < 0.5-thresh
 
 
 class SuperTuxKartEnv(ProcGameEnv):
@@ -38,10 +38,10 @@ class SuperTuxKartEnv(ProcGameEnv):
         if a.ndim == 1:
             a = a[None]
         keys = set()
-        mx = float(a[:, JLX].mean())
-        if mx < -STEER_THRESH:
+        mx = float(a[:, JLX].mean())          # [0,1], 0.5 = straight
+        if mx < 0.5 - STEER_THRESH:
             keys.add("Left")
-        elif mx > STEER_THRESH:
+        elif mx > 0.5 + STEER_THRESH:
             keys.add("Right")
         if self.always_accel or (a[:, I_RTRIG] > 0.5).mean() >= 0.3:
             keys.add("Up")

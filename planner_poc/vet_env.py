@@ -60,9 +60,10 @@ def main():
     fz = np.abs(g2 - g1).mean()
     print(f"(3) FREEZE: frozen-gap diff={fz:.2f} -> {'OK frozen' if fz < 3 else 'NOT frozen (speedhack?)'}")
 
-    # (2) control: neutral vs a strong action
-    neutral = np.zeros((18, 25), np.float32)
-    strong = np.zeros((18, 25), np.float32); strong[:, JLX] = -1.0; strong[:, I_RTRIG] = 1.0
+    # (2) control: neutral vs a strong action (sticks are [0,1], 0.5=neutral; full-left = 0.0)
+    neutral = np.full((18, 25), 0.5, np.float32); neutral[:, :21] = 0.0
+    strong = np.full((18, 25), 0.5, np.float32); strong[:, :21] = 0.0
+    strong[:, JLX] = 0.0; strong[:, I_RTRIG] = 1.0
     a = env.step(neutral).frame.astype(float)
     b = env.step(strong).frame.astype(float)
     c = env.step(strong).frame.astype(float)

@@ -235,24 +235,28 @@ class ProcGameEnv(GameEnv):
 
 
 # ---- keyboard mapping helper (use in action_to_keys) ----------------------------------
-def keys_from_dirs_and_buttons(action_chunk, *, steer_thresh=0.25, vert_thresh=0.25,
+def keys_from_dirs_and_buttons(action_chunk, *, steer_thresh=0.2, vert_thresh=0.2,
                                button_map=None, button_frac=0.3):
     """Convenience: turn a NitroGen chunk into a key set using a {button_index: keysym} map plus
     standard arrow-key steering. Returns a set of keysyms. `button_map` e.g. {18:'z', 20:'x'}
-    (SOUTH->z jump, WEST->x attack)."""
+    (SOUTH->z jump, WEST->x attack).
+
+    STICK CONVENTION (load-bearing): NitroGen joysticks are in [0,1] with 0.5 = NEUTRAL (NOT
+    centered at 0). So 'left' = value < 0.5-thresh, 'right' = value > 0.5+thresh. Comparing against
+    +/-thresh (as if centered at 0) is a BUG: the model never emits negative, so left never fires."""
     from ..core import JLX, JLY
     a = np.asarray(action_chunk, dtype=np.float32)
     if a.ndim == 1:
         a = a[None]
     keys = set()
     mx, my = float(a[:, JLX].mean()), float(a[:, JLY].mean())
-    if mx < -steer_thresh:
+    if mx < 0.5 - steer_thresh:
         keys.add("Left")
-    elif mx > steer_thresh:
+    elif mx > 0.5 + steer_thresh:
         keys.add("Right")
-    if my < -vert_thresh:
+    if my < 0.5 - vert_thresh:
         keys.add("Up")
-    elif my > vert_thresh:
+    elif my > 0.5 + vert_thresh:
         keys.add("Down")
     for idx, key in (button_map or {}).items():
         if (a[:, idx] > 0.5).mean() >= button_frac:
