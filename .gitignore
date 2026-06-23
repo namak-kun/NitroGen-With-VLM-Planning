@@ -22,3 +22,4 @@ docs/DATAFLOW.md.bak
 
 # Local data pools / extraction outputs
 /tmp/
+/.nitrogen-env-build/
