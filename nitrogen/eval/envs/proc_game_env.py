@@ -56,6 +56,11 @@ class ProcGameEnv(GameEnv):
     window_name: str = ""
     control: str = "keyboard"            # "keyboard" | "gamepad"
     action_hz: float = 30.0
+    # Optional window manager to launch under Xvfb (e.g. "matchbox-window-manager"). Needed for
+    # games that GATE input on window focus (e.g. SFML's app->hasFocus()), which under a bare Xvfb
+    # (no WM) never becomes true so the game stays frozen. SDL games don't need this. After the WM
+    # starts the base also re-asserts focus on the game window each boot/reset (see _focus_window).
+    window_manager: str | None = None
 
     def __init__(self, width: int = 800, height: int = 600, display: int | None = None,
                  boot_wait: float = 15.0, chunk_seconds: float = 0.6,
@@ -66,6 +71,7 @@ class ProcGameEnv(GameEnv):
         self.chunk_seconds = chunk_seconds
         self.freeze_during_inference = freeze_during_inference
         self._xvfb = None
+        self._wm = None
         self._game = None
         self._sh = None
         self._wid = None
@@ -111,6 +117,10 @@ class ProcGameEnv(GameEnv):
             ["Xvfb", f":{self.display}", "-screen", "0", f"{self.width}x{self.height}x24"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(2.0)
+        if self.window_manager:
+            self._wm = subprocess.Popen(self.window_manager.split(), env=self._env(),
+                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(1.5)
         if self.control == "gamepad":
             from .virtual_gamepad import VirtualGamepad
             self._pad = VirtualGamepad()
@@ -125,6 +135,16 @@ class ProcGameEnv(GameEnv):
         time.sleep(self.boot_wait)
         if self.control == "keyboard":
             self._wid = self._find_window()
+            if self.window_manager and self._wid:
+                self._focus_window()
+
+    def _focus_window(self):
+        """Assert input focus on the game window (needed for focus-gated games, e.g. SFML). Uses
+        windowactivate (EWMH, honored by a WM) + windowfocus (XSetInputFocus) as a belt-and-braces."""
+        if not self._wid:
+            return
+        self._xdo("windowactivate", "--sync", self._wid)
+        self._xdo("windowfocus", "--sync", self._wid)
 
     def _find_window(self) -> str:
         if not self.window_name:
@@ -222,7 +242,7 @@ class ProcGameEnv(GameEnv):
                 self._pad.neutral(); self._pad.close()
         except Exception:
             pass
-        for proc in (self._game, self._xvfb):
+        for proc in (self._game, self._wm, self._xvfb):
             if proc is not None:
                 try:
                     proc.terminate(); proc.wait(timeout=3)
@@ -231,7 +251,7 @@ class ProcGameEnv(GameEnv):
                         proc.kill()
                     except Exception:
                         pass
-        self._game = self._xvfb = None
+        self._game = self._wm = self._xvfb = None
 
 
 # ---- keyboard mapping helper (use in action_to_keys) ----------------------------------
