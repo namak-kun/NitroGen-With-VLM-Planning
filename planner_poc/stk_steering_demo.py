@@ -24,13 +24,19 @@ CFG = float(os.environ.get("CFG", "8"))
 TRACK = os.environ.get("TRACK", "hacienda")
 
 
-def pan(a, b):
-    """Net horizontal shift (px) of b relative to a via phase correlation; +ve = world moved right."""
-    ga = cv2.cvtColor(a, cv2.COLOR_RGB2GRAY).astype(np.float32)
-    gb = cv2.cvtColor(b, cv2.COLOR_RGB2GRAY).astype(np.float32)
-    win = cv2.createHanningWindow((ga.shape[1], ga.shape[0]), cv2.CV_32F)
-    (dx, _), _ = cv2.phaseCorrelate(ga * win, gb * win)
-    return dx
+def yaw_flow(a, b, scale=0.25):
+    """Mean horizontal optical flow (Farneback) from a->b. Forward motion = divergent flow that
+    CANCELS in the mean; a yaw/turn sweeps the whole scene one way so the mean is signed:
+      world flows LEFT (mean u < 0) => camera yawed RIGHT (kart turned RIGHT);
+      world flows RIGHT (mean u > 0) => kart turned LEFT.
+    Robust to the large 0.6s-apart displacements that break phase correlation."""
+    ga = cv2.cvtColor(a, cv2.COLOR_RGB2GRAY)
+    gb = cv2.cvtColor(b, cv2.COLOR_RGB2GRAY)
+    h, w = ga.shape
+    ga = cv2.resize(ga, (int(w * scale), int(h * scale)))
+    gb = cv2.resize(gb, (int(w * scale), int(h * scale)))
+    flow = cv2.calcOpticalFlowFarneback(ga, gb, None, 0.5, 3, 25, 3, 5, 1.2, 0)
+    return float(np.median(flow[..., 0]))   # median u: robust signed yaw proxy (px, downscaled)
 
 
 def run(pol, plan, null):
@@ -46,7 +52,7 @@ def run(pol, plan, null):
             keys = env.action_to_keys(ch)
             steerk = "Left" if "Left" in keys else ("Right" if "Right" in keys else "·")
             obs = env.step(ch)
-            pans.append(pan(cur, obs.frame))
+            pans.append(yaw_flow(cur, obs.frame))
             cur = obs.frame; frames.append(cur)
             sxs.append(sx); keylog.append(steerk)
         return dict(stick=sxs, keys=keylog, pans=pans, net_pan=float(np.sum(pans)), frames=frames)
@@ -67,19 +73,24 @@ def main():
         print(f"\n=== {name} (plan={plan!r}) ===")
         print("  stick_x:", " ".join(f"{x:+.2f}" for x in r["stick"]))
         print("  keys   :", " ".join(f"{k:>4}" for k in r["keys"]))
-        print("  pan/chk:", " ".join(f"{p:+.0f}" for p in r["pans"]))
-        print(f"  NET horizontal scene pan = {r['net_pan']:+.0f} px  "
-              f"(world pans {'LEFT->kart turned RIGHT' if r['net_pan']<-20 else 'RIGHT->kart turned LEFT' if r['net_pan']>20 else 'straight'})")
-    # save a trajectory strip for each condition
+        print("  yawflow:", " ".join(f"{p:+.2f}" for p in r["pans"]))
+        print(f"  MEAN yaw flow = {np.mean(r['pans']):+.3f}  "
+              f"({'turned RIGHT' if np.mean(r['pans'])<-0.05 else 'turned LEFT' if np.mean(r['pans'])>0.05 else 'straight'})")
+    # save a trajectory strip + raw frames (so measurement can be redone offline w/o re-running the model)
     os.makedirs("docs/env_candidates", exist_ok=True)
+    np.savez_compressed("/tmp/stk_steer_frames.npz",
+                        **{n: np.stack(r["frames"]) for n, r in out.items()})
     for name, r in out.items():
         strip = np.concatenate([cv2.resize(f, (160, 120)) for f in r["frames"][::2]], axis=1)
         cv2.imwrite(f"docs/env_candidates/stk_steer_{name}.png", cv2.cvtColor(strip, cv2.COLOR_RGB2BGR))
-    print("\n=== STEERING SEPARATION (net pan) ===")
-    print(f"  go_left net_pan  = {out['go_left']['net_pan']:+.0f}")
-    print(f"  null    net_pan  = {out['null']['net_pan']:+.0f}")
-    print(f"  go_right net_pan = {out['go_right']['net_pan']:+.0f}")
-    print("  saved docs/env_candidates/stk_steer_{null,go_left,go_right}.png")
+    print("\n=== IN-ENV STEERING SEPARATION (mean yaw flow; <0 right, >0 left) ===")
+    ml, mn, mr = (np.mean(out[k]["pans"]) for k in ("go_left", "null", "go_right"))
+    print(f"  go_left  mean_yaw = {ml:+.3f}")
+    print(f"  null     mean_yaw = {mn:+.3f}")
+    print(f"  go_right mean_yaw = {mr:+.3f}")
+    print(f"  separation (left - right) = {ml - mr:+.3f}  "
+          f"(positive => go_left yaws more LEFT than go_right => plan steers the kart in-env)")
+    print("  saved docs/env_candidates/stk_steer_{null,go_left,go_right}.png + /tmp/stk_steer_frames.npz")
 
 
 if __name__ == "__main__":
