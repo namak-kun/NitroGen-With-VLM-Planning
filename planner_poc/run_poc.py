@@ -62,6 +62,9 @@ def make_env_factory(name, **kw):
         if name == "xmoto":
             from nitrogen.eval.envs.xmoto import XMotoEnv
             return XMotoEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
+        if name == "trigger_rally":
+            from nitrogen.eval.envs.trigger_rally import TriggerRallyEnv
+            return TriggerRallyEnv(boot_wait=kw.get("boot_wait", 14.0), freeze_during_inference=True)
         if name == "solarus_zelda":
             from nitrogen.eval.envs.solarus_zelda import SolarusZeldaEnv
             return SolarusZeldaEnv(boot_wait=kw.get("boot_wait", 14.0), freeze_during_inference=True)
