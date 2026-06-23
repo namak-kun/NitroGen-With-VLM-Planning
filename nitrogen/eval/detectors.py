@@ -138,3 +138,89 @@ class VLMJudgeDetector(SuccessDetector):
             self._success = bool(self.judge_fn(list(self._buf), self._instruction))
             self._done = True
         return self._success
+
+
+class SteerDirectionDetector(SuccessDetector):
+    """Frame-based steering success: did the agent MOVE/turn in a commanded cardinal direction?
+
+    For envs with NO privileged state (racing, most platformers) the only ground truth is the
+    pixels. We measure net scene optical flow across the episode: as the agent moves/turns one
+    way, the world sweeps the opposite way. Succeeds if the net flow along the commanded axis
+    exceeds a threshold in the right sign.
+
+    Sign convention (camera-follows-agent): agent moves/looks RIGHT => world flows LEFT
+    (mean horizontal flow u < 0); agent moves LEFT => world flows RIGHT (u > 0). Vertical:
+    agent moves UP => world flows DOWN (v > 0); agent moves DOWN => world flows UP (v < 0).
+    (If a particular env scrolls the opposite way, set success_spec['invert']=True.)
+
+    success_spec keys:
+      - direction: 'left'|'right'|'up'|'down'   (REQUIRED) the commanded/target direction
+      - flow_thresh: float (default 0.6)        net |flow| (downscaled px/frame, summed) needed
+      - min_steps: int (default 4)              ignore the first few warmup frames
+      - invert: bool (default False)            flip the sign mapping for envs that scroll oppositely
+      - scale: float (default 0.25)             downscale factor for optical flow (speed)
+    This is a SOFT, relative signal — best used in the counterfactual matrix (left-plan vs
+    right-plan from the same start) where the CONTRAST is the evidence, not an absolute bar.
+    """
+
+    def __init__(self):
+        self._spec: dict[str, Any] = {}
+        self._prev = None
+        self._net_u = 0.0
+        self._net_v = 0.0
+        self._t = 0
+
+    def reset(self, scenario: Scenario) -> None:
+        self._spec = dict(scenario.success_spec)
+        self._prev = None
+        self._net_u = 0.0
+        self._net_v = 0.0
+        self._t = 0
+
+    def _flow(self, a: np.ndarray, b: np.ndarray) -> tuple[float, float]:
+        import cv2
+        scale = float(self._spec.get("scale", 0.25))
+        ga = cv2.cvtColor(a, cv2.COLOR_RGB2GRAY)
+        gb = cv2.cvtColor(b, cv2.COLOR_RGB2GRAY)
+        h, w = ga.shape
+        ga = cv2.resize(ga, (max(int(w * scale), 16), max(int(h * scale), 16)))
+        gb = cv2.resize(gb, (max(int(w * scale), 16), max(int(h * scale), 16)))
+        flow = cv2.calcOpticalFlowFarneback(ga, gb, None, 0.5, 3, 25, 3, 5, 1.2, 0)
+        return float(np.median(flow[..., 0])), float(np.median(flow[..., 1]))
+
+    def update(self, obs: Observation) -> None:
+        self._t += 1
+        if self._prev is not None and self._t > int(self._spec.get("min_steps", 4)):
+            u, v = self._flow(self._prev, obs.frame)
+            self._net_u += u
+            self._net_v += v
+        self._prev = obs.frame
+
+    def _signed_progress(self) -> float:
+        """Net progress (downscaled px) in the COMMANDED direction; positive = correct way."""
+        d = str(self._spec.get("direction", "")).lower()
+        inv = -1.0 if self._spec.get("invert") else 1.0
+        # world flows opposite to agent motion -> correct-direction progress is the NEGATIVE of
+        # the world-flow component for left/right and positive mapping handled per-axis below.
+        if d == "right":
+            return inv * (-self._net_u)
+        if d == "left":
+            return inv * (self._net_u)
+        if d == "up":
+            return inv * (self._net_v)
+        if d == "down":
+            return inv * (-self._net_v)
+        return 0.0
+
+    def update_status_only(self):  # convenience hook
+        return self.status()
+
+    def status(self) -> tuple[bool, bool]:
+        # never ends early; success is judged on accumulated flow (read at episode end)
+        prog = self._signed_progress()
+        success = prog >= float(self._spec.get("flow_thresh", 0.6))
+        return False, success
+
+    def progress(self) -> float:
+        """Expose the raw signed progress (for ranking / matrices / debugging)."""
+        return self._signed_progress()

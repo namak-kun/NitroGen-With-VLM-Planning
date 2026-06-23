@@ -17,7 +17,7 @@ from .core import (
     ACTION_DIM, JLX, JLY, JRX, JRY, N_BUTTONS,
     EpisodeResult, EpisodeRunner, GameEnv, Observation, Policy, Scenario, SuccessDetector,
 )
-from .detectors import StatePredicateDetector, VLMJudgeDetector
+from .detectors import StatePredicateDetector, VLMJudgeDetector, SteerDirectionDetector
 from .policies import NullPolicy, ScriptedDirectionPolicy, neutral_chunk
 from .runner import EvalProtocol, SuiteResult
 
@@ -25,7 +25,7 @@ __all__ = [
     "ACTION_DIM", "JLX", "JLY", "JRX", "JRY", "N_BUTTONS",
     "Scenario", "Observation", "GameEnv", "Policy", "SuccessDetector",
     "EpisodeRunner", "EpisodeResult",
-    "StatePredicateDetector", "VLMJudgeDetector",
+    "StatePredicateDetector", "VLMJudgeDetector", "SteerDirectionDetector",
     "EvalProtocol", "SuiteResult",
     "NullPolicy", "ScriptedDirectionPolicy", "neutral_chunk",
 ]
