@@ -1,0 +1,22 @@
+start x=160.0 y=128.0 stage=13; gold-left uuid=EFrZbWZAvZk_chunk_0022_actions
+c 0: x=160.0->144.427734375 y=128.0 stage=13 chunk_stick_x=-1.05
+c 1: x=144.427734375->127.037109375 y=122.71875 stage=13 chunk_stick_x=-0.52
+c 2: x=127.037109375->129.5 y=158.4375 stage=13 chunk_stick_x=-0.49
+c 3: x=129.5->147.181640625 y=176.0 stage=13 chunk_stick_x=+0.00
+c 4: x=147.181640625->136.283203125 y=162.53125 stage=13 chunk_stick_x=-0.34
+c 5: x=136.283203125->125.0 y=159.34375 stage=13 chunk_stick_x=-0.78
+c 6: x=125.0->125.798828125 y=170.900390625 stage=13 chunk_stick_x=-0.40
+c 7: x=125.798828125->128.798828125 y=172.3984375 stage=13 chunk_stick_x=+0.03
+c 8: x=128.798828125->125.0 y=170.5 stage=13 chunk_stick_x=-0.33
+c 9: x=125.0->125.0 y=170.5 stage=13 chunk_stick_x=-0.08
+c10: x=125.0->125.283203125 y=170.642578125 stage=13 chunk_stick_x=-0.02
+c11: x=125.283203125->125.265625 y=170.6328125 stage=13 chunk_stick_x=-0.06
+c12: x=125.265625->125.46484375 y=170.732421875 stage=13 chunk_stick_x=-0.43
+c13: x=125.46484375->125.27734375 y=170.638671875 stage=13 chunk_stick_x=+0.04
+c14: x=125.27734375->125.27734375 y=170.638671875 stage=13 chunk_stick_x=+0.08
+c15: x=125.27734375->130.138671875 y=173.068359375 stage=13 chunk_stick_x=-0.45
+c16: x=130.138671875->131.53125 y=173.765625 stage=13 chunk_stick_x=-0.10
+c17: x=131.53125->131.955078125 y=173.9765625 stage=13 chunk_stick_x=+0.09
+c18: x=131.955078125->129.720703125 y=172.859375 stage=13 chunk_stick_x=-0.20
+c19: x=129.720703125->129.720703125 y=172.859375 stage=13 chunk_stick_x=+0.01
+RESULT: entered_door=False | net dx=-30.3 | min_x=125.0 (start 160.0) -> moved LEFT +35.0 tiles (counterfactual override)

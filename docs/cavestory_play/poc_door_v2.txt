@@ -1,0 +1,30 @@
+start x=160.0 y=128.0 stage=13; WATER_Y=165.0 DOOR_X=150.0
+c 0: x=160.0->130.9921875 y=128.0->122.71875 stage=13 phase=APPROACH->jump-left sx=-0.94
+c 1: x=130.9921875->125.515625 y=122.71875->170.7578125 stage=13 phase=DOOR->interact sx=-0.65
+c 2: x=125.515625->157.408203125 y=170.7578125->176.0 stage=13 phase=WATER->right+jump sx=+0.92
+c 3: x=157.408203125->209.783203125 y=176.0->160.0 stage=13 phase=WATER->right+jump sx=+0.56
+c 4: x=209.783203125->209.333984375 y=160.0->160.0 stage=13 phase=APPROACH->jump-left sx=-0.09
+c 5: x=209.333984375->205.2421875 y=160.0->160.0 stage=13 phase=APPROACH->jump-left sx=-0.05
+c 6: x=205.2421875->206.8984375 y=160.0->160.0 stage=13 phase=APPROACH->jump-left sx=+0.06
+c 7: x=206.8984375->190.921875 y=160.0->164.5390625 stage=13 phase=APPROACH->jump-left sx=-1.07
+c 8: x=190.921875->189.0 y=164.5390625->132.4453125 stage=13 phase=APPROACH->jump-left sx=-0.31
+c 9: x=189.0->176.98828125 y=132.4453125->171.505859375 stage=13 phase=APPROACH->jump-left sx=-0.96
+c10: x=176.98828125->208.552734375 y=171.505859375->160.0 stage=13 phase=WATER->right+jump sx=+0.92
+c11: x=208.552734375->202.533203125 y=160.0->160.0 stage=13 phase=APPROACH->jump-left sx=-0.84
+c12: x=202.533203125->207.04296875 y=160.0->160.0 stage=13 phase=APPROACH->jump-left sx=-0.15
+c13: x=207.04296875->188.42578125 y=160.0->165.787109375 stage=13 phase=APPROACH->jump-left sx=-0.41
+c14: x=188.42578125->211.0 y=165.787109375->122.17578125 stage=13 phase=WATER->right+jump sx=+0.79
+c15: x=211.0->211.0 y=122.17578125->117.21875 stage=13 phase=APPROACH->jump-left sx=+0.03
+c16: x=211.0->195.1796875 y=117.21875->126.15234375 stage=13 phase=APPROACH->jump-left sx=-0.17
+c17: x=195.1796875->171.814453125 y=126.15234375->160.15625 stage=13 phase=APPROACH->jump-left sx=-1.04
+c18: x=171.814453125->160.8984375 y=160.15625->176.0 stage=13 phase=APPROACH->jump-left sx=-0.30
+c19: x=160.8984375->188.59375 y=176.0->165.703125 stage=13 phase=WATER->right+jump sx=+0.68
+c20: x=188.59375->211.0 y=165.703125->122.17578125 stage=13 phase=WATER->right+jump sx=+0.94
+c21: x=211.0->211.0 y=122.17578125->117.21875 stage=13 phase=APPROACH->jump-left sx=+0.11
+c22: x=211.0->211.0 y=117.21875->116.994140625 stage=13 phase=APPROACH->jump-left sx=+0.09
+c23: x=211.0->201.81640625 y=116.994140625->126.18359375 stage=13 phase=APPROACH->jump-left sx=+0.12
+c24: x=201.81640625->174.6171875 y=126.18359375->125.6875 stage=13 phase=APPROACH->jump-left sx=-0.56
+c25: x=174.6171875->125.5 y=125.6875->149.671875 stage=13 phase=APPROACH->jump-left sx=-0.28
+c26: x=125.5->125.96875 y=149.671875->170.984375 stage=13 phase=APPROACH->jump-left sx=-0.53
+c27: x=125.96875->156.115234375 y=170.984375->176.0 stage=13 phase=WATER->right+jump sx=+0.73
+RESULT: entered_door=False net_dx=-3.9 final=(156.115234375,176.0)

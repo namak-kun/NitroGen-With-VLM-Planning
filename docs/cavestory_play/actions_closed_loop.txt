@@ -1,0 +1,11 @@
+objective: explore and reach the exit door
+planner: Qwen/Qwen3.5-9B  replan_every: 2
+
+[chunk 0] INITIAL PLAN: 'jump left and move right.'
+[chunk 2] REPLAN (same): 'jump left and move right.'
+[chunk 4] REPLAN (same): 'jump left and move right.'
+[chunk 6] REPLAN (CHANGED): 'move left and jump onto the ledge.'
+[chunk 8] REPLAN (same): 'move left and jump onto the ledge.'
+[chunk 10] REPLAN (same): 'move left and jump onto the ledge.'
+[chunk 12] REPLAN (same): 'move left and jump onto the ledge.'
+[chunk 14] REPLAN (same): 'move left and jump onto the ledge.'

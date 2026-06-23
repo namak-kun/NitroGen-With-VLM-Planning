@@ -1,0 +1,25 @@
+{
+  "directions": [
+    "left",
+    "right"
+  ],
+  "progress_matrix": [
+    [
+      0.0,
+      -0.0
+    ],
+    [
+      1.4015003557688033e-07,
+      -1.4015003557688033e-07
+    ]
+  ],
+  "argmax_selectivity": 0.5,
+  "mean_diag_progress": -7.007501778844016e-08,
+  "mean_offdiag_progress": 7.007501778844016e-08,
+  "diag_minus_off": -1.4015003557688033e-07,
+  "per_plan_contrast": [
+    0.0,
+    -2.8030007115376065e-07
+  ],
+  "mean_contrast": -1.4015003557688033e-07
+}
