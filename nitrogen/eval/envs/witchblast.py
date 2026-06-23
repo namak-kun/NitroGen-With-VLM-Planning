@@ -12,6 +12,10 @@ from /tmp/witchblast (needs ./data). Window title: "Witch Blast".
 """
 from __future__ import annotations
 
+import os
+import shlex
+import subprocess
+
 import numpy as np
 
 from .proc_game_env import ProcGameEnv
@@ -23,23 +27,28 @@ I_RTRIG, I_SOUTH, I_WEST, I_NORTH = 16, 18, 20, 19
 MOVE_THRESH = 0.2
 SHOOT_THRESH = 0.25
 GAME_DIR = "/tmp/witchblast"
+PATCHED_BIN = f"{GAME_DIR}/build/Witch_Blast_autostart"
 
 
 class WitchBlastEnv(ProcGameEnv):
     name = "witchblast"
     window_name = "Witch Blast"
     control = "keyboard"
-    # SFML gates ALL input on app->hasFocus() (WitchBlastGame.cpp:3998). Under a bare Xvfb (no WM)
-    # the window never gains focus so the game stays frozen + ignores input. A WM is REQUIRED. NOTE
-    # (2026-06-23): matchbox alone did NOT make hasFocus() true in testing — the headless SFML-focus
-    # fix is still OPEN (try other WMs / synthetic FocusIn / Xephyr). See plan.md "WitchBlast".
-    window_manager = "matchbox-window-manager"
+    # SFML's sf::Keyboard polling reads global XTEST key state, not xdotool's window-targeted events.
+    target_keys_to_window = False
+    window_manager = None
 
     def __init__(self, width: int = 800, height: int = 600, boot_wait: float = 12.0, **kw):
         super().__init__(width=width, height=height, boot_wait=boot_wait, **kw)
 
     def launch_cmd(self):
-        return ["sh", "-c", f"cd {GAME_DIR} && exec ./build/Witch_Blast"]
+        _ensure_headless_binary()
+        return [
+            "sh", "-c",
+            f"cd {shlex.quote(GAME_DIR)} && "
+            "ALSOFT_DRIVERS=null WITCHBLAST_AUTOSTART=1 WITCHBLAST_FORCE_FOCUS=1 "
+            f"exec {shlex.quote(PATCHED_BIN)}",
+        ]
 
     def action_to_keys(self, action_chunk):
         a = np.asarray(action_chunk, dtype=np.float32)
@@ -66,14 +75,65 @@ class WitchBlastEnv(ProcGameEnv):
             keys.add("Up")
         elif ry > 0.5 + SHOOT_THRESH:
             keys.add("Down")
-        # fire button -> shoot in facing direction (held). xdotool keysym for Right Ctrl = Control_R.
-        if (a[:, I_RTRIG] > 0.5).mean() >= 0.3 or (a[:, I_SOUTH] > 0.5).mean() >= 0.3:
+        if (a[:, I_SOUTH] > 0.5).mean() >= 0.3:
             keys.add("Control_R")
+        if (a[:, I_RTRIG] > 0.5).mean() >= 0.3:
+            keys.discard("a")
+            keys.discard("d")
+            keys.add("w")
         if (a[:, I_NORTH] > 0.5).mean() >= 0.3:
             keys.add("space")   # cast spell
         return keys
 
     def reset_macro(self, scenario):
-        # WitchBlast opens on a title/menu; a few Enter/Space presses start a run.
-        return [("wait", 1.5), ("key", "Return"), ("wait", 0.5), ("key", "Return"),
-                ("wait", 0.5), ("key", "space")]
+        return [("wait", 0.5), ("key", "Return"), ("wait", 0.5)]
+
+
+def _ensure_headless_binary() -> None:
+    """Build the NitroGen headless WitchBlast wrapper binary once.
+
+    The stock SFML game hard-gates updates on app->hasFocus(), which is unreliable under Xvfb even
+    with WMs. This relinks the already-built game with a tiny source patch that (only when launched
+    with WITCHBLAST_FORCE_FOCUS/WITCHBLAST_AUTOSTART) treats the window as focused and starts a run.
+    """
+    src = f"{GAME_DIR}/src/WitchBlastGame.cpp"
+    build = f"{GAME_DIR}/build"
+    patched_src = f"{build}/WitchBlastGame_nitrogen.cpp"
+    patched_obj = f"{build}/WitchBlastGame_nitrogen.o"
+    link_txt = f"{build}/CMakeFiles/Witch_Blast.dir/link.txt"
+
+    if os.path.exists(PATCHED_BIN) and os.path.getmtime(PATCHED_BIN) >= os.path.getmtime(src):
+        return
+
+    with open(src, "r", encoding="utf-8") as f:
+        text = f.read()
+    text = text.replace(
+        "    if (app->hasFocus())",
+        '    if (app->hasFocus() || std::getenv("WITCHBLAST_FORCE_FOCUS"))',
+    )
+    text = text.replace(
+        "  lastTime = getAbsolutTime();\n\n  prepareIntro();",
+        '  lastTime = getAbsolutTime();\n\n'
+        '  if (std::getenv("WITCHBLAST_AUTOSTART")) {\n'
+        '    parameters.playerName = "ai";\n'
+        '    saveConfigurationToFile();\n'
+        '    startNewGame(false, 1);\n'
+        '  }\n'
+        '  else\n'
+        '    prepareIntro();',
+    )
+    with open(patched_src, "w", encoding="utf-8") as f:
+        f.write(text)
+
+    subprocess.run(
+        ["g++", "-std=c++11", "-O3", "-DNDEBUG", "-I../src", "-c", patched_src, "-o", patched_obj],
+        cwd=build, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    with open(link_txt, "r", encoding="utf-8") as f:
+        link_cmd = shlex.split(f.read())
+    link_cmd = [
+        patched_obj if arg.endswith("src/WitchBlastGame.cpp.o") else
+        PATCHED_BIN if previous == "-o" else arg
+        for previous, arg in zip([""] + link_cmd[:-1], link_cmd)
+    ]
+    subprocess.run(link_cmd, cwd=build, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

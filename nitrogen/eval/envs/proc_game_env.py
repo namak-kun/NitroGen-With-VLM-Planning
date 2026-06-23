@@ -61,6 +61,10 @@ class ProcGameEnv(GameEnv):
     # (no WM) never becomes true so the game stays frozen. SDL games don't need this. After the WM
     # starts the base also re-asserts focus on the game window each boot/reset (see _focus_window).
     window_manager: str | None = None
+    # Most games consume synthetic X key events sent directly to their window. SFML games that poll
+    # sf::Keyboard::isKeyPressed need global XTEST key state instead, so subclasses can disable
+    # window-targeted key injection.
+    target_keys_to_window: bool = True
 
     def __init__(self, width: int = 800, height: int = 600, display: int | None = None,
                  boot_wait: float = 15.0, chunk_seconds: float = 0.6,
@@ -158,11 +162,14 @@ class ProcGameEnv(GameEnv):
         subprocess.run(["xdotool", *args], env=self._env(),
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    def _key_target_args(self) -> list[str]:
+        return ["--window", self._wid] if self._wid and self.target_keys_to_window else []
+
     def _set_keys(self, keys: set[str]):
         for k in keys - self._held:
-            self._xdo("keydown", *(["--window", self._wid] if self._wid else []), k)
+            self._xdo("keydown", *self._key_target_args(), k)
         for k in self._held - keys:
-            self._xdo("keyup", *(["--window", self._wid] if self._wid else []), k)
+            self._xdo("keyup", *self._key_target_args(), k)
         self._held = set(keys)
 
     def _grab(self) -> np.ndarray:
@@ -207,11 +214,11 @@ class ProcGameEnv(GameEnv):
         for entry in macro:
             kind = entry[0]
             if kind == "key":
-                self._xdo("key", *(["--window", self._wid] if self._wid else []), entry[1])
+                self._xdo("key", *self._key_target_args(), entry[1])
             elif kind == "hold":
-                self._xdo("keydown", *(["--window", self._wid] if self._wid else []), entry[1])
+                self._xdo("keydown", *self._key_target_args(), entry[1])
                 time.sleep(float(entry[2]))
-                self._xdo("keyup", *(["--window", self._wid] if self._wid else []), entry[1])
+                self._xdo("keyup", *self._key_target_args(), entry[1])
             elif kind == "wait":
                 time.sleep(float(entry[1]))
         if self.control == "keyboard":
