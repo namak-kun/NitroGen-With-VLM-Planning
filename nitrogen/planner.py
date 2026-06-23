@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+import numpy as np
 import torch
 import torch.nn as nn
 from pydantic import BaseModel, Field
@@ -41,7 +42,8 @@ class PlannerConfig(BaseModel):
     contrastive_mode: str = Field(default="mean", description="Representation used by the SupCon plan-token loss: 'mean' pools over the K tokens (order-blind; opposite orderings share a mean and stay collinear); 'flatten' concatenates the K tokens (order-aware: forces order info into position-specific tokens); 'pertoken' applies SupCon independently per query position and averages (strongest per-position discriminability).")
     distill_weight: float = Field(default=0.0, description="Weight of the privileged-info DISTILLATION loss (EXP-045): pull the (base-plan) student plan tokens toward precomputed teacher plan tokens from the action-augmented prompt P+. 0 disables. Combines a per-token MSE (transfer steering) with an InfoNCE/CLIP term (per-chunk positive vs cross-chunk negatives; de-collinearize).")
     distill_temp: float = Field(default=0.1, description="Temperature for the InfoNCE term of the distillation loss.")
-    plan_hidden_size: int = Field(default=1024, description="Hidden size of the planner backbone (== NitroGen vision_hidden_size).")
+    plan_hidden_size: int = Field(default=1024, description="OUTPUT/DiT plan-token dim (== NitroGen vision_hidden_size). The resampler runs in backbone_hidden_size and the adapter projects to this.")
+    backbone_hidden_size: int = Field(default=1024, description="Hidden size of the VLM planner backbone (Qwen3.5-0.8B=1024, 2B=2048, 9B=4096). The resampler cross-attends in THIS native dim; the adapter then projects the K pooled tokens -> plan_hidden_size (projection AFTER the resampler, so no lossy bottleneck before the rich cross-attention). Defaults to plan_hidden_size for the 0.8B backbone (identical to the original single-dim path).")
     plan_adaln: bool = Field(default=False, description="EXP-048: in ADDITION to the K cross-attention plan tokens, give the plan GLOBAL authority by adding a zero-init plan offset into the DiT timestep embedding (adaLN/FiLM). The plan then multiplicatively gates every DiT block + the output. Identity at init (zero-init proj) and null-masked -> base-exact; the override fix for the plan being structurally outvoted (8 plan tokens vs ~256 vision tokens). 0/False disables.")
     dit_temb_dim: int = Field(default=0, description="DiT timestep-embedding (inner) dim; set by NitroGen at construction so the plan-adaLN projection can map plan_dim -> temb_dim. 0 = unset/disabled.")
     freeze_backbone: bool = Field(default=True, description="Freeze the VLM backbone (Stage 1).")
@@ -99,16 +101,19 @@ class PlanResampler(nn.Module):
 
 
 class PlanAdapter(nn.Module):
-    """Map resampled plan tokens into NitroGen's vision-hidden space (dim -> dim)."""
+    """Map resampled plan tokens into NitroGen's vision-hidden space. When in_dim != out_dim this
+    ALSO performs the backbone->DiT dim projection (placed AFTER the resampler, so the resampler
+    cross-attends in the VLM's native dim and only the K pooled tokens are projected)."""
 
-    def __init__(self, dim: int = 1024, hidden: int = 2048):
+    def __init__(self, dim: int = 1024, hidden: int = 2048, out_dim: int | None = None):
         super().__init__()
+        out_dim = out_dim if out_dim is not None else dim
         self.net = nn.Sequential(
             nn.LayerNorm(dim),
             nn.Linear(dim, hidden),
             nn.GELU(),
-            nn.Linear(hidden, dim),
-            nn.LayerNorm(dim),
+            nn.Linear(hidden, out_dim),
+            nn.LayerNorm(out_dim),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -172,6 +177,94 @@ class PlanEncoder(nn.Module):
     def forward(self, *args, **kwargs):
         return self.encode_text(*args, **kwargs)
 
+    @torch.no_grad()
+    def encode_multimodal(self, frames, text: str, device, system: str | None = None,
+                          text_only: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
+        """Frame-conditioned encode: run the frozen VL backbone over [frames..., plan text] and
+        return last-layer hidden states (1, L, d) + key_padding_mask (1, L), where L spans the
+        expanded image tokens AND the plan-text tokens. This is the training-side analogue of
+        encode_text: the resampler then cross-attends over these multimodal hidden states, so the
+        K plan tokens are computed from BOTH the frames and the plan text (knob 1: richer, frame-
+        grounded plan embeddings). `frames` is a list of np.uint8 HxWx3 or PIL images (oldest->
+        newest); a 2-frame [before, after] pair lets the planner perceive motion/progress.
+
+        text_only=True (EXP-052): return ONLY the frame-CONTEXTUALIZED text-token hidden positions
+        (drop the ~600 image tokens). Because Qwen is causal with a [images..., text...] layout,
+        the text tokens have already attended to the images -> they carry BOTH plan authority AND
+        frame grounding, but there are only ~10 of them so they are no longer DROWNED by the image
+        tokens (the EXP-050/051 override failure). This keeps grounding while restoring the plan's
+        directional/counterfactual authority.
+
+        Frozen backbone + a deterministic (uuid, window) input => the hidden states can be
+        precomputed/cached once outside the training loop (see PlanMMCache / cache script).
+        """
+        self.load()
+        if self.processor is None:
+            raise RuntimeError("encode_multimodal requires a VL processor (Qwen3VLProcessor).")
+        if next(self.backbone.parameters()).device != torch.device(device):
+            self.backbone.to(device)
+        from PIL import Image
+        imgs = [f if isinstance(f, Image.Image) else Image.fromarray(np.asarray(f)).convert("RGB")
+                for f in frames]
+        content = [{"type": "image"} for _ in imgs] + [{"type": "text", "text": text}]
+        msgs = ([{"role": "system", "content": system}] if system else []) + \
+               [{"role": "user", "content": content}]
+        prompt = self.processor.apply_chat_template(msgs, tokenize=False, add_generation_prompt=False)
+        inp = self.processor(text=[prompt], images=imgs, return_tensors="pt").to(device)
+        out = self.backbone(**inp, output_hidden_states=True, use_cache=False)
+        h = out.hidden_states[-1] if getattr(out, "hidden_states", None) is not None else out.last_hidden_state
+        key_padding_mask = inp["attention_mask"] == 0
+        if text_only:
+            # keep only NON-image, non-pad positions (the frame-contextualized text tokens).
+            img_tok = getattr(self.processor, "image_token_id", None)
+            if img_tok is None:
+                img_tok = getattr(self.backbone.config, "image_token_id", None)
+            ids = inp["input_ids"][0]
+            keep = (ids != img_tok) & (key_padding_mask[0] == 0)
+            h = h[:, keep, :]
+            key_padding_mask = key_padding_mask[:, keep]
+        return h, key_padding_mask
+
+    # ---- System-2 plan GENERATION from frames (closed-loop) ---------------------------
+    DEFAULT_SYS = (
+        "You are the high-level planner for an agent playing a 2D action-platformer. "
+        "You are shown the most recent game frames in time order (oldest first, newest last). "
+        "Compare them to judge whether the character is making progress or is stuck/looping. "
+        "Output ONE short imperative plan (max 8 words) for what to do next, e.g. "
+        "'go left and jump onto the ledge'. Output only the plan, no explanation."
+    )
+
+    @torch.no_grad()
+    def generate_plan(self, frames, device, instruction: str = "What should I do next?",
+                      system: str | None = None, max_new_tokens: int = 24,
+                      prev_plan: str | None = None) -> str:
+        """Look at a list of recent frames (np.uint8 HxWx3 or PIL.Image, oldest->newest) and
+        GENERATE a short plan string. This is the System-2 step: frames -> plan text. The text
+        is then encoded by encode_text/the resampler, keeping the (text-trained) adapter
+        in-distribution. `prev_plan`, if given, is shown so the planner can revise a stuck plan.
+        """
+        self.load()
+        if self.processor is None:
+            raise RuntimeError("generate_plan requires a VL processor (Qwen3VLProcessor).")
+        if next(self.backbone.parameters()).device != torch.device(device):
+            self.backbone.to(device)
+        from PIL import Image
+        imgs = [f if isinstance(f, Image.Image) else Image.fromarray(np.asarray(f)).convert("RGB")
+                for f in frames]
+        user_content = [{"type": "image"} for _ in imgs]
+        prompt = instruction
+        if prev_plan:
+            prompt = f"Your previous plan was: '{prev_plan}'. {instruction}"
+        user_content.append({"type": "text", "text": prompt})
+        msgs = [{"role": "system", "content": system or self.DEFAULT_SYS},
+                {"role": "user", "content": user_content}]
+        text = self.processor.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        inp = self.processor(text=[text], images=imgs, return_tensors="pt").to(device)
+        out = self.backbone.generate(**inp, max_new_tokens=max_new_tokens, do_sample=False)
+        gen = self.processor.batch_decode(
+            out[:, inp["input_ids"].shape[1]:], skip_special_tokens=True)[0]
+        return gen.strip().strip('"').strip()
+
 
 class PlanHead(nn.Module):
     """Resampler + adapter + learned null-plan token, with plan-dropout.
@@ -185,14 +278,17 @@ class PlanHead(nn.Module):
     def __init__(self, config: PlannerConfig):
         super().__init__()
         self.config = config
-        dim = config.plan_hidden_size
+        dim = config.plan_hidden_size                 # OUTPUT / DiT dim
+        bdim = getattr(config, "backbone_hidden_size", dim) or dim   # VLM native dim
         self.num_chunks = config.num_chunks
+        # Resampler cross-attends in the VLM's NATIVE dim (no lossy bottleneck before attention);
+        # the adapter then projects the K pooled tokens bdim -> dim (projection AFTER resampler).
         self.resampler = PlanResampler(
-            dim=dim, num_queries=config.num_plan_tokens * config.num_chunks,
+            dim=bdim, num_queries=config.num_plan_tokens * config.num_chunks,
             num_heads=config.resampler_heads, num_layers=config.resampler_layers,
             query_self_attn=config.resampler_query_self_attn,
         )
-        self.adapter = PlanAdapter(dim=dim, hidden=config.adapter_hidden)
+        self.adapter = PlanAdapter(dim=bdim, hidden=config.adapter_hidden, out_dim=dim)
         self.null_plan = nn.Parameter(torch.randn(config.num_plan_tokens, dim) * 0.02)
         # EXP-048 plan-adaLN: map the pooled plan tokens -> a DiT-temb offset (global FiLM
         # authority, in addition to the K cross-attention tokens). Zero-init -> identity at

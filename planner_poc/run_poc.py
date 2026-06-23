@@ -59,6 +59,9 @@ def make_env_factory(name, **kw):
         if name == "castlevania_godot":
             from nitrogen.eval.envs.castlevania_godot import CastlevaniaGodotEnv
             return CastlevaniaGodotEnv(boot_wait=kw.get("boot_wait", 15.0), freeze_during_inference=True)
+        if name == "solarus_zelda":
+            from nitrogen.eval.envs.solarus_zelda import SolarusZeldaEnv
+            return SolarusZeldaEnv(boot_wait=kw.get("boot_wait", 14.0), freeze_during_inference=True)
         raise ValueError(f"unknown env {name}")
     return factory
 

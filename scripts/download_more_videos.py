@@ -28,6 +28,10 @@ def main():
     ap.add_argument("--games", default=None,
                     help="comma-separated substrings to filter games (e.g. elden_ring,dark_souls); "
                          "prioritizes videos whose chunks match (planning matters more for RPG/action)")
+    ap.add_argument("--num-shards", type=int, default=1,
+                    help="partition the new-video list into N disjoint shards for parallel workers")
+    ap.add_argument("--shard-index", type=int, default=0,
+                    help="which shard (0..num_shards-1) this worker handles (vids[shard_index::num_shards])")
     args = ap.parse_args()
     os.makedirs(OUT_CHUNKS, exist_ok=True)
     os.makedirs(OUT_FRAMES, exist_ok=True)
@@ -55,7 +59,10 @@ def main():
     vids = [d for d in sorted(glob.glob(f"{SHARD}/*/")) if os.path.basename(d.rstrip("/")) not in have]
     if game_filter:
         vids = [d for d in vids if video_matches(d)]
-    print(f"{len(vids)} new videos available (game filter={game_filter}); "
+    if args.num_shards > 1:
+        vids = vids[args.shard_index :: args.num_shards]
+    print(f"[shard {args.shard_index}/{args.num_shards}] {len(vids)} new videos available "
+          f"(game filter={game_filter}); "
           f"targeting <= {args.max_videos} videos / {args.max_chunks} chunks", flush=True)
 
     saved = vid_done = 0

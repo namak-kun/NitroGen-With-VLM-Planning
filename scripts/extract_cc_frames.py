@@ -9,16 +9,25 @@ import numpy as np
 from PIL import Image
 from nitrogen.training.video import VideoFrameFetcher, VideoFetchConfig
 
-H, STRIDE, A = 18, 2, 2
-STARTS = [100, 250, 400]           # window starts (frames); +0 and +36 for chunk0/chunk1
-OUT = "/tmp/frames_cc"
+H, STRIDE = 18, 2
+A = int(os.environ.get("A", "2"))   # frames per window: a in [0,A) -> offsets s + a*H*STRIDE (A=4 for cross-chunk training)
+STARTS = [int(x) for x in os.environ.get("STARTS", "100,250,400").split(",")]  # window starts (frames)
+OUT = os.environ.get("OUT", "/tmp/frames_cc")
+ROOTS = os.environ.get("ROOTS", "/tmp/stage1_big,/tmp/stage1_more").split(",")
+NUM_SHARDS = int(os.environ.get("NUM_SHARDS", "1"))
+SHARD_INDEX = int(os.environ.get("SHARD_INDEX", "0"))
 os.makedirs(OUT, exist_ok=True)
 f = VideoFrameFetcher(VideoFetchConfig(cache_dir="frame_cache"))
-dirs = sorted(os.path.dirname(md) for md in glob.glob("/tmp/stage1_big/**/metadata.json", recursive=True))
+dirs = sorted({os.path.dirname(md) for root in ROOTS
+               for md in glob.glob(f"{root}/**/metadata.json", recursive=True)})
+if NUM_SHARDS > 1:
+    dirs = dirs[SHARD_INDEX::NUM_SHARDS]
 
 import polars as pl
 saved = skipped = 0
-for d in dirs:
+for di, d in enumerate(dirs):
+    if di % 200 == 0:
+        print(f"[shard {SHARD_INDEX}/{NUM_SHARDS}] [{di}/{len(dirs)}] saved {saved} skipped {skipped}", flush=True)
     m = json.load(open(os.path.join(d, "metadata.json")))
     ov = m["original_video"]; uuid = m["uuid"]
     pq = os.path.join(d, "actions_processed.parquet")

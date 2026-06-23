@@ -166,6 +166,12 @@ def main():
                     help="Stage-2 TEACHER: append the real chunk's action summary to the plan text (privileged P+ = P + actions) (EXP-044; train a teacher to later distill the base-plan student toward)")
     ap.add_argument("--teacher-token-lookup", default=None,
                     help="Stage-2 STUDENT (EXP-045): path to torch-saved {uuid: (K,d) teacher plan tokens} (gen_teacher_tokens.py) for privileged-info distillation")
+    ap.add_argument("--mm-plan-hidden-lookup", default=None,
+                    help="Stage-2 FRAME-CONDITIONED (EXP-050): path to torch-saved {uuid:{h,mask}} frozen-VLM hidden over [before,after] frames + plan text (cache_mm_hidden.py). Plan tokens are then computed from frames+text instead of text-only -> frame-specific.")
+    ap.add_argument("--mm-cf-lookup", default=None,
+                    help="Stage-2 COUNTERFACTUAL frame-conditioned (EXP-051b): path to torch-saved cf cross-pair hidden + override actions (cache_mm_cf.py). With --s2-cf-ratio>0, cf examples use this instead of the text s2_index path; teacher-distillation disabled on cf examples.")
+    ap.add_argument("--gameplay-only", action="store_true",
+                    help="Stage-2 data hygiene (EXP-050): only train on chunks tagged is_gameplay=true in the vlm-plan-lookup (tag_gameplay.py); drops stream intro/menu/logo frames.")
     ap.add_argument("--distill-weight", type=float, default=0.0,
                     help="Weight of the distillation loss (student base-plan tokens -> teacher P+ tokens). 0 disables (EXP-045).")
     ap.add_argument("--s2-index", default=None,
@@ -206,6 +212,19 @@ def main():
     mc.planner_cfg.plan_adaln = args.plan_adaln
     mc.planner_cfg.resampler_query_self_attn = args.resampler_self_attn
     mc.planner_cfg.num_chunks = args.num_chunks
+    # Auto-detect the VLM backbone hidden size (0.8B=1024, 2B=2048, 9B=4096) so the resampler runs
+    # in the backbone's native dim and the adapter projects to the DiT dim (projection-after-
+    # resampler). Falls back to plan_hidden_size (the 0.8B single-dim path) if config can't be read.
+    try:
+        from transformers import AutoConfig
+        _bc = AutoConfig.from_pretrained(args.qwen)
+        _tc = getattr(_bc, "text_config", _bc)
+        bh = getattr(_tc, "hidden_size", None) or getattr(_bc, "hidden_size", None)
+        if bh:
+            mc.planner_cfg.backbone_hidden_size = int(bh)
+            print(f"planner backbone hidden_size = {bh} (resampler native dim) -> plan_hidden_size {mc.planner_cfg.plan_hidden_size}")
+    except Exception as e:
+        print(f"[warn] could not detect backbone hidden_size ({e}); using plan_hidden_size")
     mc.lora_dit_rank = args.lora_dit
     # Stage-1 freeze policy: vision frozen; DiT/vl-mix low LR; plan head high LR.
     mc.tune_vision_tower = False
@@ -253,7 +272,9 @@ def main():
     img_proc = AutoImageProcessor.from_pretrained(mc.vision_encoder_name)
     if args.stub_frames:
         frame_provider = stub_frame_provider
-    elif args.cc_real_frames:
+    elif args.mm_plan_hidden_lookup or args.cc_real_frames:
+        # Frame-idx-aware provider: reads <uuid>__<frame_idx>.png. EXP-050 mm path anchors the
+        # DiT context frame at the per-uuid 'before' window (e.g. frames_cc/<uuid>__250.png).
         from nitrogen.training.dataset import make_dir_frame_provider_multi
         frame_provider = make_dir_frame_provider_multi(args.frames_dir)
     elif args.frames_dir:
@@ -302,6 +323,9 @@ def main():
         s2_outcome_contrastive=args.s2_outcome_contrastive,
         s2_augment_plan=args.s2_augment_plan,
         teacher_token_lookup=args.teacher_token_lookup,
+        mm_plan_hidden_lookup=args.mm_plan_hidden_lookup,
+        mm_cf_lookup=args.mm_cf_lookup,
+        gameplay_only=args.gameplay_only,
         s2_index=args.s2_index,
         s2_cf_ratio=args.s2_cf_ratio,
         group_weights=group_weights,
@@ -309,8 +333,13 @@ def main():
     ds = NitrogenPlanDataset(ds_cfg, frame_provider, img_proc)
 
     planner = PlanEncoder(PlannerConfig(backbone_name_or_path=args.qwen))
-    planner.load()
-    plan_cache = PlanHiddenCache(planner, device)
+    # When mm-plan-hidden is precomputed (EXP-050), the resampler reads cached frame+text hidden
+    # -> no live text plan_cache needed (and no CUDA Qwen in the loader). Else use the text cache.
+    if args.mm_plan_hidden_lookup:
+        plan_cache = None
+    else:
+        planner.load()
+        plan_cache = PlanHiddenCache(planner, device)
     collate = make_collate_fn(plan_cache, plan_dim=mc.planner_cfg.plan_hidden_size)
     # Note: plan_cache uses CUDA (frozen Qwen) -> keep workers=0 unless cache is
     # precomputed; DataLoader workers can't share the CUDA encoder.

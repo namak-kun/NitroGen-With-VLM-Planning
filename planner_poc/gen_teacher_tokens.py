@@ -26,7 +26,7 @@ TEACHER = sys.argv[1] if len(sys.argv) > 1 else "runs/stage2_teacher/plan_stage1
 OUT = sys.argv[2] if len(sys.argv) > 2 else "/tmp/stage2_teacher_tokens.pt"
 ck = torch.load(f"{REPO}/ckpts/nitrogen/ng.pt", map_location="cpu", weights_only=False)
 CC = CkptConfig.model_validate(ck["ckpt_config"])
-pl = PlanEncoder(PlannerConfig(backbone_name_or_path=f"{REPO}/ckpts/qwen35-0.8b")); pl.load()
+pl = PlanEncoder(PlannerConfig(backbone_name_or_path=os.environ.get("QWEN", f"{REPO}/ckpts/qwen35-0.8b"))); pl.load()
 cache = PlanHiddenCache(pl, device)
 LOOKUP = json.load(open(os.environ.get("LOOKUP", "/tmp/stage2_plan_lookup.json")))
 ROOTS = os.environ.get("ROOTS", "/tmp/stage1_big").split(",")
@@ -60,23 +60,30 @@ def main():
     mds = []
     for root in ROOTS:
         mds += sorted(glob.glob(f"{root}/**/metadata.json", recursive=True))
+    # If the lookup already carries a per-uuid action_summary (the mm lookup from
+    # gen_stage2_lookup_mm.py records it at the SAME window the plan was generated), use it
+    # directly so the teacher P+ matches the student's frames/chunk exactly. Otherwise fall
+    # back to recomputing the summary from the parquet at frame 303 (legacy single-frame path).
     for md in mds:
         m_ = json.load(open(md)); uuid = m_["uuid"]
         if uuid not in LOOKUP:
             continue
-        pq = os.path.join(os.path.dirname(md), "actions_processed.parquet")
-        if not os.path.exists(pq):
-            pq = os.path.join(os.path.dirname(md), "actions_raw.parquet")
-        try:
-            a = load_chunk_actions(pq)
-        except Exception:
-            continue
-        rc = assemble_chunk(a["buttons"], a["j_left"], a["j_right"], 303, H, 2) \
-            or assemble_chunk(a["buttons"], a["j_left"], a["j_right"], 3, H, 2)
-        if rc is None:
-            continue
-        pplus = LOOKUP[uuid]["plan"] + " To do this I take the following actions: " \
-            + summarize_chunk(rc) + "."
+        entry = LOOKUP[uuid]
+        summ = entry.get("action_summary")
+        if summ is None:
+            pq = os.path.join(os.path.dirname(md), "actions_processed.parquet")
+            if not os.path.exists(pq):
+                pq = os.path.join(os.path.dirname(md), "actions_raw.parquet")
+            try:
+                a = load_chunk_actions(pq)
+            except Exception:
+                continue
+            rc = assemble_chunk(a["buttons"], a["j_left"], a["j_right"], 303, H, 2) \
+                or assemble_chunk(a["buttons"], a["j_left"], a["j_right"], 3, H, 2)
+            if rc is None:
+                continue
+            summ = summarize_chunk(rc)
+        pplus = entry["plan"] + " To do this I take the following actions: " + summ + "."
         out[uuid] = plan_tokens(m, pplus)
     torch.save(out, OUT)
     print(f"saved {len(out)} teacher token sets (K={K}, d={next(iter(out.values())).shape[-1]}) -> {OUT}")

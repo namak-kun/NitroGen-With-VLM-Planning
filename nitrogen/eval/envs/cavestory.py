@@ -29,16 +29,19 @@ import os
 import shutil
 import signal
 import subprocess
+import tempfile
 import time
 
 import numpy as np
 
 from ..core import JLX, JLY, N_BUTTONS, GameEnv, Observation, Scenario
-from .virtual_gamepad import VirtualGamepad, B_SOUTH, B_EAST, B_WEST, B_DUP, B_DDOWN, B_DLEFT, B_DRIGHT
+from .virtual_gamepad import (VirtualGamepad, B_SOUTH, B_EAST, B_WEST, B_NORTH,
+                              B_DUP, B_DDOWN, B_DLEFT, B_DRIGHT)
 
-# Named gamepad buttons for reset macros (menu navigation). doukutsu-rs default gamepad map:
-# menu_ok=South(A), menu_back=East(B), skip=West(X), move=d-pad/left-stick.
-MENU_OK, MENU_BACK, SKIP = B_SOUTH, B_EAST, B_WEST
+# Named gamepad buttons for reset macros (menu navigation). doukutsu-rs gamepad map (patched to
+# the Cave Story+ default so NitroGen's buttons hit the right actions):
+#   jump=South(A), shoot=West(X), skip=North(Y), menu_ok=South(A), menu_back=East(B).
+MENU_OK, MENU_BACK, SKIP = B_SOUTH, B_EAST, B_NORTH
 
 
 def _free_display() -> int:
@@ -56,13 +59,21 @@ class CaveStoryEnv(GameEnv):
                  width: int = 640, height: int = 480, display: int | None = None,
                  reset_macro: list | None = None, boot_wait: float = 10.0,
                  chunk_seconds: float = 0.6, launch: bool = True, use_gamepad: bool = True,
-                 freeze_during_inference: bool = True):
+                 freeze_during_inference: bool = True,
+                 start_stage: int | None = None, start_pos: tuple | None = None,
+                 give_weapon: bool = False):
         self.drs_dir = drs_dir
         self.width, self.height = width, height
         self.display = display if display is not None else _free_display()
         self.boot_wait = boot_wait
         self.chunk_seconds = chunk_seconds
         self.use_gamepad = use_gamepad
+        # Spawn directly into a stage/position (needs the doukutsu-rs DRS_START_* patch): lets
+        # us set up reproducible combat/puzzle scenarios instead of always starting in the
+        # enemy-free First Cave intro room. start_pos = (tile_x, tile_y).
+        self.start_stage = start_stage
+        self.start_pos = start_pos
+        self.give_weapon = give_weapon
         # freeze_during_inference: replicate NitroGen's GamepadEnv — keep the game (near-)frozen
         # except while applying an action, so the ~0.4s/chunk GPU inference doesn't let the game
         # run uncontrolled (the real-time gap). Uses the LD_PRELOAD speedhack (set_speed).
@@ -121,6 +132,19 @@ class CaveStoryEnv(GameEnv):
             from ..speedhack import SpeedHack
             self._sh = SpeedHack()           # pause_scale ~0.02 near-freeze (0.0 hangs doukutsu-rs)
             game_env = {**game_env, **self._sh.env()}
+        # Exact state export (needs the doukutsu-rs DRS_STATE patch): player x/y/life/stage each
+        # tick -> a file we read into Observation.state for StatePredicateDetector. Harmless if
+        # the build lacks the patch (file just never appears).
+        self._state_path = tempfile.mktemp(prefix="drs_state_", suffix=".txt")
+        game_env = {**game_env, "DRS_STATE": self._state_path}
+        # Optional direct-spawn into a stage/position (DRS_START_* patch).
+        if self.start_stage is not None:
+            game_env = {**game_env, "DRS_START_STAGE": str(int(self.start_stage))}
+        if self.start_pos is not None:
+            game_env = {**game_env, "DRS_START_X": str(int(self.start_pos[0])),
+                        "DRS_START_Y": str(int(self.start_pos[1]))}
+        if self.give_weapon:
+            game_env = {**game_env, "DRS_GIVE_WEAPON": "1"}
         self._xvfb = subprocess.Popen(
             ["Xvfb", f":{self.display}", "-screen", "0", f"{self.width}x{self.height}x24"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -150,6 +174,22 @@ class CaveStoryEnv(GameEnv):
         time.sleep(hold)
         self._xdo("keyup", "--window", self._wid, key)
 
+    # ---- privileged state (needs the doukutsu-rs DRS_STATE patch) ----------------------
+    def _read_state(self) -> dict:
+        """Read player x/y (subpixel; y increases DOWNWARD), life, stage from the export file.
+        doukutsu-rs uses 0x200 (512) subpixels per tile. Returns {} if the patch/file is absent."""
+        try:
+            with open(self._state_path) as f:
+                parts = f.read().split()
+            x, y, life, stage = int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3])
+            out = {"x": x, "y": y, "tile_x": x / 512.0, "tile_y": y / 512.0,
+                   "life": life, "stage": stage}
+            if len(parts) > 4:           # bullets field (added for shoot verification)
+                out["bullets"] = int(parts[4])
+            return out
+        except Exception:
+            return {}
+
     # ---- observation: grab the framebuffer --------------------------------------------
     def _grab(self) -> np.ndarray:
         p = subprocess.run(
@@ -162,6 +202,29 @@ class CaveStoryEnv(GameEnv):
         if len(buf) < n:
             return np.zeros((self.height, self.width, 3), np.uint8)
         return np.frombuffer(buf[:n], np.uint8).reshape(self.height, self.width, 3).copy()
+
+    def apply_chunk_capture(self, action_chunk: np.ndarray) -> list:
+        """Like _apply_chunk but grabs a frame after EACH action row (the game is near-frozen
+        during the grab, so timing is preserved). Returns a list of (row_action(25,), frame) so a
+        caller can build a per-action annotated video. Used for fine-grained visualization."""
+        a = np.asarray(action_chunk, dtype=np.float32)
+        if a.ndim == 1:
+            a = a[None]
+        per = self.chunk_seconds / max(a.shape[0], 1)
+        out = []
+        for row in a:
+            if self._sh is not None:
+                self._sh.unpause()
+            self._pad.set_action(row)
+            t = time.perf_counter()
+            while time.perf_counter() - t < per:
+                pass
+            if self._sh is not None:
+                self._sh.pause()         # near-freeze for a clean grab
+            out.append((row.copy(), self._grab()))
+        self._pad.neutral()
+        self._step += 1
+        return out
 
     # ---- action: drive the virtual gamepad with per-step timing ------------------------
     def _apply_chunk(self, action_chunk: np.ndarray) -> None:
@@ -217,7 +280,8 @@ class CaveStoryEnv(GameEnv):
         if self._sh is not None:
             self._sh.pause()
         self._step = 0
-        return Observation(frame=self._grab(), state={"step": 0}, step_idx=0, done=False)
+        return Observation(frame=self._grab(), state={"step": 0, **self._read_state()},
+                           step_idx=0, done=False)
 
     def step(self, action_chunk: np.ndarray) -> Observation:
         if self._pad is not None:
@@ -226,7 +290,7 @@ class CaveStoryEnv(GameEnv):
         else:  # keyboard fallback (discretized) — not recommended; loses analog
             self._step_keyboard(action_chunk)
         self._step += 1
-        return Observation(frame=self._grab(), state={"step": self._step},
+        return Observation(frame=self._grab(), state={"step": self._step, **self._read_state()},
                            step_idx=self._step, done=False)
 
     def _step_keyboard(self, action_chunk: np.ndarray) -> None:

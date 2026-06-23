@@ -150,6 +150,9 @@ class PlanDatasetConfig:
     s2_outcome_contrastive: bool = False  # Stage-2: label each VLM plan by its real chunk's dominant direction so contrastive de-collinearizes plan tokens along the action axis (EXP-043)
     s2_augment_plan: bool = False    # Stage-2 TEACHER: append the real chunk's action summary to the plan text (privileged-info P+ = P + "...take these actions <seq>") (EXP-044)
     teacher_token_lookup: str | None = None  # Stage-2 STUDENT (EXP-045): path to a torch-saved {uuid: (K,d) teacher plan tokens} (gen_teacher_tokens.py); attaches teacher_tokens for distillation
+    mm_plan_hidden_lookup: str | None = None  # Stage-2 FRAME-CONDITIONED (EXP-050): path to torch-saved {uuid: {h:(L,d), mask:(L,)}} precomputed frozen-VLM hidden states over [before,after] frames + plan text (cache_mm_hidden.py). When set, the plan_hidden fed to the resampler comes from HERE (frame-grounded) instead of the text-only PlanHiddenCache -> plan tokens become frame-specific. Null/dropped rows reuse the same hidden (masked out), forming a clean CFG pair.
+    gameplay_only: bool = False  # Stage-2 data hygiene (EXP-050): drop chunks whose vlm_plan_lookup entry has is_gameplay=False (tag_gameplay.py) -> exclude stream intro/menu/logo/loading frames from training.
+    mm_cf_lookup: str | None = None  # Stage-2 COUNTERFACTUAL + frame-conditioned (EXP-051b): path to torch-saved {uuid: {h,mask (=encode_multimodal(frame_i, plan_j)), buttons,j_left,j_right (=action_j), cf_dir}} (cache_mm_cf.py). When set + s2_cf_ratio>0, cf examples use THIS frame-conditioned cross-pair hidden + override target instead of the s2_index text path. Teacher-distillation is disabled on cf examples (the factual teacher token doesn't match the override target).
     s2_index: str | None = None      # Stage-2 COUNTERFACTUAL (EXP-047): path to {uuid: {buttons,j_left,j_right,dir}} (gen_stage2_index.py); enables transplanting a real (plan,action) from a different direction cluster
     s2_cf_ratio: float = 0.0         # Stage-2: fraction of PLAN examples that are counterfactual (frame_i + plan_j/action_j from a DIFFERENT dir cluster; target follows the PLAN). 0 disables. Teaches the plan to OVERRIDE the frame -> low-guidance counterfactual control.
     seed: int = 0
@@ -180,6 +183,18 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         self.teacher_tokens = None
         if config.teacher_token_lookup and os.path.exists(config.teacher_token_lookup):
             self.teacher_tokens = torch.load(config.teacher_token_lookup, map_location="cpu")
+        # Stage-2 FRAME-CONDITIONED (EXP-050): precomputed frozen-VLM hidden states over
+        # [before,after] frames + plan text, keyed by uuid (cache_mm_hidden.py). When present,
+        # these replace the text-only plan_hidden so the resampler reads frame+text -> the K
+        # plan tokens become frame-specific.
+        self.mm_plan_hidden = None
+        if config.mm_plan_hidden_lookup and os.path.exists(config.mm_plan_hidden_lookup):
+            self.mm_plan_hidden = torch.load(config.mm_plan_hidden_lookup, map_location="cpu")
+        # Stage-2 COUNTERFACTUAL frame-conditioned (EXP-051b): precomputed cross-pair hidden
+        # encode_multimodal(frame_i, plan_j) + override action_j, keyed by uuid (cache_mm_cf.py).
+        self.mm_cf = None
+        if config.mm_cf_lookup and os.path.exists(config.mm_cf_lookup):
+            self.mm_cf = torch.load(config.mm_cf_lookup, map_location="cpu", weights_only=False)
         # Stage-2 COUNTERFACTUAL (EXP-047): chunk index {uuid: {buttons,j_left,j_right,dir}} +
         # per-direction uuid pools, for transplanting a real (plan, action) from a DIFFERENT
         # direction cluster onto a frame (target follows the PLAN -> override training).
@@ -211,16 +226,25 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         # cannot break training. Keyed by uuid == metadata["uuid"].
         if self.vlm_plans is not None:
             keep = []
+            n_nongame = 0
             for cd in self.chunks:
                 try:
                     uu = json.load(open(os.path.join(cd, "metadata.json")))["uuid"]
                 except Exception:
                     continue
-                if uu in self.vlm_plans:
-                    keep.append(cd)
+                if uu not in self.vlm_plans:
+                    continue
+                # EXP-050 data hygiene: drop chunks tagged non-gameplay (stream intro/menu/logo).
+                if config.gameplay_only and not self.vlm_plans[uu].get("is_gameplay", True):
+                    n_nongame += 1
+                    continue
+                keep.append(cd)
             self.chunks = keep
-            print(f"[dataset] Stage-2: {len(self.chunks)} chunks with plans "
-                  f"(of {sum(1 for _ in self.vlm_plans)} in lookup)")
+            msg = (f"[dataset] Stage-2: {len(self.chunks)} chunks with plans "
+                   f"(of {sum(1 for _ in self.vlm_plans)} in lookup)")
+            if config.gameplay_only:
+                msg += f"; dropped {n_nongame} non-gameplay"
+            print(msg)
             if not self.chunks:
                 raise RuntimeError("No Stage-2 chunks with plans found")
 
@@ -239,6 +263,7 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx: int) -> dict:
         chunk_dir = self.chunks[idx]
         meta = json.load(open(os.path.join(chunk_dir, "metadata.json")))
+        uuid = meta.get("uuid")
         pq = os.path.join(chunk_dir, "actions_processed.parquet")
         if not os.path.exists(pq):
             pq = os.path.join(chunk_dir, "actions_raw.parquet")
@@ -253,14 +278,35 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         posthoc_data = None
         cursor = 0
         if stage2:
-            # Stage-2: plan generated at frame 303 (gen_stage2_lookup.py); target = real
-            # chunk there, frame = the pre-extracted context frame (frame_idx ignored by the
-            # single-frame provider). Plan text comes from the VLM lookup keyed by uuid.
-            ctx_frame_idx = 303
-            chunk_start = 303
-            if 303 + self.cfg.action_horizon * self.cfg.frame_stride >= acts["buttons"].shape[0]:
-                chunk_start = self.cfg.action_shift
-            ctx_frame_idx = chunk_start
+            # Stage-2 FRAME-CONDITIONED (EXP-050): when mm-hidden is active, the plan + frames +
+            # teacher were all generated at a per-uuid window (before_idx, default 250). The DiT
+            # context frame MUST be that SAME 'before' frame so the planner and System-1 agree on
+            # the scene; the target chunk starts at before_idx + action_shift. (Legacy text-only
+            # Stage-2 used a fixed frame 303 with the single-frame provider.)
+            entry0 = self.vlm_plans.get(meta.get("uuid"), {}) or {}
+            # A=4 CROSS-CHUNK FACTUAL: one frame-grounded plan (the mm-hidden) spans A chunks. The
+            # resampler emits K*A tokens; a sampled cursor 'a' picks block a -> supervise it against
+            # the REAL chunk a (chunk_starts[a]) with the REAL frame at chunk-a-start (frame_offsets[a]).
+            # Block 0 stays the 'act-now' head (also gets counterfactual + distill below); blocks 1..A-1
+            # are factual look-ahead only. Requires the a4 lookup (chunk_starts/frame_offsets present).
+            cs_list = entry0.get("chunk_starts")
+            fo_list = entry0.get("frame_offsets")
+            if (self.cfg.num_chunks > 1 and cs_list and fo_list
+                    and len(cs_list) >= self.cfg.num_chunks and len(fo_list) >= self.cfg.num_chunks):
+                cursor = self.rng.randrange(self.cfg.num_chunks)
+                ctx_frame_idx = int(fo_list[cursor])
+                chunk_start = int(cs_list[cursor])
+            else:
+                win = entry0.get("before_idx") if self.mm_plan_hidden is not None else None
+                if win is not None:
+                    ctx_frame_idx = int(win)
+                    chunk_start = int(win) + self.cfg.action_shift
+                else:
+                    ctx_frame_idx = 303
+                    chunk_start = 303
+                    if 303 + self.cfg.action_horizon * self.cfg.frame_stride >= acts["buttons"].shape[0]:
+                        chunk_start = self.cfg.action_shift
+                    ctx_frame_idx = chunk_start
         elif cc_real and self.cc_sampler is not None:
             T = acts["buttons"].shape[0]
             span = (self.cfg.num_chunks - 1) * self.cfg.action_horizon * self.cfg.frame_stride
@@ -306,8 +352,9 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         # Decide plan vs null
         use_plan = (self.rng.random() < self.cfg.plan_ratio) and \
                    (idle or not self.cfg.idle_only_for_plan)
-        plan_cursor = 0
+        plan_cursor = cursor   # A=4 cross-chunk: PlanHead gathers resampler block `cursor`
         plan_label_override = None
+        cf_hidden = None        # EXP-051b: set to the cf cross-pair mm-hidden for cf examples
         if stage2:
             # Stage-2: VLM tactical plan (real text) vs null. Target is ALWAYS the real
             # chunk (the plan describes what the streamer did). plan-dropout -> null = base.
@@ -319,10 +366,29 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
                 # keeps the factual frame-following target, so plan vs null form a CFG pair that
                 # teaches the plan to OVERRIDE the frame at low guidance. Only single-chunk:
                 # transplanting a multichunk trajectory would need game dynamics (no env).
-                cf = (self.s2_index is not None and self.s2_dir_pools is not None
-                      and self.cfg.s2_cf_ratio > 0 and self.rng.random() < self.cfg.s2_cf_ratio)
+                # EXP-051b: when mm_cf is loaded, use the PRECOMPUTED frame-conditioned cross-pair
+                # (encode_multimodal(frame_i, plan_j)) + its override action -> keeps cf consistent
+                # with the frame-conditioned plan tokens (the text s2_index path would mismatch).
+                cf_hidden = None
+                # Counterfactual transplant is single-chunk motor override -> only the act-now
+                # block (cursor 0) carries it; look-ahead blocks (a>0) stay purely factual.
+                cf_allowed = (cursor == 0)
+                mm_cf_ok = (cf_allowed and self.mm_cf is not None and uuid in self.mm_cf
+                            and self.cfg.s2_cf_ratio > 0 and self.rng.random() < self.cfg.s2_cf_ratio)
+                cf = mm_cf_ok or (cf_allowed and self.mm_cf is None and self.s2_index is not None
+                                  and self.s2_dir_pools is not None and self.cfg.s2_cf_ratio > 0
+                                  and self.rng.random() < self.cfg.s2_cf_ratio)
                 cf_dir = None
-                if cf:
+                if mm_cf_ok:
+                    ce = self.mm_cf[uuid]
+                    cf_dir = ce.get("cf_dir")
+                    plan_name = "vlm_cf_mm"
+                    plan_text = self.vlm_plans.get(ce.get("cf_uuid"), {}).get("plan", entry["plan"])
+                    target = {"buttons": np.asarray(ce["buttons"]),
+                              "j_left": np.asarray(ce["j_left"]),
+                              "j_right": np.asarray(ce["j_right"])}
+                    cf_hidden = ce
+                elif cf:
                     own_dir = chunk_dominant_dir(real_chunk) if real_chunk is not None else None
                     other_dirs = [d for d in ("left", "right", "up", "down")
                                   if d != own_dir and self.s2_dir_pools.get(d)]
@@ -400,7 +466,10 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
             pix_cache = {}
             self._pix_cache = pix_cache
         uuid = meta.get("uuid")
-        cache_key = (uuid, ctx_frame_idx) if cc_real else uuid
+        # Key by (uuid, frame_idx) whenever the context frame can vary within a uuid: cross-chunk
+        # R0 (cc_real) AND A=4 stage-2 cross-chunk (cursor-dependent frame_offsets[a]).
+        per_frame = cc_real or (stage2 and self.cfg.num_chunks > 1)
+        cache_key = (uuid, ctx_frame_idx) if per_frame else uuid
         pixel_values = pix_cache.get(cache_key)
         if pixel_values is None:
             frame_rgb = self.frame_provider(meta, ctx_frame_idx)
@@ -423,11 +492,27 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         ex["plan_label"] = plan_label_override if plan_label_override is not None else plan_label_id(plan_name)
         ex["plan_cursor"] = int(plan_cursor)
         ex["is_idle"] = bool(idle)
+        # Stage-2 FRAME-CONDITIONED (EXP-050): attach the precomputed frame+text hidden for this
+        # uuid so the resampler reads it instead of the text-only PlanHiddenCache. Attached for
+        # BOTH plan and null rows (null masks the plan-token positions out -> clean CFG pair).
+        # EXP-051b: for a counterfactual example, attach the cf CROSS-PAIR hidden (frame_i+plan_j)
+        # so the plan tokens that must produce the override action are the frame-conditioned cf
+        # tokens; null rows still use the factual hidden (the CFG-pair's factual side).
+        if cf_hidden is not None and not plan_dropped:
+            ex["plan_hidden_pre"] = np.asarray(cf_hidden["h"], dtype=np.float32)
+            ex["plan_mask_pre"] = np.asarray(cf_hidden["mask"], dtype=bool)
+        elif self.mm_plan_hidden is not None and uuid in self.mm_plan_hidden:
+            mm = self.mm_plan_hidden[uuid]
+            ex["plan_hidden_pre"] = np.asarray(mm["h"], dtype=np.float32)
+            ex["plan_mask_pre"] = np.asarray(mm["mask"], dtype=bool)
         # Stage-2 STUDENT distillation (EXP-045): attach the precomputed teacher tokens for
-        # this uuid; only valid when a (non-dropped) plan is used and a teacher exists.
+        # this uuid; only valid when a (non-dropped, NON-counterfactual) plan is used and a teacher
+        # exists. The factual teacher (plan_i + action_i) does NOT match a cf override target, so
+        # distillation is disabled on cf examples (they learn override via the action loss).
         K = self.cfg.num_plan_tokens
         d = getattr(self, "_teacher_dim", None)
-        if self.teacher_tokens is not None and not plan_dropped and uuid in self.teacher_tokens:
+        if (self.teacher_tokens is not None and not plan_dropped and cf_hidden is None
+                and cursor == 0 and uuid in self.teacher_tokens):
             tt = np.asarray(self.teacher_tokens[uuid], dtype=np.float32)
             self._teacher_dim = tt.shape[-1]
             ex["teacher_tokens"] = tt
@@ -485,14 +570,33 @@ def make_collate_fn(plan_cache: Optional[PlanHiddenCache] = None, plan_dim: int 
                 [torch.as_tensor(np.asarray(b["teacher_tokens"])) for b in batch], 0)
             out["has_teacher"] = torch.tensor([b.get("has_teacher", False) for b in batch], dtype=torch.bool)
 
-        if plan_cache is not None:
+        # Stage-2 FRAME-CONDITIONED (EXP-050): if examples carry precomputed frame+text hidden
+        # (plan_hidden_pre), pad THOSE to batch-max L. Takes precedence over the text-only cache.
+        if "plan_hidden_pre" in batch[0]:
+            hs = [torch.as_tensor(np.asarray(b["plan_hidden_pre"])) for b in batch]
+            masks = [torch.as_tensor(np.asarray(b["plan_mask_pre"])) for b in batch]
+            L = max(h.shape[0] for h in hs)
+            B = len(batch)
+            # Precomputed frame+text hiddens are in the VLM BACKBONE dim (0.8B=1024, 2B=2048,
+            # 9B=4096), not the DiT dim -> size the buffer from the hidden itself, not plan_dim.
+            hdim = hs[0].shape[-1]
+            plan_hidden = torch.zeros(B, L, hdim)
+            plan_kpm = torch.ones(B, L, dtype=torch.bool)  # True == pad
+            for i, (h, m) in enumerate(zip(hs, masks)):
+                li = h.shape[0]
+                plan_hidden[i, :li] = h.float()
+                plan_kpm[i, :li] = m
+            out["plan_hidden"] = plan_hidden
+            out["plan_key_padding_mask"] = plan_kpm
+        elif plan_cache is not None:
             hs, masks = [], []
             for b in batch:
                 h, kpm = plan_cache.get(b["plan_text"])
                 hs.append(h); masks.append(kpm)
             L = max(h.shape[0] for h in hs)
             B = len(batch)
-            plan_hidden = torch.zeros(B, L, plan_dim)
+            hdim = hs[0].shape[-1]   # backbone dim (2B=2048), not the DiT dim
+            plan_hidden = torch.zeros(B, L, hdim)
             plan_kpm = torch.ones(B, L, dtype=torch.bool)  # True == pad
             for i, (h, m) in enumerate(zip(hs, masks)):
                 li = h.shape[0]
