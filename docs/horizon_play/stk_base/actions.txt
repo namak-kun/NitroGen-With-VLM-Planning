@@ -1,0 +1,64 @@
+env=stk  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=NULL/base (no plan)
+per_row=0.033s  objective=You are driving a kart. What should the agent do next to stay on the track and race well?
+
+# re-plan#00  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=RT/accel  state={}
+  exec1: stick=(+0.50,+0.50) buttons=RT/accel  state={}
+# re-plan#01  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=RT/accel  state={}
+  exec1: stick=(+0.50,+0.50) buttons=RT/accel  state={}
+# re-plan#02  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=A/jump  state={}
+  exec1: stick=(+0.50,+0.50) buttons=A/jump  state={}
+# re-plan#03  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.51) buttons=-  state={}
+# re-plan#04  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=LT/brake,LB,RB  state={}
+  exec1: stick=(+0.50,+0.50) buttons=LT/brake,LB,RB  state={}
+# re-plan#05  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.57,+0.29) buttons=-  state={}
+  exec1: stick=(+0.58,+0.29) buttons=-  state={}
+# re-plan#06  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=RT/accel  state={}
+  exec1: stick=(+0.50,+0.50) buttons=RT/accel  state={}
+# re-plan#07  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=X/shoot  state={}
+  exec1: stick=(+0.50,+0.51) buttons=X/shoot  state={}
+# re-plan#08  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#09  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#10  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#11  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#12  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#13  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=Dn  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#14  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.51) buttons=-  state={}
+  exec1: stick=(+0.50,+0.51) buttons=-  state={}
+# re-plan#15  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=RT/accel  state={}
+  exec1: stick=(+0.50,+0.50) buttons=RT/accel  state={}
+# re-plan#16  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.49,+0.50) buttons=-  state={}
+  exec1: stick=(+0.48,+0.49) buttons=-  state={}
+# re-plan#17  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.51) buttons=-  state={}
+# re-plan#18  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.35,+0.14) buttons=-  state={}
+  exec1: stick=(+0.36,+0.16) buttons=-  state={}
+# re-plan#19  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.08,+0.56) buttons=-  state={}
+  exec1: stick=(+0.07,+0.56) buttons=-  state={}

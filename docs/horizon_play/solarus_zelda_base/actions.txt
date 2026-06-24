@@ -1,0 +1,64 @@
+env=solarus_zelda  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=NULL/base (no plan)
+per_row=0.033s  objective=You are a top-down adventurer. What should the agent do next to explore?
+
+# re-plan#00  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.51) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#01  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.51) buttons=-  state={}
+  exec1: stick=(+0.50,+0.55) buttons=-  state={}
+# re-plan#02  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#03  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#04  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#05  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#06  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#07  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#08  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#09  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#10  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#11  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#12  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.51) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#13  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=B  state={}
+  exec1: stick=(+0.50,+0.51) buttons=B  state={}
+# re-plan#14  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.52,+0.95) buttons=-  state={}
+  exec1: stick=(+0.52,+0.96) buttons=-  state={}
+# re-plan#15  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.50,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.50) buttons=-  state={}
+# re-plan#16  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.49,+0.15) buttons=-  state={}
+  exec1: stick=(+0.50,+0.25) buttons=-  state={}
+# re-plan#17  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.51,+0.50) buttons=-  state={}
+  exec1: stick=(+0.50,+0.49) buttons=-  state={}
+# re-plan#18  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.99,+0.50) buttons=-  state={}
+  exec1: stick=(+0.99,+0.50) buttons=-  state={}
+# re-plan#19  plan='(null / no plan — base DiT)'
+  exec0: stick=(+0.59,+0.57) buttons=-  state={}
+  exec1: stick=(+0.60,+0.57) buttons=-  state={}

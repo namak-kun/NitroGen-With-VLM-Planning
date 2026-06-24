@@ -1,0 +1,64 @@
+env=solarus_zelda  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are a top-down adventurer. What should the agent do next to explore?
+
+# re-plan#00  plan='Move forward to explore the area.'
+  exec0: stick=(+0.49,-0.12) buttons=A/jump,X/shoot,B  state={}
+  exec1: stick=(+0.60,-0.06) buttons=A/jump,X/shoot,B,LB  state={}
+# re-plan#01  plan='Move forward to explore the area.'
+  exec0: stick=(+0.05,+0.83) buttons=A/jump,X/shoot,Dl  state={}
+  exec1: stick=(-0.08,+0.94) buttons=A/jump,X/shoot  state={}
+# re-plan#02  plan='Move forward to explore the village.'
+  exec0: stick=(+0.13,-0.18) buttons=A/jump,X/shoot,B  state={}
+  exec1: stick=(+0.18,-0.10) buttons=A/jump,X/shoot,B  state={}
+# re-plan#03  plan='Move forward to explore the area.'
+  exec0: stick=(+0.75,+0.04) buttons=-  state={}
+  exec1: stick=(+0.45,-0.08) buttons=-  state={}
+# re-plan#04  plan='Move forward to explore the area.'
+  exec0: stick=(+1.12,+1.04) buttons=A/jump,B,LB,Dn  state={}
+  exec1: stick=(+1.18,+1.21) buttons=A/jump,B,LB,Dn,Dr  state={}
+# re-plan#05  plan='Move forward to explore the room.'
+  exec0: stick=(-0.02,-0.29) buttons=A/jump,B  state={}
+  exec1: stick=(+0.15,-0.34) buttons=A/jump,B  state={}
+# re-plan#06  plan='Move forward to explore the room.'
+  exec0: stick=(+0.38,+0.35) buttons=B  state={}
+  exec1: stick=(+0.58,+0.81) buttons=B  state={}
+# re-plan#07  plan='Move forward to explore the room.'
+  exec0: stick=(+0.47,-0.08) buttons=A/jump,X/shoot  state={}
+  exec1: stick=(+0.46,-0.09) buttons=A/jump,X/shoot,B  state={}
+# re-plan#08  plan='Move forward to explore the room.'
+  exec0: stick=(+0.40,+0.98) buttons=A/jump,B,Y  state={}
+  exec1: stick=(+0.28,+0.98) buttons=X/shoot,Y  state={}
+# re-plan#09  plan='Move forward to explore the area.'
+  exec0: stick=(+0.39,+1.26) buttons=X/shoot,Y  state={}
+  exec1: stick=(+0.17,+1.23) buttons=X/shoot  state={}
+# re-plan#10  plan='Move forward to explore the area.'
+  exec0: stick=(+0.63,+1.12) buttons=Y  state={}
+  exec1: stick=(+0.54,+1.10) buttons=A/jump,Y  state={}
+# re-plan#11  plan='Move forward to explore'
+  exec0: stick=(+0.49,+0.93) buttons=X/shoot  state={}
+  exec1: stick=(+0.46,+0.86) buttons=X/shoot  state={}
+# re-plan#12  plan='Move forward to explore the area.'
+  exec0: stick=(+1.03,+1.24) buttons=A/jump,X/shoot,B,Y  state={}
+  exec1: stick=(+0.98,+1.13) buttons=A/jump,X/shoot,B,Y  state={}
+# re-plan#13  plan='Move forward to explore the area.'
+  exec0: stick=(+1.07,+1.05) buttons=-  state={}
+  exec1: stick=(+1.16,+1.26) buttons=-  state={}
+# re-plan#14  plan='Move forward to explore the area.'
+  exec0: stick=(+0.55,+1.13) buttons=-  state={}
+  exec1: stick=(+0.51,+1.11) buttons=-  state={}
+# re-plan#15  plan='Move forward to explore the area.'
+  exec0: stick=(+0.60,-0.05) buttons=LB  state={}
+  exec1: stick=(+0.61,-0.03) buttons=LB  state={}
+# re-plan#16  plan='Move forward to explore the area.'
+  exec0: stick=(+0.63,+1.14) buttons=LB  state={}
+  exec1: stick=(+0.68,+1.14) buttons=LB  state={}
+# re-plan#17  plan='Press Next to proceed.'
+  exec0: stick=(+1.08,+0.92) buttons=Dl  state={}
+  exec1: stick=(+1.17,+0.86) buttons=Dl  state={}
+# re-plan#18  plan='Press Next to proceed.'
+  exec0: stick=(+0.56,+0.91) buttons=-  state={}
+  exec1: stick=(+0.43,+0.75) buttons=-  state={}
+# re-plan#19  plan='Move forward to explore the area.'
+  exec0: stick=(+0.12,+0.42) buttons=-  state={}
+  exec1: stick=(+0.38,-0.03) buttons=-  state={}

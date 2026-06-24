@@ -3,62 +3,52 @@ plan_mode=GENERATED per re-infer
 per_row=0.033s  objective=You are a platformer hero. What should the agent do next to advance and avoid hazards?
 
 # re-plan#00  plan='Jump to the right platform.'
-  exec0: stick=(+1.23,-0.33) buttons=RT/accel  state={'x': 236.5, 'y': 450.0, 'vx': 1.4, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(+1.23,-0.32) buttons=RT/accel  state={'x': 263.8, 'y': 450.0, 'vx': 2.7, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(+1.11,-0.34) buttons=RT/accel  state={'x': 302.2, 'y': 450.0, 'vx': 3.5, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(+1.16,-0.22) buttons=RT/accel  state={'x': 356.4, 'y': 472.0, 'vx': 4.2, 'vy': 4.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
+  exec0: stick=(+1.02,+0.11) buttons=RT/accel  state={'x': 236.5, 'y': 450.0, 'vx': 1.4, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec1: stick=(+1.09,-0.02) buttons=RT/accel  state={'x': 261.1, 'y': 450.0, 'vx': 2.6, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec2: stick=(+1.08,+0.06) buttons=B,RT/accel  state={'x': 302.2, 'y': 450.0, 'vx': 3.5, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec3: stick=(+1.08,+0.00) buttons=RT/accel  state={'x': 348.1, 'y': 464.4, 'vx': 4.1, 'vy': 3.2, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
 # re-plan#01  plan='Jump to the right platform.'
-  exec0: stick=(+1.12,-0.07) buttons=Y,RT/accel  state={'x': 424.0, 'y': 514.0, 'vx': 0.2, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(+1.21,-0.24) buttons=Y,RT/accel  state={'x': 424.0, 'y': 514.0, 'vx': 0.2, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(+1.14,-0.01) buttons=A/jump,Y,RT/accel  state={'x': 429.2, 'y': 443.8, 'vx': 1.0, 'vy': -5.5, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(+1.12,-0.04) buttons=Y,RT/accel  state={'x': 451.3, 'y': 408.7, 'vx': 2.3, 'vy': -0.3, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
+  exec0: stick=(+0.64,-0.15) buttons=Y,RT/accel  state={'x': 424.0, 'y': 514.0, 'vx': 0.2, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec1: stick=(+1.15,-0.07) buttons=A/jump,Y,RT/accel  state={'x': 429.2, 'y': 443.8, 'vx': 1.0, 'vy': -5.5, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec2: stick=(+1.29,-0.24) buttons=A/jump,B,RT/accel  state={'x': 449.0, 'y': 384.0, 'vx': 2.2, 'vy': -0.01, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec3: stick=(+1.24,-0.43) buttons=A/jump,B,Y,RT/accel  state={'x': 489.5, 'y': 425.9, 'vx': 3.35, 'vy': 5.59, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
 # re-plan#02  plan='Jump to the right platform.'
-  exec0: stick=(+0.95,+0.02) buttons=A/jump,RT/accel,Dn  state={'x': 542.4, 'y': 368.4, 'vx': 1.4, 'vy': -5.58, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(+1.11,-0.07) buttons=RT/accel,Dn  state={'x': 572.5, 'y': 332.3, 'vx': 2.8, 'vy': 0.02, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(+1.12,-0.07) buttons=RT/accel,Dn  state={'x': 615.3, 'y': 368.9, 'vx': 3.6, 'vy': 5.22, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(+1.22,-0.24) buttons=RT/accel  state={'x': 662.4, 'y': 450.0, 'vx': 4.2, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
+  exec0: stick=(+0.94,-0.32) buttons=A/jump,B,RT/accel,Dn  state={'x': 576.6, 'y': 378.8, 'vx': 1.5, 'vy': -5.6, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec1: stick=(+0.96,-0.01) buttons=A/jump,B,RT/accel,Dn  state={'x': 608.1, 'y': 310.0, 'vx': 2.9, 'vy': -2.94, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec2: stick=(+1.07,-0.16) buttons=A/jump,Y,RT/accel,Dn  state={'x': 647.9, 'y': 305.9, 'vx': 3.6, 'vy': 1.86, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
+  exec3: stick=(+1.04,+0.05) buttons=A/jump,B,Y,RT/accel  state={'x': 699.3, 'y': 366.5, 'vx': 4.25, 'vy': 7.06, 'lives': 3, 'dead': 0, 'in_menu': 0, 'won': 0, 'beat_code': 0, 'nplayers': 1}
 # re-plan#03  plan='Jump to the right platform.'
-  exec0: stick=(+0.16,+0.90) buttons=RT/accel  state={'x': 780.8, 'y': 514.0, 'vx': -1.15, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(+0.21,+0.93) buttons=RT/accel,RB  state={'x': 756.8, 'y': 514.0, 'vx': -2.45, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(+0.19,+0.88) buttons=RT/accel,LB  state={'x': 717.2, 'y': 514.0, 'vx': -3.4, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(+0.17,+0.92) buttons=RT/accel,LB  state={'x': 704.0, 'y': 514.0, 'vx': -0.2, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-# re-plan#04  plan='Jump to the right platform.'
-  exec0: stick=(-0.32,-0.42) buttons=A/jump,RT/accel,RB  state={'x': 696.5, 'y': 432.9, 'vx': -1.2, 'vy': -5.54, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(-0.28,-0.21) buttons=A/jump,RT/accel,RB  state={'x': 669.2, 'y': 372.1, 'vx': -2.6, 'vy': -2.04, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(-0.32,-0.60) buttons=RT/accel,LB,RB  state={'x': 624.6, 'y': 385.5, 'vx': -3.55, 'vy': 3.56, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(-0.24,-0.11) buttons=RT/accel,LB  state={'x': 574.6, 'y': 450.0, 'vx': -3.39, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-# re-plan#05  plan='Jump to the right platform.'
-  exec0: stick=(+0.88,+0.78) buttons=Y,RT/accel  state={'x': 513.0, 'y': 450.0, 'vx': 1.4, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(+0.87,+0.83) buttons=A/jump,Y,RT/accel  state={'x': 540.3, 'y': 375.6, 'vx': 2.7, 'vy': -5.84, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(+0.92,+0.83) buttons=A/jump,RT/accel  state={'x': 582.3, 'y': 307.0, 'vx': 3.55, 'vy': -3.55, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(+0.96,+0.79) buttons=RT/accel  state={'x': 633.0, 'y': 297.2, 'vx': 4.2, 'vy': 1.65, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-# re-plan#06  plan='Jump to the right platform.'
-  exec0: stick=(-0.05,-0.09) buttons=B  state={'x': 788.8, 'y': 514.0, 'vx': 0.62, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(-0.48,-0.78) buttons=B  state={'x': 782.4, 'y': 514.0, 'vx': -1.18, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(-0.26,-0.33) buttons=-  state={'x': 758.0, 'y': 514.0, 'vx': -2.48, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(-0.35,-0.31) buttons=-  state={'x': 723.1, 'y': 514.0, 'vx': -3.0, 'vy': 0.0, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-# re-plan#07  plan='Jump to the right platform.'
-  exec0: stick=(+1.27,-0.28) buttons=A/jump,RT/accel,Dr  state={'x': 713.1, 'y': 438.0, 'vx': 1.3, 'vy': -5.56, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(+1.21,-0.24) buttons=A/jump,RT/accel,Dr  state={'x': 741.8, 'y': 373.2, 'vx': 2.7, 'vy': -2.48, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(+0.31,+0.08) buttons=A/jump,B,RT/accel,LB,Dn,Dr  state={'x': 759.0, 'y': 387.9, 'vx': -0.4, 'vy': 3.92, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(+0.32,-0.03) buttons=B,RT/accel,LB,Dr  state={'x': 766.2, 'y': 505.0, 'vx': 1.26, 'vy': 10.32, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-# re-plan#08  plan='Jump to the right platform.'
-  exec0: stick=(+0.99,+0.11) buttons=A/jump,RT/accel  state={'x': 790.3, 'y': 432.4, 'vx': 1.4, 'vy': -5.58, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec1: stick=(+0.98,+0.10) buttons=A/jump,RT/accel  state={'x': 798.8, 'y': 404.2, 'vx': 1.9, 'vy': -5.68, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec2: stick=(+0.90,+0.04) buttons=A/jump,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 0, 'nplayers': 1}
-  exec3: stick=(+0.86,-0.05) buttons=A/jump,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}   <<< ENTERED MENU (stranded)
-# re-plan#09  plan='Select Restart Level'
-  exec0: stick=(-0.28,+1.77) buttons=A/jump,B,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec1: stick=(-0.80,+2.22) buttons=A/jump,B,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec2: stick=(-0.36,+1.97) buttons=B,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec3: stick=(+0.46,+1.53) buttons=RT/accel,LB  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-# re-plan#10  plan='Press Restart Level'
-  exec0: stick=(+0.57,+1.17) buttons=X/shoot  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec1: stick=(+0.55,+1.18) buttons=X/shoot  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec2: stick=(+0.56,+1.16) buttons=X/shoot,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec3: stick=(+0.45,+1.04) buttons=A/jump,X/shoot,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-# re-plan#11  plan='Select Player Setup'
-  exec0: stick=(+0.50,+1.06) buttons=A/jump,B,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec1: stick=(+0.23,+0.91) buttons=A/jump,B,RT/accel,Dn  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec2: stick=(+1.38,+1.39) buttons=A/jump,B,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
-  exec3: stick=(+0.07,+0.71) buttons=B,RT/accel  state={'x': 800.8, 'y': 398.9, 'vx': 2.0, 'vy': -5.28, 'lives': 3, 'dead': 0, 'in_menu': 1, 'nplayers': 1}
+  exec0: stick=(+1.00,+0.35) buttons=B,Y,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}   <<< ENTERED MENU (stranded)
+  exec1: stick=(+1.00,+0.80) buttons=RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec2: stick=(+1.01,+0.92) buttons=RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec3: stick=(+0.97,+0.78) buttons=RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+# re-plan#04  plan='Select Restart Level'
+  exec0: stick=(+0.12,+0.06) buttons=X/shoot,RT/accel,Dr  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec1: stick=(-0.09,+0.11) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec2: stick=(-0.00,+0.35) buttons=X/shoot,B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec3: stick=(-0.12,+0.03) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+# re-plan#05  plan='Select Restart Level'
+  exec0: stick=(-0.12,+0.48) buttons=A/jump,B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec1: stick=(-0.15,+0.51) buttons=A/jump,B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec2: stick=(-0.10,+0.49) buttons=A/jump,B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec3: stick=(-0.11,+0.49) buttons=A/jump,B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+# re-plan#06  plan='Press Restart Level'
+  exec0: stick=(+0.91,+0.42) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec1: stick=(+0.97,+0.66) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec2: stick=(+1.11,+1.32) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec3: stick=(+0.65,+1.17) buttons=A/jump,X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+# re-plan#07  plan='Press Restart Level'
+  exec0: stick=(+0.53,-0.01) buttons=B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec1: stick=(+0.36,-0.01) buttons=B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec2: stick=(+0.87,+0.06) buttons=B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec3: stick=(+0.90,+0.06) buttons=RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+# re-plan#08  plan='Press Restart Level'
+  exec0: stick=(+1.05,+1.04) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec1: stick=(+1.00,+0.94) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec2: stick=(+1.03,+0.96) buttons=RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec3: stick=(+0.42,+1.04) buttons=B,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+# re-plan#09  plan='Press Restart Level'
+  exec0: stick=(+0.52,+1.06) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec1: stick=(+0.45,+1.06) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec2: stick=(+0.74,+0.87) buttons=X/shoot,RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}
+  exec3: stick=(+0.98,+0.79) buttons=RT/accel  state={'x': 801.0, 'y': 514.4, 'vx': 1.46, 'vy': 0.4, 'lives': 3, 'dead': 0, 'in_menu': 1, 'won': 0, 'beat_code': -2, 'nplayers': 1}

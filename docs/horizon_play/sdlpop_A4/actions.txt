@@ -1,0 +1,54 @@
+env=sdlpop  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=4  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are a platformer hero. What should the agent do next to advance through the level?
+
+# re-plan#00  plan='Jump to the right platform.'
+  exec0: stick=(+0.91,+0.26) buttons=RT/accel  state={}
+  exec1: stick=(+0.87,+0.15) buttons=RT/accel  state={}
+  exec2: stick=(+0.90,+0.18) buttons=RT/accel  state={}
+  exec3: stick=(+0.90,+0.10) buttons=RT/accel,LB  state={}
+# re-plan#01  plan='Jump to the right platform.'
+  exec0: stick=(+0.10,+0.23) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.14,+0.28) buttons=X/shoot,B,RT/accel  state={}
+  exec2: stick=(-0.03,+0.51) buttons=X/shoot,B,RT/accel  state={}
+  exec3: stick=(+0.18,+0.18) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#02  plan='Jump to the right platform.'
+  exec0: stick=(+0.84,+0.03) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+0.95,+0.08) buttons=RT/accel  state={}
+  exec2: stick=(+0.56,-0.13) buttons=RT/accel  state={}
+  exec3: stick=(+0.47,-0.16) buttons=RT/accel  state={}
+# re-plan#03  plan='Jump to the right platform.'
+  exec0: stick=(+0.93,+0.29) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.93,+0.32) buttons=X/shoot,B,RT/accel  state={}
+  exec2: stick=(+1.00,+0.31) buttons=X/shoot,B,RT/accel  state={}
+  exec3: stick=(+0.90,+0.23) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#04  plan='Jump to the right platform.'
+  exec0: stick=(+1.03,+0.59) buttons=B,RT/accel  state={}
+  exec1: stick=(+1.05,+0.59) buttons=RT/accel  state={}
+  exec2: stick=(+1.07,+0.56) buttons=RT/accel  state={}
+  exec3: stick=(+1.12,+0.58) buttons=RT/accel,Dl  state={}
+# re-plan#05  plan='Jump to the right platform.'
+  exec0: stick=(+0.90,+0.27) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.88,+0.19) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec2: stick=(+0.86,+0.22) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec3: stick=(+0.88,+0.30) buttons=A/jump,X/shoot,RT/accel  state={}
+# re-plan#06  plan='climb the wall'
+  exec0: stick=(+0.71,+0.51) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.96,+0.56) buttons=X/shoot,B,RT/accel  state={}
+  exec2: stick=(+0.92,+0.61) buttons=X/shoot,B,RT/accel  state={}
+  exec3: stick=(+0.63,+0.40) buttons=A/jump,X/shoot,B,RT/accel  state={}
+# re-plan#07  plan='climb down the stairs'
+  exec0: stick=(+0.63,+0.92) buttons=B  state={}
+  exec1: stick=(+0.60,+0.94) buttons=B  state={}
+  exec2: stick=(+0.67,+0.90) buttons=B,RT/accel  state={}
+  exec3: stick=(+0.81,+0.88) buttons=B,RT/accel  state={}
+# re-plan#08  plan='Jump to the right platform.'
+  exec0: stick=(+0.87,+0.10) buttons=Y  state={}
+  exec1: stick=(+0.91,+0.14) buttons=X/shoot,B,Y,RT/accel  state={}
+  exec2: stick=(+0.92,+0.06) buttons=A/jump,X/shoot,B,Y,RT/accel  state={}
+  exec3: stick=(+0.91,+0.05) buttons=A/jump,X/shoot,B,Y,RT/accel  state={}
+# re-plan#09  plan='Jump to the right platform.'
+  exec0: stick=(+1.53,+1.23) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec1: stick=(+1.62,+1.36) buttons=X/shoot,B,Y,RT/accel  state={}
+  exec2: stick=(+1.41,+1.26) buttons=X/shoot,RT/accel  state={}
+  exec3: stick=(+1.37,+1.23) buttons=X/shoot,RT/accel  state={}
