@@ -1,0 +1,54 @@
+env=castlevania_godot  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=4  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are a whip-wielding hero in a side-scrolling action game. What next?
+
+# re-plan#00  plan='Move right to avoid the enemy'
+  exec0: stick=(+1.02,+0.41) buttons=A/jump,B,Y,RT/accel  state={}
+  exec1: stick=(+1.04,+0.41) buttons=A/jump,B,Y,RT/accel  state={}
+  exec2: stick=(+1.06,+0.44) buttons=A/jump,B,RT/accel  state={}
+  exec3: stick=(+0.91,+0.17) buttons=B,RT/accel  state={}
+# re-plan#01  plan='Attack the enemy'
+  exec0: stick=(+0.58,+0.10) buttons=X/shoot  state={}
+  exec1: stick=(+0.73,+0.21) buttons=X/shoot,RT/accel  state={}
+  exec2: stick=(+0.82,+0.13) buttons=X/shoot,RT/accel  state={}
+  exec3: stick=(+0.69,+0.11) buttons=X/shoot,RT/accel  state={}
+# re-plan#02  plan='run right'
+  exec0: stick=(-0.11,+0.11) buttons=X/shoot,B,RT/accel,LT/brake  state={}
+  exec1: stick=(+1.31,-0.13) buttons=X/shoot,B,RT/accel,LT/brake  state={}
+  exec2: stick=(+0.67,+0.07) buttons=B,RT/accel,LT/brake  state={}
+  exec3: stick=(+0.27,+0.54) buttons=B,RT/accel,LT/brake  state={}
+# re-plan#03  plan='Jump to the right to avoid the enemy.'
+  exec0: stick=(+1.12,+0.76) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+0.55,+1.00) buttons=X/shoot,RT/accel  state={}
+  exec2: stick=(+0.36,+1.05) buttons=X/shoot,RT/accel  state={}
+  exec3: stick=(+0.27,+1.04) buttons=RT/accel  state={}
+# re-plan#04  plan='Jump to the right to avoid the enemy.'
+  exec0: stick=(+0.94,+0.47) buttons=A/jump,B,RT/accel,LB  state={}
+  exec1: stick=(+0.94,+0.45) buttons=A/jump,B,RT/accel,LB  state={}
+  exec2: stick=(+1.09,+0.89) buttons=B,Y,RT/accel,LB  state={}
+  exec3: stick=(+0.54,+0.90) buttons=B,RT/accel,LB  state={}
+# re-plan#05  plan='Jump to the right'
+  exec0: stick=(+1.12,+0.38) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+1.11,+0.23) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec2: stick=(+0.67,-0.05) buttons=A/jump,X/shoot,B,Y,RT/accel  state={}
+  exec3: stick=(+1.16,+0.40) buttons=A/jump,X/shoot,B,Y,RT/accel  state={}
+# re-plan#06  plan='Jump to the right to avoid the enemy.'
+  exec0: stick=(+0.86,+0.30) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+0.85,+0.36) buttons=A/jump,B,RT/accel  state={}
+  exec2: stick=(+0.93,+0.53) buttons=B,RT/accel  state={}
+  exec3: stick=(+0.99,+0.36) buttons=A/jump,B,RT/accel  state={}
+# re-plan#07  plan='Jump to the right'
+  exec0: stick=(+0.86,+1.47) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+0.97,+1.69) buttons=A/jump,B,RT/accel,Up  state={}
+  exec2: stick=(+0.92,+1.38) buttons=B,RT/accel,Dl  state={}
+  exec3: stick=(+0.80,+1.65) buttons=B,RT/accel,Dl  state={}
+# re-plan#08  plan='Jump to the right'
+  exec0: stick=(+0.39,+0.11) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.68,+0.18) buttons=B,RT/accel,RB  state={}
+  exec2: stick=(+0.99,+0.39) buttons=B,RT/accel,RB  state={}
+  exec3: stick=(+0.62,+0.08) buttons=B,Y,RT/accel,RB  state={}
+# re-plan#09  plan='run right'
+  exec0: stick=(+1.34,-0.59) buttons=B,RT/accel  state={}
+  exec1: stick=(+1.08,-1.57) buttons=B,RT/accel  state={}
+  exec2: stick=(+0.84,-1.06) buttons=B,RT/accel  state={}
+  exec3: stick=(+1.66,-0.99) buttons=B,RT/accel  state={}

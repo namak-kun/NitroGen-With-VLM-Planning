@@ -1,0 +1,54 @@
+env=chromium_bsu  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=4  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are piloting a ship in a vertical shoot-em-up. What should the agent do next to dodge enemies and shoot?
+
+# re-plan#00  plan='Move right to avoid the enemy'
+  exec0: stick=(+0.03,+0.27) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.07,+0.33) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec2: stick=(+0.07,+0.23) buttons=A/jump,B,RT/accel  state={}
+  exec3: stick=(+0.05,+0.11) buttons=A/jump,B,RT/accel  state={}
+# re-plan#01  plan='Move right to avoid the enemy'
+  exec0: stick=(+0.97,+0.61) buttons=RT/accel  state={}
+  exec1: stick=(+0.98,+0.67) buttons=RT/accel  state={}
+  exec2: stick=(+0.99,+0.71) buttons=RT/accel  state={}
+  exec3: stick=(+0.98,+0.69) buttons=X/shoot,RT/accel  state={}
+# re-plan#02  plan='Move right to avoid the enemy'
+  exec0: stick=(+0.97,+0.27) buttons=X/shoot,RT/accel,Dn  state={}
+  exec1: stick=(+0.97,+0.29) buttons=X/shoot,RT/accel,Dn  state={}
+  exec2: stick=(+0.97,+0.30) buttons=X/shoot,RT/accel  state={}
+  exec3: stick=(+0.97,+0.27) buttons=RT/accel,LT/brake  state={}
+# re-plan#03  plan='Move right to avoid the enemy'
+  exec0: stick=(+0.96,+0.32) buttons=A/jump,B,RT/accel,LT/brake  state={}
+  exec1: stick=(+0.96,+0.29) buttons=A/jump,B,RT/accel,LT/brake  state={}
+  exec2: stick=(+0.96,+0.28) buttons=A/jump,B,RT/accel,LT/brake  state={}
+  exec3: stick=(+0.94,+0.29) buttons=RT/accel,LT/brake  state={}
+# re-plan#04  plan='Move right to avoid the enemy'
+  exec0: stick=(-0.32,-0.35) buttons=RT/accel  state={}
+  exec1: stick=(+0.64,+0.27) buttons=RT/accel  state={}
+  exec2: stick=(+0.83,+0.36) buttons=RT/accel  state={}
+  exec3: stick=(-0.36,-0.31) buttons=RT/accel,Up  state={}
+# re-plan#05  plan='Move right to avoid the enemy'
+  exec0: stick=(+0.45,+0.51) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.49,+0.53) buttons=B,RT/accel  state={}
+  exec2: stick=(+0.49,+0.54) buttons=B,RT/accel  state={}
+  exec3: stick=(+0.42,+0.52) buttons=B,RT/accel  state={}
+# re-plan#06  plan='Move right to avoid the enemy'
+  exec0: stick=(-0.00,+0.37) buttons=A/jump,X/shoot,B,Y,RT/accel  state={}
+  exec1: stick=(+0.04,+0.41) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec2: stick=(+0.05,+0.42) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec3: stick=(+0.11,+0.45) buttons=A/jump,X/shoot,B,RT/accel  state={}
+# re-plan#07  plan='Move right to avoid the enemy'
+  exec0: stick=(-0.26,-0.08) buttons=A/jump,RT/accel  state={}
+  exec1: stick=(-0.47,-0.25) buttons=A/jump,B,RT/accel  state={}
+  exec2: stick=(-0.31,-0.22) buttons=A/jump,B,RT/accel  state={}
+  exec3: stick=(+0.48,+0.54) buttons=A/jump,B,RT/accel  state={}
+# re-plan#08  plan='Move right to avoid the enemy'
+  exec0: stick=(-0.13,+0.22) buttons=A/jump,B,RT/accel,Dr  state={}
+  exec1: stick=(+0.12,+0.65) buttons=A/jump,B,RT/accel,Dl,Dr  state={}
+  exec2: stick=(+0.62,+0.82) buttons=A/jump,B,RT/accel,Dl  state={}
+  exec3: stick=(+0.36,+0.68) buttons=A/jump,B,RT/accel,Dl  state={}
+# re-plan#09  plan='Move right to avoid the enemy'
+  exec0: stick=(+1.03,+0.63) buttons=RT/accel  state={}
+  exec1: stick=(+1.05,+0.60) buttons=RT/accel  state={}
+  exec2: stick=(+1.06,+0.60) buttons=RT/accel  state={}
+  exec3: stick=(+1.02,+0.64) buttons=RT/accel  state={}

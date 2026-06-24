@@ -1,0 +1,64 @@
+env=witchblast  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are in a top-down dungeon shooter. What should the agent do next to fight and move through the room?
+
+# re-plan#00  plan='Move forward to advance'
+  exec0: stick=(+0.51,+0.59) buttons=RT/accel  state={}
+  exec1: stick=(+0.92,+0.75) buttons=RT/accel  state={}
+# re-plan#01  plan='Move forward to advance.'
+  exec0: stick=(+0.96,+0.69) buttons=-  state={}
+  exec1: stick=(+0.38,+0.43) buttons=-  state={}
+# re-plan#02  plan='Move forward to advance'
+  exec0: stick=(+0.09,+0.75) buttons=-  state={}
+  exec1: stick=(+0.46,+0.96) buttons=-  state={}
+# re-plan#03  plan='Move forward to advance'
+  exec0: stick=(-0.01,+0.44) buttons=B  state={}
+  exec1: stick=(-0.01,+0.44) buttons=B,RT/accel  state={}
+# re-plan#04  plan='Move forward to advance through the room.'
+  exec0: stick=(+0.18,+0.70) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.09,+0.79) buttons=A/jump,X/shoot,B,RT/accel  state={}
+# re-plan#05  plan='Move forward to the center of the room.'
+  exec0: stick=(+0.90,+0.44) buttons=X/shoot,B,Y,RT/accel,RB  state={}
+  exec1: stick=(+0.88,+0.32) buttons=X/shoot,B,Y,RT/accel  state={}
+# re-plan#06  plan='Move forward to the center of the room.'
+  exec0: stick=(+0.25,+0.25) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.51,+0.67) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#07  plan='Move forward to the right.'
+  exec0: stick=(+0.67,+1.09) buttons=RT/accel  state={}
+  exec1: stick=(+0.66,+1.11) buttons=RT/accel  state={}
+# re-plan#08  plan='move forward'
+  exec0: stick=(+0.50,+0.53) buttons=A/jump,B,RT/accel,LT/brake  state={}
+  exec1: stick=(+0.55,+0.56) buttons=B,RT/accel,LT/brake  state={}
+# re-plan#09  plan='Move forward to the right.'
+  exec0: stick=(+0.85,+0.96) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.01,+0.73) buttons=B,RT/accel,RB  state={}
+# re-plan#10  plan='Move forward to the right.'
+  exec0: stick=(+0.92,+0.82) buttons=Y,RT/accel  state={}
+  exec1: stick=(+0.92,+0.83) buttons=Y,RT/accel  state={}
+# re-plan#11  plan='Move forward to the right.'
+  exec0: stick=(+0.45,-0.08) buttons=RT/accel  state={}
+  exec1: stick=(+0.38,-0.07) buttons=RT/accel  state={}
+# re-plan#12  plan='Move forward to advance'
+  exec0: stick=(+1.02,+0.88) buttons=A/jump,RT/accel  state={}
+  exec1: stick=(+1.02,+0.85) buttons=A/jump,B,RT/accel  state={}
+# re-plan#13  plan='Move forward to the right.'
+  exec0: stick=(+0.01,+1.16) buttons=A/jump,RT/accel  state={}
+  exec1: stick=(+0.04,+1.25) buttons=A/jump,RT/accel  state={}
+# re-plan#14  plan='Move forward to the right.'
+  exec0: stick=(+0.93,+0.26) buttons=B,Y,RT/accel,LB  state={}
+  exec1: stick=(+0.96,+0.30) buttons=B,Y,RT/accel,LB  state={}
+# re-plan#15  plan='Move forward to the right.'
+  exec0: stick=(+0.93,+0.34) buttons=B,RT/accel,LB,Dn  state={}
+  exec1: stick=(+0.95,+0.29) buttons=RT/accel,LB,Dn  state={}
+# re-plan#16  plan='Move forward and shoot the bats'
+  exec0: stick=(+0.59,+1.03) buttons=RT/accel,Dr  state={}
+  exec1: stick=(+0.37,+1.03) buttons=RT/accel,Dr  state={}
+# re-plan#17  plan='Move forward to the right.'
+  exec0: stick=(+0.90,+0.32) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.60,+0.14) buttons=B,RT/accel  state={}
+# re-plan#18  plan='Move forward to the right'
+  exec0: stick=(+0.15,+0.90) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+0.15,+0.89) buttons=A/jump,RT/accel  state={}
+# re-plan#19  plan='Move forward to the right.'
+  exec0: stick=(-0.16,+0.59) buttons=B,RT/accel,Dr  state={}
+  exec1: stick=(-0.14,+0.60) buttons=A/jump,B  state={}
