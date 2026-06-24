@@ -1,0 +1,168 @@
+################################################################################
+SCENARIO: platformer_progress   (genre=platformer, type=normal, frames=3)
+ACTION-HISTORY DUMP (used by +history/+all): Last 18 control steps: RIGHT x12, JUMP x6. Position moved x 226 -> 375 (advancing right), y rose (jumped onto a ledge).
+################################################################################
+
+----- C0_base -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: What should the agent do next?
+OUTPUT: Based on the visual sequence, the agent is in a high-risk situation.
+
+- **Initial State:** The agent is on a safe platform, but the environment is dark and the sky is darkening, indicating an impending or ongoing event.
+
+----- C1_controls -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move. Controls: move LEFT or RIGHT, look UP, crouch DOWN, JUMP, and ATTACK. To reach a higher ledge you must JUMP (moving sideways alone will not climb).
+INSTRUCTION: What should the agent do next?
+OUTPUT: Based on the sequence of images, here is the analysis of the situation and the best next move:
+
+- **Initial State (Image 1):** The player is on a lower platform. There is a high platform in the center, and
+
+----- C2_history -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: Last 18 control steps: RIGHT x12, JUMP x6. Position moved x 226 -> 375 (advancing right), y rose (jumped onto a ledge).
+
+Given that, what should the agent do next?
+OUTPUT: Based on the visual and positional analysis, the agent is now on a solid platform to the right of the central pillar. The previous moves successfully brought the character to this new location.
+
+The most logical next step is to continue moving forward along
+
+----- C3_format -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: What should the agent do next? Reply with ONLY one line in this exact form: PLAN: [TOKEN] reason, where TOKEN is one or more of LEFT/RIGHT/UP/DOWN/JUMP/ATTACK/DEFER joined with '+', and reason is at most 8 words. Example: 'PLAN: JUMP+RIGHT clear the gap'. Use DEFER ONLY if the agent is clearly making good progress; if it is stuck or not advancing, pick a DIFFERENT control (do NOT defer).
+OUTPUT: PLAN: DEFER+LEFT advance the character to the left to check for enemies or obstacles.
+
+----- C4_all -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move. Controls: move LEFT or RIGHT, look UP, crouch DOWN, JUMP, and ATTACK. To reach a higher ledge you must JUMP (moving sideways alone will not climb).
+INSTRUCTION: Last 18 control steps: RIGHT x12, JUMP x6. Position moved x 226 -> 375 (advancing right), y rose (jumped onto a ledge).
+
+Given that, what should the agent do next? Reply with ONLY one line in this exact form: PLAN: [TOKEN] reason, where TOKEN is one or more of LEFT/RIGHT/UP/DOWN/JUMP/ATTACK/DEFER joined with '+', and reason is at most 8 words. Example: 'PLAN: JUMP+RIGHT clear the gap'. Use DEFER ONLY if the agent is clearly making good progress; if it is stuck or not advancing, pick a DIFFERENT control (do NOT defer).
+OUTPUT: PLAN: DEFER+UP+RIGHT+LEFT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT+RIGHT
+
+################################################################################
+SCENARIO: platformer_BLOCKED   (genre=platformer, type=blocked, frames=3)
+ACTION-HISTORY DUMP (used by +history/+all): Last 18 control steps: RIGHT x16 (held right), JUMP x2. Position x 472 -> 472 and y 450 -> 450: NO movement at all despite holding RIGHT -- you are stuck against something.
+################################################################################
+
+----- C0_base -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: What should the agent do next?
+OUTPUT: Based on the provided screenshots, the agent is in a 2D platformer game. The current state is as follows:
+
+- The player character is on a low platform.
+- Directly in front of the player is a tall
+
+----- C1_controls -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move. Controls: move LEFT or RIGHT, look UP, crouch DOWN, JUMP, and ATTACK. To reach a higher ledge you must JUMP (moving sideways alone will not climb).
+INSTRUCTION: What should the agent do next?
+OUTPUT: Based on the provided images, the agent is in a 2D platformer game.
+
+- The agent is currently on a low platform on the left side of the screen.
+- Directly in front of the agent is a tall
+
+----- C2_history -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: Last 18 control steps: RIGHT x16 (held right), JUMP x2. Position x 472 -> 472 and y 450 -> 450: NO movement at all despite holding RIGHT -- you are stuck against something.
+
+Given that, what should the agent do next?
+OUTPUT: Based on the analysis of the provided frames and the error log, the agent is currently stuck in a state where it is holding the RIGHT key but cannot move forward. The position coordinates (x 472, y 450
+
+----- C3_format -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: What should the agent do next? Reply with ONLY one line in this exact form: PLAN: [TOKEN] reason, where TOKEN is one or more of LEFT/RIGHT/UP/DOWN/JUMP/ATTACK/DEFER joined with '+', and reason is at most 8 words. Example: 'PLAN: JUMP+RIGHT clear the gap'. Use DEFER ONLY if the agent is clearly making good progress; if it is stuck or not advancing, pick a DIFFERENT control (do NOT defer).
+OUTPUT: PLAN: DEFER+LEFT wait for the platform to be clear.
+
+----- C4_all -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move. Controls: move LEFT or RIGHT, look UP, crouch DOWN, JUMP, and ATTACK. To reach a higher ledge you must JUMP (moving sideways alone will not climb).
+INSTRUCTION: Last 18 control steps: RIGHT x16 (held right), JUMP x2. Position x 472 -> 472 and y 450 -> 450: NO movement at all despite holding RIGHT -- you are stuck against something.
+
+Given that, what should the agent do next? Reply with ONLY one line in this exact form: PLAN: [TOKEN] reason, where TOKEN is one or more of LEFT/RIGHT/UP/DOWN/JUMP/ATTACK/DEFER joined with '+', and reason is at most 8 words. Example: 'PLAN: JUMP+RIGHT clear the gap'. Use DEFER ONLY if the agent is clearly making good progress; if it is stuck or not advancing, pick a DIFFERENT control (do NOT defer).
+OUTPUT: PLAN: DEFER+LEFT clear the gap
+
+################################################################################
+SCENARIO: topdown_BLOCKED   (genre=topdown, type=blocked, frames=3)
+ACTION-HISTORY DUMP (used by +history/+all): Last 18 control steps: DOWN x15 (held down). Position barely changed: you are walking into a wall or obstacle and not making progress.
+################################################################################
+
+----- C0_base -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: What should the agent do next?
+OUTPUT: Based on the sequence of images, here is the logical breakdown of the situation:
+
+- **Initial State (Image 1):** The player is in a village area. A character with green hair and a sword is standing near a large house
+
+----- C1_controls -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move. Controls: move LEFT, RIGHT, UP or DOWN, SWORD to attack, ACTION to interact.
+INSTRUCTION: What should the agent do next?
+OUTPUT: Based on the sequence of images, here is the logical breakdown of the situation:
+
+- **Initial State (Image 1):** The player is in an outdoor area. A character with green hair and a sword is standing near a house.
+
+----- C2_history -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: Last 18 control steps: DOWN x15 (held down). Position barely changed: you are walking into a wall or obstacle and not making progress.
+
+Given that, what should the agent do next?
+OUTPUT: Based on the provided frames and the control history, here is the analysis and the best next move:
+
+### Analysis of the Situation
+
+1.  **Current State:** The agent is in a building, specifically in a room with a table
+
+----- C3_format -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: What should the agent do next? Reply with ONLY one line in this exact form: PLAN: [TOKEN] reason, where TOKEN is one or more of LEFT/RIGHT/UP/DOWN/SWORD/ACTION/DEFER joined with '+', and reason is at most 8 words. Example: 'PLAN: JUMP+RIGHT clear the gap'. Use DEFER ONLY if the agent is clearly making good progress; if it is stuck or not advancing, pick a DIFFERENT control (do NOT defer).
+OUTPUT: PLAN: UP+DEFER clear the path.
+
+----- C4_all -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move. Controls: move LEFT, RIGHT, UP or DOWN, SWORD to attack, ACTION to interact.
+INSTRUCTION: Last 18 control steps: DOWN x15 (held down). Position barely changed: you are walking into a wall or obstacle and not making progress.
+
+Given that, what should the agent do next? Reply with ONLY one line in this exact form: PLAN: [TOKEN] reason, where TOKEN is one or more of LEFT/RIGHT/UP/DOWN/SWORD/ACTION/DEFER joined with '+', and reason is at most 8 words. Example: 'PLAN: JUMP+RIGHT clear the gap'. Use DEFER ONLY if the agent is clearly making good progress; if it is stuck or not advancing, pick a DIFFERENT control (do NOT defer).
+OUTPUT: PLAN: UP+ACTION enter the room+DEFER
+
+################################################################################
+SCENARIO: racing_STRAIGHT   (genre=racing, type=defer, frames=2)
+ACTION-HISTORY DUMP (used by +history/+all): Last 18 control steps: ACCELERATE x18, steering near-centre. The kart is centred on the track on a straight section, making good progress.
+################################################################################
+
+----- C0_base -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: What should the agent do next?
+OUTPUT: Of course.
+ The analysis of the provided frames indicates that the agent is in a critical situation.
+ Here is a logical breakdown of the situation and the recommended action:
+- **Current State:** The agent is driving a kart on a
+
+----- C1_controls -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move. Controls: steer LEFT or RIGHT, ACCELERATE, BRAKE.
+INSTRUCTION: What should the agent do next?
+OUTPUT: Of course.
+ The analysis of the provided frames indicates that the agent is in a critical situation.
+ Here is a more detailed breakdown of the situation and the recommended action.
+ 
+### Situation Analysis
+- **Current State:** The agent
+
+----- C2_history -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: Last 18 control steps: ACCELERATE x18, steering near-centre. The kart is centred on the track on a straight section, making good progress.
+
+Given that, what should the agent do next?
+OUTPUT: ```json
+[
+  {
+    "image_url": "https://placehold.org/600x400/222/FFF?text=Next+Frame",
+    "reasoning": "The
+
+----- C3_format -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move.
+INSTRUCTION: What should the agent do next? Reply with ONLY one line in this exact form: PLAN: [TOKEN] reason, where TOKEN is one or more of LEFT/RIGHT/ACCELERATE/BRAKE/DEFER joined with '+', and reason is at most 8 words. Example: 'PLAN: JUMP+RIGHT clear the gap'. Use DEFER ONLY if the agent is clearly making good progress; if it is stuck or not advancing, pick a DIFFERENT control (do NOT defer).
+OUTPUT: PLAN: ACCELERATE+BRAKE maintain speed and position to reach the finish line.
+
+----- C4_all -----
+SYSTEM: You are the high-level planner for an agent playing a 2D video game. You see the most recent frames (oldest first). Decide the single best next move. Controls: steer LEFT or RIGHT, ACCELERATE, BRAKE.
+INSTRUCTION: Last 18 control steps: ACCELERATE x18, steering near-centre. The kart is centred on the track on a straight section, making good progress.
+
+Given that, what should the agent do next? Reply with ONLY one line in this exact form: PLAN: [TOKEN] reason, where TOKEN is one or more of LEFT/RIGHT/ACCELERATE/BRAKE/DEFER joined with '+', and reason is at most 8 words. Example: 'PLAN: JUMP+RIGHT clear the gap'. Use DEFER ONLY if the agent is clearly making good progress; if it is stuck or not advancing, pick a DIFFERENT control (do NOT defer).
+OUTPUT: PLAN: ACCELERATE+BRAKE maintain speed and position, reason: The kart is on a straight section with good progress, so accelerating to maintain momentum while braking slightly to keep the track center is optimal.
+
