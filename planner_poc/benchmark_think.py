@@ -76,10 +76,13 @@ def _gen_ids(pl, input_ids, attn, pixel_kw, n, sample, temp, seed):
 @torch.no_grad()
 def generate(pl, frames, device, enable_thinking, max_new_tokens, sample=False, temp=0.7, seed=0,
              force_close=True, plan_budget=40):
-    """Generate a plan. In think mode we use BUDGET FORCING (s1-style): let the model reason for up
-    to `max_new_tokens` tokens; if it has not emitted </think> by then, force-close the block with
-    `</think>\n\nPLAN:` and decode the final directive in `plan_budget` more tokens. This bounds the
-    thinking budget (the mechanism RL needs) and guarantees a parseable plan."""
+    """Generate a plan. In think mode we use BUDGET FORCING (the Qwen-team-recommended pattern, of
+    which s1's budget forcing is the academic form): let the model reason for up to `max_new_tokens`
+    tokens; if it has not emitted </think> by then, close the block but FIRST append a transition
+    nudge inside <think> ("Considering the limited time, I have to give the answer based on the
+    thinking so far now.") -- per Qwen this yields a more coherent forced answer than an abrupt cut --
+    then `</think>\n\nPLAN:` and decode the directive in `plan_budget` tokens. This bounds the thinking
+    budget (the mechanism RL needs) and guarantees a parseable plan."""
     imgs = _imgs(frames)
     prompt = _prompt(pl, imgs, enable_thinking)
     inp = pl.processor(text=[prompt], images=imgs, return_tensors="pt").to(device)
@@ -92,11 +95,14 @@ def generate(pl, frames, device, enable_thinking, max_new_tokens, sample=False, 
     close_pos = (gen_ids == THINK_CLOSE).nonzero(as_tuple=True)[0]
     forced = False
     if enable_thinking and force_close and not len(close_pos):
-        # BUDGET FORCING: reconstruct a fresh prompt = (reasoning so far) + forced close marker + PLAN
-        # stub, then re-run a single clean forward. We rebuild the prompt (instead of concatenating
-        # ids) because the VL rope-index recompute breaks on a continued image sequence.
+        # BUDGET FORCING: reconstruct a fresh prompt = (reasoning so far) + the Qwen transition nudge
+        # + forced close marker + PLAN stub, then re-run a single clean forward. We rebuild the prompt
+        # (instead of concatenating ids) because the VL rope-index recompute breaks on a continued
+        # image sequence.
         reasoning = pl.processor.batch_decode(gen_ids[None], skip_special_tokens=True)[0].strip()
-        forced_prompt = prompt + reasoning + "\n</think>\n\nPLAN:"
+        nudge = ("\n\nConsidering the limited time, I have to give the answer based on the thinking "
+                 "so far now.")
+        forced_prompt = prompt + reasoning + nudge + "\n</think>\n\nPLAN:"
         inp = pl.processor(text=[forced_prompt], images=imgs, return_tensors="pt").to(device)
         pixel_kw = {k: v for k, v in inp.items() if k not in ("input_ids", "attention_mask")}
         gen_start = inp["input_ids"].shape[1]
