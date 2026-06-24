@@ -1,0 +1,64 @@
+env=stk  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are driving a kart. What should the agent do next to stay on the track and race well?
+
+# re-plan#00  plan='Steer left to follow the track'
+  exec0: stick=(-0.16,-0.17) buttons=RT/accel,LB,Dn  state={}
+  exec1: stick=(-0.15,-0.16) buttons=RT/accel,Dn,Start  state={}
+# re-plan#01  plan='Steer left to follow the track'
+  exec0: stick=(+0.67,+0.15) buttons=RT/accel  state={}
+  exec1: stick=(+0.76,+0.13) buttons=RT/accel  state={}
+# re-plan#02  plan='Steer right to avoid the obstacle'
+  exec0: stick=(+0.94,+0.43) buttons=B,RT/accel,Dl  state={}
+  exec1: stick=(+0.97,+0.82) buttons=B,RT/accel,Dl  state={}
+# re-plan#03  plan='Steer right to avoid the obstacle'
+  exec0: stick=(+0.94,+0.90) buttons=RT/accel  state={}
+  exec1: stick=(+0.71,+0.93) buttons=RT/accel  state={}
+# re-plan#04  plan='Steer left to follow the track'
+  exec0: stick=(+0.96,+0.82) buttons=RT/accel  state={}
+  exec1: stick=(+0.96,+0.82) buttons=RT/accel  state={}
+# re-plan#05  plan='Steer left to follow the track'
+  exec0: stick=(+0.10,+0.61) buttons=RT/accel  state={}
+  exec1: stick=(+0.08,+0.63) buttons=RT/accel  state={}
+# re-plan#06  plan='Steer left to follow the track'
+  exec0: stick=(-0.04,+0.44) buttons=A/jump,RT/accel,Up  state={}
+  exec1: stick=(-0.06,+0.48) buttons=A/jump,RT/accel,Up  state={}
+# re-plan#07  plan='Steer left to follow the track'
+  exec0: stick=(+0.75,+0.34) buttons=RT/accel  state={}
+  exec1: stick=(+0.87,+0.46) buttons=RT/accel,Start  state={}
+# re-plan#08  plan='Steer left to follow the track'
+  exec0: stick=(+0.43,+1.10) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+0.44,+1.11) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#09  plan='Steer left to follow the track'
+  exec0: stick=(+0.44,+1.13) buttons=RT/accel  state={}
+  exec1: stick=(+0.45,+1.14) buttons=RT/accel  state={}
+# re-plan#10  plan='Steer left to follow the track'
+  exec0: stick=(+0.21,+0.50) buttons=RT/accel  state={}
+  exec1: stick=(+0.34,+0.81) buttons=B,RT/accel  state={}
+# re-plan#11  plan='Steer left to follow the track'
+  exec0: stick=(+0.49,+0.93) buttons=-  state={}
+  exec1: stick=(+0.48,+0.92) buttons=-  state={}
+# re-plan#12  plan='Steer left to follow the track'
+  exec0: stick=(+0.54,+0.98) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.60,+0.97) buttons=B,RT/accel  state={}
+# re-plan#13  plan='Steer left to follow the track'
+  exec0: stick=(+0.41,+0.41) buttons=X/shoot  state={}
+  exec1: stick=(+0.29,+0.17) buttons=A/jump,RT/accel  state={}
+# re-plan#14  plan='Steer left to follow the track'
+  exec0: stick=(+0.08,+0.37) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.06,+0.33) buttons=B,RT/accel  state={}
+# re-plan#15  plan='Steer left to follow the track'
+  exec0: stick=(+0.96,+0.42) buttons=RT/accel,LT/brake  state={}
+  exec1: stick=(+0.98,+0.43) buttons=RT/accel,LT/brake  state={}
+# re-plan#16  plan='Steer left to follow the track'
+  exec0: stick=(+0.65,+0.85) buttons=A/jump,RT/accel  state={}
+  exec1: stick=(+0.63,+0.56) buttons=A/jump,RT/accel  state={}
+# re-plan#17  plan='Steer left to follow the track'
+  exec0: stick=(+0.48,+1.05) buttons=RT/accel  state={}
+  exec1: stick=(+0.47,+1.07) buttons=RT/accel  state={}
+# re-plan#18  plan='Steer left to follow the track'
+  exec0: stick=(+0.54,+0.53) buttons=-  state={}
+  exec1: stick=(+0.54,+0.52) buttons=-  state={}
+# re-plan#19  plan='Maintain current speed and position'
+  exec0: stick=(+0.48,+0.52) buttons=-  state={}
+  exec1: stick=(+0.48,+0.53) buttons=-  state={}

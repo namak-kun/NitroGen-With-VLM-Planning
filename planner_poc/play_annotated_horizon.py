@@ -117,8 +117,12 @@ def main():
                     help="BASE ablation: run the unconditioned base DiT (no System-2 plan / null plan) "
                          "to compare against the plan-conditioned A=2/A=4 runs.")
     ap.add_argument("--boot-wait", type=float, default=None)
+    ap.add_argument("--seed", type=int, default=None, help="seed torch/numpy for a distinct sample")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
+    if args.seed is not None:
+        import torch as _t
+        _t.manual_seed(args.seed); np.random.seed(args.seed)
 
     kw = {}
     if args.boot_wait is not None:
