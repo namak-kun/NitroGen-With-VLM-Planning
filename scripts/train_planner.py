@@ -178,6 +178,10 @@ def main():
                     help="Stage-2 COUNTERFACTUAL (EXP-047): path to {uuid:{buttons,j_left,j_right,dir}} (gen_stage2_index.py); enables transplanting a real (plan,action) from a different direction cluster")
     ap.add_argument("--s2-cf-ratio", type=float, default=0.0,
                     help="Stage-2: fraction of PLAN examples that are counterfactual (frame_i + plan_j/action_j from a DIFFERENT dir cluster; target follows the PLAN). Teaches the plan to OVERRIDE the frame -> low-guidance counterfactual control (EXP-047).")
+    ap.add_argument("--mm-button-cf-lookup", default=None,
+                    help="Stage-2 BUTTON override (broaden Job-1 beyond directions): path to torch-saved button cf cross-pair hidden + override actions (cache_mm_button_cf.py). With --s2-button-cf-ratio>0, a fraction of PLAN examples become BUTTON counterfactuals (terse 'jump'/'accelerate'/... -> target presses that button).")
+    ap.add_argument("--s2-button-cf-ratio", type=float, default=0.0,
+                    help="Stage-2: fraction of PLAN examples that are BUTTON counterfactuals (mutually exclusive with the directional --s2-cf-ratio roll).")
     ap.add_argument("--plan-adaln", action="store_true",
                     help="EXP-048: add a zero-init plan-adaLN path (plan offset into the DiT timestep embedding) ON TOP of the K cross-attention plan tokens, giving the plan global FiLM authority over the DiT. Identity at init + null-masked -> base-exact.")
     ap.add_argument("--init-from", default=None,
@@ -328,6 +332,8 @@ def main():
         gameplay_only=args.gameplay_only,
         s2_index=args.s2_index,
         s2_cf_ratio=args.s2_cf_ratio,
+        mm_button_cf_lookup=args.mm_button_cf_lookup,
+        s2_button_cf_ratio=args.s2_button_cf_ratio,
         group_weights=group_weights,
     )
     ds = NitrogenPlanDataset(ds_cfg, frame_provider, img_proc)

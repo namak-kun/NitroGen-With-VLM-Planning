@@ -42,7 +42,10 @@ def _plan_intent(plan_name: str) -> str:
 
 def _build_plan_labels():
     from .plans import PLANS
-    intents = sorted({_plan_intent(p.name) for p in PLANS}) + ["null"]
+    # btn_* classes let outcome-contrastive separate BUTTON-override plan tokens (cache_mm_button_cf.py)
+    # the same way dir_* separates directional ones (broadening Job-1 steering beyond directions).
+    btn = [f"btn_{n}" for n in ("accelerate", "jump", "attack", "brake", "dash")]
+    intents = sorted({_plan_intent(p.name) for p in PLANS} | set(btn)) + ["null"]
     return intents, {n: i for i, n in enumerate(intents)}
 
 
@@ -155,6 +158,8 @@ class PlanDatasetConfig:
     mm_cf_lookup: str | None = None  # Stage-2 COUNTERFACTUAL + frame-conditioned (EXP-051b): path to torch-saved {uuid: {h,mask (=encode_multimodal(frame_i, plan_j)), buttons,j_left,j_right (=action_j), cf_dir}} (cache_mm_cf.py). When set + s2_cf_ratio>0, cf examples use THIS frame-conditioned cross-pair hidden + override target instead of the s2_index text path. Teacher-distillation is disabled on cf examples (the factual teacher token doesn't match the override target).
     s2_index: str | None = None      # Stage-2 COUNTERFACTUAL (EXP-047): path to {uuid: {buttons,j_left,j_right,dir}} (gen_stage2_index.py); enables transplanting a real (plan,action) from a different direction cluster
     s2_cf_ratio: float = 0.0         # Stage-2: fraction of PLAN examples that are counterfactual (frame_i + plan_j/action_j from a DIFFERENT dir cluster; target follows the PLAN). 0 disables. Teaches the plan to OVERRIDE the frame -> low-guidance counterfactual control.
+    mm_button_cf_lookup: str | None = None  # Stage-2 BUTTON override (broaden Job-1 beyond directions): path to torch-saved {uuid: {h,mask (=encode_multimodal(frame_i, button_plan_j)), buttons,j_left,j_right (=action_j), cf_button,cf_name}} (cache_mm_button_cf.py). When set + s2_button_cf_ratio>0, a fraction of PLAN examples become BUTTON counterfactuals (terse plan "jump"/"accelerate"/... -> target presses that button), teaching the plan to command actions, not just stick directions.
+    s2_button_cf_ratio: float = 0.0  # Stage-2: fraction of PLAN examples that are BUTTON counterfactuals (mutually exclusive with the directional s2_cf_ratio roll). 0 disables.
     seed: int = 0
 
 
@@ -195,6 +200,13 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
         self.mm_cf = None
         if config.mm_cf_lookup and os.path.exists(config.mm_cf_lookup):
             self.mm_cf = torch.load(config.mm_cf_lookup, map_location="cpu", weights_only=False)
+        # Stage-2 BUTTON override (broaden Job-1 beyond directions): precomputed cross-pair hidden
+        # encode_multimodal(frame_i, terse_button_plan) + override action_j that presses the button,
+        # keyed by uuid (cache_mm_button_cf.py).
+        self.mm_button_cf = None
+        if config.mm_button_cf_lookup and os.path.exists(config.mm_button_cf_lookup):
+            self.mm_button_cf = torch.load(config.mm_button_cf_lookup, map_location="cpu",
+                                           weights_only=False)
         # Stage-2 COUNTERFACTUAL (EXP-047): chunk index {uuid: {buttons,j_left,j_right,dir}} +
         # per-direction uuid pools, for transplanting a real (plan, action) from a DIFFERENT
         # direction cluster onto a frame (target follows the PLAN -> override training).
@@ -373,13 +385,30 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
                 # Counterfactual transplant is single-chunk motor override -> only the act-now
                 # block (cursor 0) carries it; look-ahead blocks (a>0) stay purely factual.
                 cf_allowed = (cursor == 0)
-                mm_cf_ok = (cf_allowed and self.mm_cf is not None and uuid in self.mm_cf
+                # BUTTON override (broaden Job-1 beyond directions): roll FIRST and make it mutually
+                # exclusive with the directional cf roll -> a terse "jump"/"accelerate"/... plan whose
+                # target presses that button, teaching the plan to command ACTIONS not just sticks.
+                cf_button_name = None
+                btn_cf_ok = (cf_allowed and self.mm_button_cf is not None and uuid in self.mm_button_cf
+                             and self.cfg.s2_button_cf_ratio > 0
+                             and self.rng.random() < self.cfg.s2_button_cf_ratio)
+                mm_cf_ok = (not btn_cf_ok and cf_allowed and self.mm_cf is not None and uuid in self.mm_cf
                             and self.cfg.s2_cf_ratio > 0 and self.rng.random() < self.cfg.s2_cf_ratio)
-                cf = mm_cf_ok or (cf_allowed and self.mm_cf is None and self.s2_index is not None
-                                  and self.s2_dir_pools is not None and self.cfg.s2_cf_ratio > 0
-                                  and self.rng.random() < self.cfg.s2_cf_ratio)
+                cf = btn_cf_ok or mm_cf_ok or (
+                    not btn_cf_ok and cf_allowed and self.mm_cf is None and self.s2_index is not None
+                    and self.s2_dir_pools is not None and self.cfg.s2_cf_ratio > 0
+                    and self.rng.random() < self.cfg.s2_cf_ratio)
                 cf_dir = None
-                if mm_cf_ok:
+                if btn_cf_ok:
+                    ce = self.mm_button_cf[uuid]
+                    cf_button_name = ce.get("cf_name")
+                    plan_name = "vlm_btn_cf"
+                    plan_text = ce.get("plan", "")
+                    target = {"buttons": np.asarray(ce["buttons"]),
+                              "j_left": np.asarray(ce["j_left"]),
+                              "j_right": np.asarray(ce["j_right"])}
+                    cf_hidden = ce
+                elif mm_cf_ok:
                     ce = self.mm_cf[uuid]
                     cf_dir = ce.get("cf_dir")
                     plan_name = "vlm_cf_mm"
@@ -421,11 +450,13 @@ class NitrogenPlanDataset(torch.utils.data.Dataset):
                 # chunk the plan describes (the TARGET) so contrastive de-collinearizes plan
                 # tokens ALONG the action axis (EXP-042). For counterfactual, that is cf_dir.
                 if self.cfg.s2_outcome_contrastive:
-                    if cf and cf_dir is not None:
-                        dd = cf_dir
+                    if cf and cf_button_name is not None:
+                        key = f"btn_{cf_button_name}"           # button-override class
+                    elif cf and cf_dir is not None:
+                        key = f"dir_{cf_dir}"
                     else:
                         dd = chunk_dominant_dir(real_chunk) if real_chunk is not None else None
-                    key = f"dir_{dd}" if dd is not None else "idle"
+                        key = f"dir_{dd}" if dd is not None else "idle"
                     plan_label_override = _PLAN_LABEL_TO_ID.get(key, _PLAN_LABEL_TO_ID.get("idle", 0))
                 else:
                     plan_label_override = _PLAN_LABEL_TO_ID.get("idle", 0)  # single class; contrastive off
