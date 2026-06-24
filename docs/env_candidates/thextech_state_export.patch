@@ -1,5 +1,5 @@
 diff --git a/src/graphics/gfx_update.cpp b/src/graphics/gfx_update.cpp
-index b035018..9fa40a9 100644
+index b035018..92b074e 100644
 --- a/src/graphics/gfx_update.cpp
 +++ b/src/graphics/gfx_update.cpp
 @@ -24,6 +24,9 @@
@@ -34,11 +34,11 @@ index b035018..9fa40a9 100644
 +            const Player_t &pl = Player[1];
 +            std::rewind(s_ngState);
 +            int n = std::fprintf(s_ngState,
-+                "%.2f %.2f %.3f %.3f %d %d %d %d %d %d\n",
++                "%.2f %.2f %.3f %.3f %d %d %d %d %d %d %d %d\n",
 +                (double)pl.Location.X, (double)pl.Location.Y,
 +                (double)pl.Location.SpeedX, (double)pl.Location.SpeedY,
 +                (int)Lives, (int)pl.Dead, (int)GameMenu, (int)LevelSelect, (int)numPlayers,
-+                (int)GamePaused);
++                (int)GamePaused, (int)EndLevel, (int)LevelBeatCode);
 +            std::fflush(s_ngState);
 +            if(n > 0)
 +                (void)!ftruncate(fileno(s_ngState), (off_t)n);

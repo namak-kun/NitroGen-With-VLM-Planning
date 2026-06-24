@@ -64,10 +64,15 @@ class TheXTechEnv(ProcGameEnv):
             x, y, sx, sy = float(p[0]), float(p[1]), float(p[2]), float(p[3])
             lives, dead, game_menu, level_select, nplayers = (int(p[4]), int(p[5]), int(p[6]),
                                                               int(p[7]), int(p[8]))
-            paused = int(p[9]) if len(p) > 9 else 0   # GamePaused (PauseCode; !=0 => pause/test menu)
+            paused = int(p[9]) if len(p) > 9 else 0    # GamePaused (!=0 => pause/test menu)
+            end_level = int(p[10]) if len(p) > 10 else 0   # EndLevel: the level-end transition is running
+            beat_code = int(p[11]) if len(p) > 11 else 0   # LevelBeatCode: POSITIVE = beaten (3=offscreen,
+            # 7=star, 8=goal-tape, 9=flag, ...); 0=none; NEGATIVE (-1 quit/-2 restart/-3 setup) = a menu
+            # selection, NOT a win.
             return {"x": round(x, 1), "y": round(y, 1), "vx": round(sx, 2), "vy": round(sy, 2),
                     "lives": lives, "dead": dead,
                     "in_menu": int(bool(game_menu or level_select or paused)),
+                    "won": int(end_level == 1 and beat_code > 0), "beat_code": beat_code,
                     "nplayers": nplayers}
         except Exception:
             return {}
