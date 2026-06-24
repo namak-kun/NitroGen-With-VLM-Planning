@@ -1,0 +1,64 @@
+env=trigger_rally  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are driving a rally car. What should the agent do next to stay on the road?
+
+# re-plan#00  plan='Accelerate to maintain speed.'  state={}
+  exec0: stick=(+0.60,+1.03) buttons=-
+  exec1: stick=(+0.68,+0.96) buttons=A/jump
+# re-plan#01  plan='Accelerate to maintain speed'  state={}
+  exec0: stick=(+0.98,+0.34) buttons=X/shoot,Dr
+  exec1: stick=(+0.95,+0.28) buttons=X/shoot,Dr
+# re-plan#02  plan='Accelerate to maintain speed'  state={}
+  exec0: stick=(+0.99,+0.44) buttons=-
+  exec1: stick=(+1.00,+0.43) buttons=-
+# re-plan#03  plan='Steer right to avoid the grass'  state={}
+  exec0: stick=(+0.13,+0.62) buttons=-
+  exec1: stick=(+0.13,+0.63) buttons=-
+# re-plan#04  plan='Steer left to avoid the grass'  state={}
+  exec0: stick=(+0.13,+0.75) buttons=RT/accel,Start
+  exec1: stick=(+0.14,+0.77) buttons=RT/accel,Start
+# re-plan#05  plan='Steer left to avoid the obstacle.'  state={}
+  exec0: stick=(-0.08,+0.36) buttons=A/jump,B,RT/accel
+  exec1: stick=(-0.08,+0.35) buttons=A/jump,B,RT/accel
+# re-plan#06  plan='Steer left to avoid the obstacle.'  state={}
+  exec0: stick=(+0.58,+1.06) buttons=A/jump,B
+  exec1: stick=(+0.58,+1.09) buttons=A/jump,B
+# re-plan#07  plan='Steer left to avoid the obstacle.'  state={}
+  exec0: stick=(+0.87,+0.92) buttons=B,Dn
+  exec1: stick=(+0.84,+0.93) buttons=X/shoot,B,Dn
+# re-plan#08  plan='Steer left to avoid the grass'  state={}
+  exec0: stick=(+0.51,+0.52) buttons=A/jump,RT/accel
+  exec1: stick=(+0.51,+0.51) buttons=A/jump,RT/accel
+# re-plan#09  plan='Steer left to avoid the grass'  state={}
+  exec0: stick=(+0.44,+0.99) buttons=RT/accel
+  exec1: stick=(+0.40,+0.99) buttons=RT/accel
+# re-plan#10  plan='Steer left to avoid tall grass.'  state={}
+  exec0: stick=(+0.52,+0.52) buttons=RT/accel
+  exec1: stick=(+0.51,+0.52) buttons=RT/accel
+# re-plan#11  plan='Steer left to avoid tall grass.'  state={}
+  exec0: stick=(+0.34,+1.00) buttons=A/jump,B,Y,RT/accel,RB,Start
+  exec1: stick=(+0.32,+0.99) buttons=A/jump,B,Y,RT/accel,RB,Dr,Start
+# re-plan#12  plan='Steer left to avoid tall grass.'  state={}
+  exec0: stick=(+0.35,+0.50) buttons=A/jump,RT/accel
+  exec1: stick=(+0.34,+0.51) buttons=A/jump,RT/accel
+# re-plan#13  plan='Steer left to avoid tall grass.'  state={}
+  exec0: stick=(+0.52,+0.52) buttons=-
+  exec1: stick=(+0.51,+0.53) buttons=-
+# re-plan#14  plan='Steer right to avoid the tall grass.'  state={}
+  exec0: stick=(+0.47,+0.54) buttons=RT/accel
+  exec1: stick=(+0.48,+0.54) buttons=RT/accel
+# re-plan#15  plan='Steer left to avoid tall grass.'  state={}
+  exec0: stick=(+0.50,+1.20) buttons=Y,RT/accel
+  exec1: stick=(+0.47,+1.22) buttons=Y,RT/accel
+# re-plan#16  plan='Steer left to avoid the tall grass.'  state={}
+  exec0: stick=(+0.10,+0.24) buttons=B,RT/accel,LT/brake
+  exec1: stick=(+0.12,+0.22) buttons=B,RT/accel,LT/brake
+# re-plan#17  plan='Steer left to avoid tall grass.'  state={}
+  exec0: stick=(+0.52,+1.00) buttons=RT/accel
+  exec1: stick=(+0.54,+0.87) buttons=RT/accel
+# re-plan#18  plan='Steer left to avoid tall grass.'  state={}
+  exec0: stick=(+0.49,+1.02) buttons=A/jump,RT/accel
+  exec1: stick=(+0.48,+1.04) buttons=A/jump,RT/accel
+# re-plan#19  plan='Steer left to avoid the tall grass.'  state={}
+  exec0: stick=(+0.38,+0.98) buttons=A/jump,B,RT/accel,Start
+  exec1: stick=(+0.33,+0.98) buttons=A/jump,B,RT/accel,Start

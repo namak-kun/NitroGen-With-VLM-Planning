@@ -1,0 +1,64 @@
+env=thextech  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are a platformer hero. What should the agent do next to advance and avoid hazards?
+
+# re-plan#00  plan='Jump to the right platform.'  state={}
+  exec0: stick=(+1.20,-0.14) buttons=Y,RT/accel
+  exec1: stick=(+1.18,-0.22) buttons=Y,RT/accel
+# re-plan#01  plan='Jump to the right platform.'  state={}
+  exec0: stick=(+1.32,-0.29) buttons=RT/accel,LB,Start
+  exec1: stick=(+1.55,-0.56) buttons=B,RT/accel,LB,Start
+# re-plan#02  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.74,+0.00) buttons=RT/accel
+  exec1: stick=(+0.58,-0.04) buttons=RT/accel
+# re-plan#03  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.79,-0.02) buttons=X/shoot,B
+  exec1: stick=(+0.77,-0.04) buttons=X/shoot,B
+# re-plan#04  plan='Press Continue to resume gameplay.'  state={}
+  exec0: stick=(+0.66,+1.00) buttons=RT/accel,Dn
+  exec1: stick=(+0.62,+0.99) buttons=-
+# re-plan#05  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.50,-0.02) buttons=RT/accel
+  exec1: stick=(+0.51,+0.02) buttons=RT/accel
+# re-plan#06  plan='Press Continue to resume gameplay.'  state={}
+  exec0: stick=(+0.35,+1.00) buttons=X/shoot,RT/accel
+  exec1: stick=(+0.33,+1.03) buttons=X/shoot,B,RT/accel
+# re-plan#07  plan='Press Continue'  state={}
+  exec0: stick=(-0.21,+1.39) buttons=-
+  exec1: stick=(-0.21,+1.67) buttons=-
+# re-plan#08  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.76,+0.00) buttons=-
+  exec1: stick=(+0.78,+0.02) buttons=-
+# re-plan#09  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.98,+0.73) buttons=RT/accel
+  exec1: stick=(+0.99,+0.75) buttons=RT/accel
+# re-plan#10  plan='Press Continue'  state={}
+  exec0: stick=(+0.92,+0.11) buttons=A/jump,RT/accel
+  exec1: stick=(+0.75,+0.04) buttons=A/jump,X/shoot,RT/accel
+# re-plan#11  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.83,+0.13) buttons=X/shoot
+  exec1: stick=(+0.88,+0.17) buttons=X/shoot,LB
+# re-plan#12  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.56,+0.99) buttons=X/shoot,B,RT/accel,Start
+  exec1: stick=(+0.71,+0.92) buttons=B,RT/accel,Start
+# re-plan#13  plan='Press A to select the green character.'  state={}
+  exec0: stick=(+0.19,+0.93) buttons=RT/accel
+  exec1: stick=(+0.42,+0.99) buttons=RT/accel
+# re-plan#14  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.44,-0.03) buttons=A/jump
+  exec1: stick=(+0.34,+0.04) buttons=-
+# re-plan#15  plan='Press A to select the green character.'  state={}
+  exec0: stick=(+0.50,+0.91) buttons=RT/accel
+  exec1: stick=(+0.42,+0.94) buttons=RT/accel
+# re-plan#16  plan='Press Continue to resume gameplay.'  state={}
+  exec0: stick=(+0.66,-0.07) buttons=B,RT/accel,LB
+  exec1: stick=(+0.71,-0.10) buttons=X/shoot,B,RT/accel,LB
+# re-plan#17  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.98,+0.46) buttons=X/shoot,RT/accel
+  exec1: stick=(+0.92,+0.70) buttons=X/shoot,RT/accel
+# re-plan#18  plan='Press Continue'  state={}
+  exec0: stick=(+1.02,+0.31) buttons=A/jump,X/shoot,B,RT/accel
+  exec1: stick=(+1.03,+0.28) buttons=A/jump,X/shoot,B,RT/accel
+# re-plan#19  plan='Jump to the next platform.'  state={}
+  exec0: stick=(+0.72,+0.01) buttons=X/shoot,B,RT/accel,LB
+  exec1: stick=(+0.67,-0.05) buttons=X/shoot,B,RT/accel,LB
