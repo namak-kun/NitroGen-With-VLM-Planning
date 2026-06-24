@@ -42,6 +42,12 @@ OBJECTIVES = {
     "thextech": "You are a platformer hero. What should the agent do next to advance and avoid hazards?",
     "castlevania_godot": "You are a platformer hero with a whip. What should the agent do next?",
     "solarus_zelda": "You are a top-down adventurer. What should the agent do next to explore?",
+    "chromium_bsu": "You are piloting a ship in a vertical shoot-em-up. What should the agent do next "
+                    "to dodge enemies and shoot?",
+    "castlevania_godot": "You are a whip-wielding hero in a side-scrolling action game. What next?",
+    "blobwars": "You are a run-and-gun hero. What should the agent do next to advance and shoot enemies?",
+    "witchblast": "You are in a top-down dungeon shooter. What should the agent do next to fight and "
+                  "move through the room?",
 }
 
 # buttons to ZERO before applying, per env, so a spurious press can't strand the agent on a

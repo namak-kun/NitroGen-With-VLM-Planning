@@ -68,6 +68,15 @@ def make_env_factory(name, **kw):
         if name == "solarus_zelda":
             from nitrogen.eval.envs.solarus_zelda import SolarusZeldaEnv
             return SolarusZeldaEnv(boot_wait=kw.get("boot_wait", 14.0), freeze_during_inference=True)
+        if name == "chromium_bsu":
+            from nitrogen.eval.envs.chromium_bsu import ChromiumBSUEnv
+            return ChromiumBSUEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
+        if name == "blobwars":
+            from nitrogen.eval.envs.blobwars import BlobwarsEnv
+            return BlobwarsEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
+        if name == "witchblast":
+            from nitrogen.eval.envs.witchblast import WitchBlastEnv
+            return WitchBlastEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
         raise ValueError(f"unknown env {name}")
     return factory
 
