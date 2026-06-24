@@ -31,10 +31,18 @@ On TheXTech the DiT has a weak prior, so it emits diffuse, high-pressure actions
 presses **A/jump,B,Y,RT,RB,Dl,Dr simultaneously** (7 buttons at once). Racing games stay cleaner but
 still show spurious presses (X/shoot, B, Y, and occasionally **Start** → pause-menu risk).
 
-**D. System-2 hallucination on unfamiliar scenes.**
-On TheXTech the VLM planner invents menu actions — re-plan#03/04 plan = **"Select Restart Level" /
-"Press Restart Level"** — i.e. it concludes the agent should give up / restart rather than play. A
-grounding failure: the planner is not reliably reading the platformer game state.
+**D. Menu-stranding on TheXTech (verified by ground-truth state — NOT a death).**
+TheXTech is open source, so we instrumented it to export player state each frame
+(`docs/env_candidates/thextech_state_export.patch`). The state tracking **corrected an earlier
+pixel-only misread**: across runs the hero **never dies** — `lives=3, dead=0` the whole time. What
+actually happens: the agent either spuriously presses **Start** (which the env maps to Enter = pause)
+or **runs off the right edge** of the short test level (x→800), which opens TheXTech's test-pause menu
+("Restart Level / Quit Testing"). Position then freezes (paused) and the agent is **stranded** — it has
+no menu-navigation capability, so it flails (saturated sticks, random buttons) and the VLM, correctly
+reading the menu, emits "Press Restart Level" but can't operate it. Masking the menu button keeps the
+agent in gameplay (it then crosses the lava to the right platforms, still `lives=3`). Lesson: the
+"failure" here is harness/menu-stranding + the action policy having no menu affordance — not a game
+death. Ground-truth state is what made this distinguishable from pixels.
 
 **E. Stick saturation.**
 Raw stick output is unbounded; under strong priors it exceeds [0,1] (TheXTech stick **+1.48**; STK

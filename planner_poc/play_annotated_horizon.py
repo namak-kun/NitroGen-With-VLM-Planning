@@ -44,6 +44,11 @@ OBJECTIVES = {
     "solarus_zelda": "You are a top-down adventurer. What should the agent do next to explore?",
 }
 
+# buttons to ZERO before applying, per env, so a spurious press can't strand the agent on a
+# menu (e.g. TheXTech maps START->Enter = pause). Mirrors the Cave Story harness's GAMEPLAY_MASK:
+# this keeps the agent IN GAMEPLAY so we observe real platforming failures (deaths) not pause-strands.
+MENU_MASK = {"thextech": (19,), "sdlpop": (19,), "castlevania_godot": (19,)}  # 19 = START
+
 
 def font(sz):
     for p in ["/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
@@ -62,12 +67,12 @@ PLAN_SYS = ("You are the high-level planner for an agent playing a 2D video game
 
 
 def annotate(frame, row, cycle, row_i, A, plan, env_name, state):
-    """Draw the executed action (stick + buttons) + the plan that drove it onto the frame."""
+    """Draw the executed action (stick + buttons) + the plan + ground-truth state onto the frame."""
     im = Image.fromarray(np.asarray(frame)).convert("RGB")
     scale = 2 if im.width < 480 else 1
     if scale > 1:
         im = im.resize((im.width * scale, im.height * scale), Image.NEAREST)
-    bar_h = 100
+    bar_h = 120
     canvas = Image.new("RGB", (max(im.width, 360), im.height + bar_h), (12, 12, 12))
     canvas.paste(im, (0, 0))
     dr = ImageDraw.Draw(canvas)
@@ -81,8 +86,15 @@ def annotate(frame, row, cycle, row_i, A, plan, env_name, state):
     dr.text((8, y0 + 24), f"stick x={lx:+.2f}[{hx}]  y={ly:+.2f}[{vy}]", fill=(120, 220, 255), font=F)
     bcol = (255, 120, 120) if btns else (140, 140, 140)
     dr.text((8, y0 + 44), "buttons: " + (" ".join(btns) if btns else "(none)"), fill=bcol, font=F)
-    extra = ("  " + " ".join(f"{k}={v}" for k, v in list(state.items())[:3])) if state else ""
-    dr.text((8, y0 + 64), f"plan: '{plan[:48]}'{extra}", fill=(180, 255, 180), font=F)
+    dr.text((8, y0 + 64), f"plan: '{plan[:52]}'", fill=(180, 255, 180), font=F)
+    # ground-truth game state (from the source-patched export): position, lives, death, menu.
+    if state:
+        dead = bool(state.get("dead")); menu = bool(state.get("in_menu"))
+        scol = (255, 90, 90) if (dead or menu) else (200, 200, 200)
+        flags = (" DEAD" if dead else "") + (" IN-MENU" if menu else "")
+        pos = (f"pos=({state.get('x','?')},{state.get('y','?')}) v=({state.get('vx','?')},"
+               f"{state.get('vy','?')})  lives={state.get('lives','?')}")
+        dr.text((8, y0 + 84), f"state: {pos}{flags}", fill=scol, font=F)
     # mini stick gauge (top-right), centered on 0.5-neutral
     cx, cy, r = canvas.width - 52, 50, 38
     dr.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(90, 90, 90))
@@ -130,6 +142,8 @@ def main():
     fi = 0
     cycle = 0
     executed = 0
+    died = False
+    entered_menu = False
     try:
         sc = Scenario(tag, plan=args.plan or "", objective=objective,
                       max_steps=args.nrows, cfg_scale=args.cfg)
@@ -143,20 +157,23 @@ def main():
                 plan = pol.pl.generate_plan([cur], pol.device, instruction=objective,
                                             system=PLAN_SYS) or "advance"
             chunk = pol._sample_chunk(cur, plan, args.cfg, plan_frames=[cur])  # (H, 25)
-            rows = env.apply_chunk_capture(chunk[:A], per_row)                 # A (row, frame) pairs
-            st = obs.state if isinstance(obs.state, dict) else {}
-            try:
-                st = {**st, **env.read_state()}
-            except Exception:
-                pass
-            st = {k: v for k, v in st.items() if k not in ("step",) and v is not None}
-            log.append(f"# re-plan#{cycle:02d}  plan='{plan}'  state={st}")
-            for ri, (row, frame) in enumerate(rows):
+            for b in MENU_MASK.get(args.env, ()):     # keep the agent in gameplay (no pause-strand)
+                chunk[:, b] = 0.0
+            rows = env.apply_chunk_capture(chunk[:A], per_row)                 # A (row, frame, state)
+            log.append(f"# re-plan#{cycle:02d}  plan='{plan}'")
+            for ri, (row, frame, st) in enumerate(rows):
+                st = {k: v for k, v in (st or {}).items() if v is not None}
                 img = annotate(frame, row, cycle, ri, A, plan, args.env, st)
                 Image.fromarray(img).save(f"{frame_dir}/f{fi:04d}.png"); fi += 1
                 lx, ly = float(row[JLX]), float(row[JLY])
                 btns = [lbl for idx, lbl in _BTN if float(row[idx]) > 0.5]
-                log.append(f"  exec{ri}: stick=({lx:+.2f},{ly:+.2f}) buttons={','.join(btns) or '-'}")
+                ev = ""
+                if st.get("dead") and not died:
+                    ev = "   <<< DEATH"; died = True
+                elif st.get("in_menu") and not entered_menu:
+                    ev = "   <<< ENTERED MENU (stranded)"; entered_menu = True
+                log.append(f"  exec{ri}: stick=({lx:+.2f},{ly:+.2f}) buttons={','.join(btns) or '-'}"
+                           f"  state={st or '{}'}{ev}")
             cur = rows[-1][1]
             executed += A
             cycle += 1

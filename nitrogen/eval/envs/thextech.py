@@ -1,4 +1,12 @@
-"""TheXTech (Adventures of Demo asset pack) as a ProcGameEnv keyboard platformer."""
+"""TheXTech (Adventures of Demo asset pack) as a ProcGameEnv keyboard platformer.
+
+Ground-truth STATE TRACKING: TheXTech is open source, so we patched src/graphics/gfx_update.cpp
+(UpdateGraphics) to export Player[1] position/velocity, Lives, Dead, GameMenu/LevelSelect/GamePaused
+to the file in env var THEXTECH_STATE_EXPORT every frame. read_state() reads it, so the eval harness
+annotates VERIFIED game state (position, lives, death, menu) instead of guessing from pixels. The
+patch is saved at docs/env_candidates/thextech_state_export.patch; apply it to the TheXTech source and
+`make thextech` to rebuild the instrumented binary.
+"""
 from __future__ import annotations
 
 import numpy as np
@@ -24,6 +32,10 @@ class TheXTechEnv(ProcGameEnv):
         self.asset_dir = asset_dir
         self.user_dir = user_dir
         self.level = level
+        # ground-truth state export (THEXTECH_STATE_EXPORT, written each frame by the patched
+        # UpdateGraphics in src/graphics/gfx_update.cpp): X Y SpeedX SpeedY Lives Dead GameMenu
+        # LevelSelect numPlayers.
+        self._state_path = f"/tmp/thextech_state_{id(self)}.txt"
         super().__init__(width=width, height=height, boot_wait=boot_wait, **kw)
 
     def launch_cmd(self):
@@ -33,6 +45,7 @@ class TheXTechEnv(ProcGameEnv):
             "SDL_AUDIODRIVER=dummy",
             "SDL_VIDEODRIVER=x11",
             "LD_LIBRARY_PATH=/tmp/TheXTech/build/output/lib",
+            f"THEXTECH_STATE_EXPORT={self._state_path}",
             self.binary,
             "-s",                 # no sound
             "-p",                 # keep running if focus changes
@@ -41,6 +54,23 @@ class TheXTechEnv(ProcGameEnv):
             "-c", self.asset_dir,
             "-l", level_path,
         ]
+
+    def read_state(self) -> dict:
+        """Ground-truth player state from the source-patched export file (y increases DOWNWARD).
+        in_menu/dead let the harness label deaths + menu-stranding without guessing from pixels."""
+        try:
+            with open(self._state_path) as f:
+                p = f.read().split()
+            x, y, sx, sy = float(p[0]), float(p[1]), float(p[2]), float(p[3])
+            lives, dead, game_menu, level_select, nplayers = (int(p[4]), int(p[5]), int(p[6]),
+                                                              int(p[7]), int(p[8]))
+            paused = int(p[9]) if len(p) > 9 else 0   # GamePaused (PauseCode; !=0 => pause/test menu)
+            return {"x": round(x, 1), "y": round(y, 1), "vx": round(sx, 2), "vy": round(sy, 2),
+                    "lives": lives, "dead": dead,
+                    "in_menu": int(bool(game_menu or level_select or paused)),
+                    "nplayers": nplayers}
+        except Exception:
+            return {}
 
     @staticmethod
     def _axis(values: np.ndarray, raw_sticks: bool) -> float:

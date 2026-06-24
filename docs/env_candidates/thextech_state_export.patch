@@ -1,0 +1,50 @@
+diff --git a/src/graphics/gfx_update.cpp b/src/graphics/gfx_update.cpp
+index b035018..9fa40a9 100644
+--- a/src/graphics/gfx_update.cpp
++++ b/src/graphics/gfx_update.cpp
+@@ -24,6 +24,9 @@
+ #include <sorting/pdqsort.h>
+ #include <array>
+ #include <bitset>
++#include <cstdio>
++#include <cstdlib>
++#include <unistd.h>
+ 
+ #include "../globals.h"
+ #include "../frame_timer.h"
+@@ -1682,6 +1685,35 @@ void UpdateGraphics(bool skipRepaint)
+ {
+ //    On Error Resume Next
+ 
++    // ---- NitroGen per-frame STATE EXPORT (env THEXTECH_STATE_EXPORT=<path>) -----------
++    // Writes the latest player state so the eval harness can annotate ground-truth game
++    // state (position, velocity, lives, death, menu) instead of guessing from pixels.
++    {
++        static FILE *s_ngState = nullptr;
++        static bool s_ngInit = false;
++        if(!s_ngInit)
++        {
++            s_ngInit = true;
++            const char *p = std::getenv("THEXTECH_STATE_EXPORT");
++            if(p && *p)
++                s_ngState = std::fopen(p, "w+");
++        }
++        if(s_ngState)
++        {
++            const Player_t &pl = Player[1];
++            std::rewind(s_ngState);
++            int n = std::fprintf(s_ngState,
++                "%.2f %.2f %.3f %.3f %d %d %d %d %d %d\n",
++                (double)pl.Location.X, (double)pl.Location.Y,
++                (double)pl.Location.SpeedX, (double)pl.Location.SpeedY,
++                (int)Lives, (int)pl.Dead, (int)GameMenu, (int)LevelSelect, (int)numPlayers,
++                (int)GamePaused);
++            std::fflush(s_ngState);
++            if(n > 0)
++                (void)!ftruncate(fileno(s_ngState), (off_t)n);
++        }
++    }
++
+     if(!GameIsActive)
+         return;
+ 

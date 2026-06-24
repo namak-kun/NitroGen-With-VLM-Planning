@@ -208,11 +208,12 @@ class ProcGameEnv(GameEnv):
 
     # ---- GameEnv interface -------------------------------------------------------------
     def apply_chunk_capture(self, action_chunk: np.ndarray, per_row: float | None = None) -> list:
-        """Execute an action chunk ROW-BY-ROW, capturing a frame after each row -> list of
-        (row, frame) pairs. Generalises CaveStoryEnv.apply_chunk_capture to any ProcGameEnv so the
-        annotated/action-horizon rollout can see the game respond to EACH action. The world is
-        unpaused only for the duration of these rows (speedhack re-freezes after), so inference
-        between calls happens on a frozen world. per_row defaults to chunk_seconds/len(rows)."""
+        """Execute an action chunk ROW-BY-ROW, capturing (row, frame, state) after each row, where
+        state = read_state() ground truth (empty {} if the env exports none). Generalises
+        CaveStoryEnv.apply_chunk_capture to any ProcGameEnv so the annotated/action-horizon rollout
+        can see the game respond to EACH action AND log per-action ground-truth state (position,
+        lives, death). The world is unpaused only for the duration of these rows (speedhack
+        re-freezes after). per_row defaults to chunk_seconds/len(rows)."""
         a = np.asarray(action_chunk, dtype=np.float32)
         if a.ndim == 1:
             a = a[None]
@@ -228,7 +229,12 @@ class ProcGameEnv(GameEnv):
             t = time.perf_counter()
             while time.perf_counter() - t < per:
                 pass
-            out.append((row, self._grab()))
+            frame = self._grab()
+            try:
+                state = self.read_state()
+            except Exception:
+                state = {}
+            out.append((row, frame, state))
         if self.control == "keyboard":
             self._set_keys(set())
         elif self._pad is not None:
