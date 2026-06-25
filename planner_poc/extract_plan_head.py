@@ -25,6 +25,10 @@ def _trainable(sd: dict) -> dict:
 
 
 def main():
+    if len(sys.argv) != 3 or sys.argv[1] in ("-h", "--help"):
+        print(__doc__)
+        print("Usage: extract_plan_head.py <full_checkpoint.pt> <slim_out.pt>")
+        sys.exit(0 if (len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help")) else 2)
     src, dst = sys.argv[1], sys.argv[2]
     ck = torch.load(src, map_location="cpu", weights_only=False)
     model = ck.get("model", {})

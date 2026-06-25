@@ -121,9 +121,33 @@ for the hard parts (temporal/cross-chunk plan influence, system-1/2 bridging).
   coarse cadence, low-level executes. Theoretical backing for the K×A "one plan over A
   chunks" cadence and for learning a phase/progress signal.
 
+## E. Data bootstrapping from gameplay video (the current direction)
+
+### 13. VPT — Video PreTraining (OpenAI, 2022) — THE recipe for the data-bootstrap plan  ✓
+- Train an **Inverse Dynamics Model (IDM)**: a *non-causal* net that sees a window of frames around
+  time t and predicts the action at t. Crucially the IDM is much easier than a policy (it sees the
+  future), so a SMALL labeled set suffices. Then run the IDM over **huge amounts of unlabeled web
+  gameplay video** to pseudo-label (frame → action), and behavior-clone the policy on that.
+- **Direct map to NitroGen** (see `AGENTS.md §3C`, session `files/BOOTSTRAP_DATA_STRATEGY.md`): our
+  IDM's *labeled* set is **emulator** play (we drive it → ground-truth actions, `idm_gen_emulator_data.py`);
+  the *unlabeled* corpus is **YouTube longplays** (`yt_farm.py`). The user's reframe — "treat YouTube as
+  if it were a TAS and *extract* the actions" — is exactly VPT's IDM step (NOT TASVideos movie replay,
+  which is too glitchy/precise to learn).
+- **Domain gap to bridge:** emulator frames are pixel-perfect 256×224; YouTube is 360p/compressed.
+  Augment emulator frames toward YouTube (downscale/recompress/jitter) when training the IDM, à la VPT's
+  robustness to varied recording conditions.
+
+### 14. Objective/goal labeling from a pretrained VLM (vs. action labeling)
+- The user's insight: popular games are in the VLM's pretraining, so a frozen VLM emits **correct
+  grounded objectives for free** on a frame (`objective_label_demo.py` — demonstrated on Super Metroid).
+  This is the System-2 supervision; the IDM/VPT path supplies the System-1 actions. Related: instruction/
+  goal relabeling (Hindsight Experience Replay-style) and VLM-as-reward/labeler lines of work.
+- **Eval-contamination caveat:** because popular games are memorized by the VLM, evaluate *generalization*
+  on held-out obscure/custom games (homebrew ROMs, custom levels) the VLM has not seen.
+
 ---
 
-## E. Takeaways for our project (what to actually borrow)
+## F. Takeaways for our project (what to actually borrow)
 
 1. **We are rebuilding GR00T's dual system** for games (NitroGen = System 1). Read
    GR00T N1.5's VLM↔DiT alignment improvements — same problem we're solving (make

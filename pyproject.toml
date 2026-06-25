@@ -67,6 +67,18 @@ play = [
     "xspeedhack",
 ]
 
+# Headless Linux eval/record harness + data bootstrapping (record server, emulator envs, YouTube
+# farming, VLM objective labels). Adds the deps the planner_poc/ tooling needs beyond the core.
+# Also requires system packages: Xvfb, ffmpeg, xdotool, matchbox-window-manager (apt), a JS runtime
+# (deno) for YouTube, and per-game build toolchains. See docs/SETUP_EVAL.md.
+eval = [
+    "mss",                  # fast in-process X11 frame grab for the record server
+    "yt-dlp",               # YouTube gameplay farming (with cookies + deno EJS)
+    "stable-retro",         # in-process SNES/Genesis/NES emulator envs (frame-exact save/load)
+    "pygba",                # in-process GB/GBC/GBA (mGBA) emulator envs
+    "opencv-python",        # frame/optical-flow analysis
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["scripts*"]

@@ -2,7 +2,9 @@
 
 A navigation map for the plan-conditioned NitroGen work. Each capability lists the
 **experiment(s)** that established it, the **best checkpoint**, and the one-line result.
-Read EXPERIMENTS.md for full configs; this is the map. Current as of EXP-032.
+Read EXPERIMENTS.md for full configs; this is the map. Covers the 0.8B synthetic era through
+EXP-049b; for the later 2B Stage-2 checkpoints (button steering, clean-label left/right recovery,
+counterfactual override) see [`docs/CHECKPOINTS.md`](CHECKPOINTS.md). Start at [`AGENTS.md`](../AGENTS.md).
 
 Status legend: ✅ solved/working · ⚠️ partial/caveated · 🔬 diagnostic only · ❌ open issue
 

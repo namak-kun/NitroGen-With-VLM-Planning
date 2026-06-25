@@ -4,6 +4,12 @@ Chronological, exact-config record of every experiment. Newest at bottom.
 Conventions: all runs on 1×A100-80GB, torch 2.11+cu130, transformers 5.12.1,
 NitroGen `ng.pt` (EMA, action_dim=25, horizon=18), planner Qwen3.5-0.8B (frozen).
 
+> ℹ️ **Coverage:** this log runs **EXP-000 … EXP-049b** (the 0.8B-backbone, synthetic-plan era,
+> through 2026-06-19). The later **2B-backbone Stage-2 era** (clean-label left/right recovery, button
+> steering, counterfactual override, the released `stage2_2b_*` checkpoints, 2026-06-22 → 06-24) is
+> recorded in **[`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md)** (per-checkpoint training + results) and
+> the stored project memories. Start at **[`AGENTS.md`](AGENTS.md)** for the current handoff state.
+
 > ⚠️ Evaluation philosophy (per @namak-kun): the success signal is **counterfactual**:
 > (1) **steering** — does conditioning on plan P change the policy *in P's direction*?
 > (2) **null-invariance** — under the null plan, does the policy stay ≈ the
