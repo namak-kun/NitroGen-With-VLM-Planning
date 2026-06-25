@@ -1,11 +1,14 @@
 """Solarus/ZSDX top-down Zelda-like env.
 
-Ground-truth STATE TRACKING: ZSDX quests are Lua-scripted, so no Solarus engine rebuild is
-needed.  The loose quest file tmp/zsdx/data/main.lua is patched to register an on_update hook
-that writes hero position/layer, life, pause/menu/running flags, and map id to the file named by
-SOLARUS_STATE_EXPORT every frame.  read_state() reads that file so the eval harness annotates
-verified game state instead of guessing from pixels.  The reproducible quest patch is saved at
-docs/env_candidates/solarus_state_export.patch.
+Ground-truth STATE TRACKING (no committed fork): the Solarus ENGINE stays 100% stock. ZSDX quests are
+Lua-scripted, so we read state by registering an on_update hook from the quest's main.lua. The quest
+(tmp/zsdx) is built locally and is gitignored, so this is not a committed fork; to keep SETUP fork-free
+the env applies the hook PROGRAMMATICALLY at boot — an idempotent overlay appended to the local quest's
+main.lua from the shipped snippet (nitrogen_state_export.lua). A fresh stock ZSDX build therefore "just
+works" with no manual patch step; the overlay is marker-guarded so re-runs don't duplicate it.
+
+(The hook can't be injected via the engine's -s= flag: ZSDX's main.lua defines `function sol.main:on_update`
+which clobbers anything -s registers before main.lua runs. So a quest-side append is required.)
 """
 from __future__ import annotations
 
@@ -13,6 +16,10 @@ import shutil
 from pathlib import Path
 
 from .proc_game_env import ProcGameEnv, keys_from_dirs_and_buttons
+
+# The state-export hook appended to the local quest's main.lua at boot (idempotent; marker-guarded).
+_STATE_EXPORT_LUA = (Path(__file__).parent / "nitrogen_state_export.lua").read_text(encoding="utf-8")
+_OVERLAY_MARKER = "-- nitrogen_state_export.lua"
 
 I_RTRIG, I_LTRIG, I_NORTH, I_EAST, I_SOUTH, I_START, I_WEST = 16, 9, 10, 5, 18, 19, 20
 STICK_THRESH = 0.25
@@ -48,7 +55,27 @@ class SolarusZeldaEnv(ProcGameEnv):
         self._ensure_runtime_files()
         super().__init__(width=width, height=height, boot_wait=boot_wait, **kw)
 
+    def _ensure_state_overlay(self) -> None:
+        """Append the state-export hook to the local quest's main.lua if absent (idempotent,
+        marker-guarded). Keeps the committed repo + the ZSDX source stock: a fresh build "just works"
+        without a manual patch. ZSDX's main.lua defines `function sol.main:on_update`, so the hook must
+        be appended AFTER it (its own register_event then coexists) — the engine's -s= flag can't do
+        this because it runs before main.lua and gets clobbered."""
+        main_lua = Path(self.quest_dir) / "data" / "main.lua"
+        try:
+            text = main_lua.read_text(encoding="utf-8")
+        except Exception:
+            return                                   # quest not built yet; read_state() returns {}
+        if _OVERLAY_MARKER in text:
+            return                                   # already applied
+        try:
+            with main_lua.open("a", encoding="utf-8") as f:
+                f.write("\n\n" + _STATE_EXPORT_LUA + "\n")
+        except Exception:
+            pass
+
     def _ensure_runtime_files(self) -> None:
+        self._ensure_state_overlay()
         write_dir = self.solarus_home / ".solarus/zsdx"
         write_dir.mkdir(parents=True, exist_ok=True)
         (write_dir / "debug").touch()

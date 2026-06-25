@@ -107,7 +107,8 @@ Strategy doc: session `files/BOOTSTRAP_DATA_STRATEGY.md` (also summarized in pla
    (sample K plans from a save-state, rank by reward, no critic net).
 4. **Stabilize plans** (user's stated bottleneck): ~50-60% plan flip-rate between re-plans. Implement
    `--replan-every N` + hysteresis; consider freezing resampler+adapter so the text plan is the only var.
-5. **De-fork state export** (see §6) — replace the TheXTech/Solarus source patches with no-fork readers.
+5. **(DONE this session) De-fork state export** — TheXTech reads `/proc/pid/mem` (stock RelWithDebInfo
+   build), Solarus auto-overlays the quest at boot. See §6. No source/quest fork remains.
 
 ---
 
@@ -183,18 +184,28 @@ $ENVP .venv/bin/python planner_poc/idm_gen_emulator_data.py --rom "Game data/Sup
 - **mGBA "blank" frames:** mgba doesn't repaint until stepped; a grab *before* stepping looks black.
   notebook_adventure/blind_jump render fine once stepped (env_healthcheck flags them BLANK — false neg).
 - **Genesis has no in-process backend** (Mednafen subprocess only) → no frame-exact save/load for `.md`.
-- **State export is a FORK (to de-fork — investigated this session):**
-  - *TheXTech*: currently patches `src/graphics/gfx_update.cpp`. **No-fork fix:** build stock TheXTech
-    with debug symbols (`cmake -DCMAKE_BUILD_TYPE=Debug`), extract global addresses with
-    `nm -an thextech | egrep ' Player$| GameMenu$|...'` (binary is **non-PIE** → addresses fixed), then
-    read via `/proc/<pid>/mem` from the **parent env process** (yama ptrace_scope=1 allows parent→child).
-    Struct offsets: `Location_t` = 6× `num_t`(double) → X@0 Y@8 H@16 W@24 SpeedX@32 SpeedY@40
-    (src/location.h, lib/floating_point.h). Player_t.Location via offsetof (src/globals.h).
-  - *Solarus*: only patches the QUEST's `data/main.lua` (not the engine). The env already injects startup
-    Lua via the `-s=` CLI flag (`solarus_zelda.py`) — **no-fork fix:** move the `on_update` state-export
-    hook into a standalone `-s=` Lua string/file instead of editing the quest's main.lua. Reads
-    `hero:get_position()`, `game:get_life()`, current map; writes to `$SOLARUS_STATE_EXPORT`.
-  - Patches are in `docs/env_candidates/{thextech,solarus}_state_export.patch` for reference.
+- **State export is now DE-FORKED (implemented this session — no source/quest fork needed):**
+  - *TheXTech*: reads player state directly from process memory (`thextech_memread.TheXTechMemReader`).
+    Build STOCK TheXTech with debug symbols (`cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo`, keeps symbols;
+    Release strips them). The env resolves global addresses via `nm` (binary is **non-PIE** → fixed
+    addresses) and reads `/proc/<pid>/mem` from the parent env process (yama ptrace_scope=1 allows
+    parent→child). Verified: x/y/vx/lives/menu match the old patch exactly; movement + reset tracked.
+    Layout (in the reader): `Player[1].Location` = `&Player + 1*488 + 248`; fields X@0 Y@8 SpeedX@32
+    SpeedY@40; `num_t` is **32.32 fixed-point** (real = int64 / 2**32, per `lib/fixed_point.h`);
+    `Player_t.Dead`@388; scalars Lives/GameMenu/LevelSelect/GamePaused/EndLevel/LevelBeatCode/numPlayers
+    resolved by symbol. Re-derive offsets if TheXTech updates: `gdb -batch -ex 'print sizeof(Player_t)'
+    -ex 'print/d &((Player_t*)0)->Location' <binary>`. If the binary is stripped, the reader raises at
+    construct and the env falls back to `{}` (graceful).
+  - *Solarus*: the ENGINE is stock; the committed repo + ZSDX source are stock. The env applies the Lua
+    state-export hook (`nitrogen_state_export.lua`) PROGRAMMATICALLY at boot — an idempotent,
+    marker-guarded append to the LOCAL (gitignored `tmp/zsdx`) quest's `data/main.lua`
+    (`solarus_zelda.py._ensure_state_overlay`). A fresh stock ZSDX build "just works" with no manual
+    patch. (Can't use the engine's `-s=` flag: ZSDX's main.lua defines `function sol.main:on_update`
+    which clobbers anything `-s` registers before main.lua — verified.) Reads `hero:get_position()`,
+    `game:get_life()`, current map → `$SOLARUS_STATE_EXPORT`. Verified: after reset, real in-game state
+    (x=1008 y=613 life=12 map='3').
+  - The old reference patches remain in `docs/env_candidates/{thextech,solarus}_state_export.patch`
+    (no longer used by the envs).
 - **Emulator envs need NO fork** — mgba/snes read RAM natively.
 
 ---

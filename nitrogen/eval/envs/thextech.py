@@ -38,10 +38,16 @@ class TheXTechEnv(ProcGameEnv):
         self.asset_dir = asset_dir
         self.user_dir = user_dir
         self.level = level
-        # ground-truth state export (THEXTECH_STATE_EXPORT, written each frame by the patched
-        # UpdateGraphics in src/graphics/gfx_update.cpp): X Y SpeedX SpeedY Lives Dead GameMenu
-        # LevelSelect numPlayers.
-        self._state_path = f"/tmp/thextech_state_{id(self)}.txt"
+        # Ground-truth state is read from the live process memory (no source fork) — see
+        # thextech_memread.TheXTechMemReader. Requires a NON-STRIPPED build (RelWithDebInfo). The reader
+        # resolves the global symbol addresses from `binary` at construction; we (re)attach it to the
+        # game PID after each (re)launch. Falls back to {} if symbols/permissions are unavailable.
+        self._mem_reader = None
+        try:
+            from .thextech_memread import TheXTechMemReader
+            self._mem_reader = TheXTechMemReader(binary)
+        except Exception:
+            self._mem_reader = None
         super().__init__(width=width, height=height, boot_wait=boot_wait, **kw)
 
     def launch_cmd(self):
@@ -51,7 +57,6 @@ class TheXTechEnv(ProcGameEnv):
             "SDL_AUDIODRIVER=dummy",
             "SDL_VIDEODRIVER=x11",
             "LD_LIBRARY_PATH=/tmp/TheXTech/build/output/lib",
-            f"THEXTECH_STATE_EXPORT={self._state_path}",
             self.binary,
             "-s",                 # no sound
             "-p",                 # keep running if focus changes
@@ -60,6 +65,23 @@ class TheXTechEnv(ProcGameEnv):
             "-c", self.asset_dir,
             "-l", level_path,
         ]
+
+    def _attach_mem_reader(self):
+        """(Re)point the memory reader at the current game process. Called after boot + each relaunch."""
+        if self._mem_reader is not None and self._game is not None:
+            try:
+                self._mem_reader.attach(self._game.pid)
+            except Exception:
+                pass
+
+    def boot(self):
+        super().boot()
+        self._attach_mem_reader()
+
+    def close(self) -> None:
+        if self._mem_reader is not None:
+            self._mem_reader.detach()
+        super().close()
 
     # max time to wait for a warm relaunch to reach the loaded level before giving up (we poll and
     # return as soon as the state export shows the level is live, so this is just an upper bound)
@@ -70,9 +92,8 @@ class TheXTechEnv(ProcGameEnv):
 
         TheXTech in level-test mode shows a 6-item menu that WRAPS and starts at an unknown cursor
         position, so menu-navigation restart is unreliable. Respawning thextech always lands at a clean
-        level start. We poll the state export and return as soon as the level is live (warm relaunch is
+        level start. We poll read_state() and return as soon as the level is live (warm relaunch is
         typically ~1.5-2.5s), so reset is as fast as the engine allows."""
-        import os
         try:
             if self._game is not None:
                 self._game.terminate()
@@ -82,15 +103,13 @@ class TheXTechEnv(ProcGameEnv):
                     self._game.kill()
         except Exception:
             pass
-        try:
-            if os.path.exists(self._state_path):
-                os.remove(self._state_path)              # so we can detect the FRESH level coming up
-        except Exception:
-            pass
+        if self._mem_reader is not None:
+            self._mem_reader.detach()                    # old PID is gone
         if self._sh is not None:
             self._sh.unpause()                           # run at normal speed while the level loads
         self._game = subprocess.Popen(self.launch_cmd(), env=self._env(),
                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self._attach_mem_reader()                        # point the reader at the fresh PID
         deadline = time.time() + self.restart_wait
         while time.time() < deadline:                    # return as soon as the level is live
             time.sleep(0.1)
@@ -109,26 +128,14 @@ class TheXTechEnv(ProcGameEnv):
                            step_idx=0, done=False)
 
     def read_state(self) -> dict:
-        """Ground-truth player state from the source-patched export file (y increases DOWNWARD).
-        in_menu/dead let the harness label deaths + menu-stranding without guessing from pixels."""
-        try:
-            with open(self._state_path) as f:
-                p = f.read().split()
-            x, y, sx, sy = float(p[0]), float(p[1]), float(p[2]), float(p[3])
-            lives, dead, game_menu, level_select, nplayers = (int(p[4]), int(p[5]), int(p[6]),
-                                                              int(p[7]), int(p[8]))
-            paused = int(p[9]) if len(p) > 9 else 0    # GamePaused (!=0 => pause/test menu)
-            end_level = int(p[10]) if len(p) > 10 else 0   # EndLevel: the level-end transition is running
-            beat_code = int(p[11]) if len(p) > 11 else 0   # LevelBeatCode: POSITIVE = beaten (3=offscreen,
-            # 7=star, 8=goal-tape, 9=flag, ...); 0=none; NEGATIVE (-1 quit/-2 restart/-3 setup) = a menu
-            # selection, NOT a win.
-            return {"x": round(x, 1), "y": round(y, 1), "vx": round(sx, 2), "vy": round(sy, 2),
-                    "lives": lives, "dead": dead,
-                    "in_menu": int(bool(game_menu or level_select or paused)),
-                    "won": int(end_level == 1 and beat_code > 0), "beat_code": beat_code,
-                    "nplayers": nplayers}
-        except Exception:
+        """Ground-truth player state read from the live process memory (no source fork; y increases
+        DOWNWARD). in_menu/dead let the harness label deaths + menu-stranding without guessing from
+        pixels. beat_code: POSITIVE = beaten (3=offscreen exit, 7=star, 8=goal-tape, 9=flag); 0=none;
+        NEGATIVE (-1 quit/-2 restart/-3 setup) = a menu selection, NOT a win. Returns {} if the reader
+        is unavailable (e.g. stripped binary or process not yet mapped)."""
+        if self._mem_reader is None:
             return {}
+        return self._mem_reader.read()
 
     @staticmethod
     def _axis(values: np.ndarray, raw_sticks: bool) -> float:

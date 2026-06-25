@@ -106,7 +106,11 @@ build from source into `/tmp/<game>` or `.nitrogen-env-build/`. The 5 envs hidde
 (daemon_vs_demon, megaman_maverick, openmw, theseeker, zelda_classic) have lost build artifacts and need
 re-fetching — low priority (30/38 work). See `docs/FOSS_GAMES.md` for per-game build notes.
 
-**State export (TheXTech / Solarus) — de-fork (recommended).** Today these use a source/quest patch.
-No-fork alternatives are documented in `AGENTS.md §6`: TheXTech via a stock debug-symbol build + a
-`/proc/<pid>/mem` reader (non-PIE fixed addresses); Solarus via the engine's `-s=` startup-Lua flag
-instead of editing the quest's `main.lua`.
+**State export (TheXTech / Solarus) — NO fork needed.** Both read ground-truth state without a source
+or quest fork (implemented; see `AGENTS.md §6`):
+- **TheXTech**: build STOCK with debug symbols — `cmake -S /tmp/TheXTech -B /tmp/TheXTech/build
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo && cmake --build /tmp/TheXTech/build --target thextech -j`. The env
+  (`thextech_memread.py`) resolves global addresses from the (non-PIE) binary via `nm` and reads
+  `/proc/<pid>/mem`. A stripped binary → reader disabled, state falls back to `{}`.
+- **Solarus**: engine + ZSDX stay stock; the env appends the export hook (`nitrogen_state_export.lua`)
+  to the LOCAL quest's `main.lua` at boot (idempotent). Nothing to patch by hand.
