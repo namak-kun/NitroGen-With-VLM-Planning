@@ -22,12 +22,14 @@ class MMX8Env(ProcGameEnv):
     name = "mmx8"
     window_name = "Mega Man X8"
     control = "keyboard"
+    reset_by_relaunch = True             # respawn for a clean state, then skip the intro/title below
+    restart_wait = 1.5                   # just enough for the Godot window; the macro drives the intro
 
     def __init__(
         self,
         width: int = 800,
         height: int = 600,
-        boot_wait: float = 18.0,
+        boot_wait: float = 6.0,
         godot_binary: str | None = None,
         exe_path: str | None = None,
         pck_path: str | None = None,
@@ -131,7 +133,14 @@ class MMX8Env(ProcGameEnv):
         ]
 
     def reset_macro(self, scenario):
-        return [("wait", 0.5)]
+        # mmx8 (Godot) boots through a splash -> title -> opening dialogue before gameplay. reset()
+        # runs this UNFROZEN, so mash Enter+z with waits to skip all of it into the level (empirically
+        # reaches gameplay ~12-14s of presses). reset_by_relaunch gives the clean starting state.
+        macro = [("wait", 2.0)]
+        for _ in range(8):
+            macro += [("key", "Return"), ("key", "z"), ("wait", 1.8)]
+        macro += [("wait", 1.0)]
+        return macro
 
     def action_to_keys(self, action_chunk):
         return keys_from_dirs_and_buttons(

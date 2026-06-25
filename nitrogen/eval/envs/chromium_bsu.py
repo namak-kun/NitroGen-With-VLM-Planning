@@ -75,6 +75,12 @@ class ChromiumBSUEnv(ProcGameEnv):
         self._pause_game_process()
         return obs
 
+    def _unpause_world(self) -> None:
+        self._resume_game_process()
+
+    def _pause_world(self) -> None:
+        self._pause_game_process()
+
     def _apply(self, action_chunk: np.ndarray):
         self._resume_game_process()
         super()._apply(action_chunk)

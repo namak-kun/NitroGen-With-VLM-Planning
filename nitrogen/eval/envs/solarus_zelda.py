@@ -1,4 +1,12 @@
-"""Solarus/ZSDX top-down Zelda-like env."""
+"""Solarus/ZSDX top-down Zelda-like env.
+
+Ground-truth STATE TRACKING: ZSDX quests are Lua-scripted, so no Solarus engine rebuild is
+needed.  The loose quest file tmp/zsdx/data/main.lua is patched to register an on_update hook
+that writes hero position/layer, life, pause/menu/running flags, and map id to the file named by
+SOLARUS_STATE_EXPORT every frame.  read_state() reads that file so the eval harness annotates
+verified game state instead of guessing from pixels.  The reproducible quest patch is saved at
+docs/env_candidates/solarus_state_export.patch.
+"""
 from __future__ import annotations
 
 import shutil
@@ -34,6 +42,9 @@ class SolarusZeldaEnv(ProcGameEnv):
             self.solarus_binary = shutil.which("solarus-run") or self.solarus_binary
         self.quest_dir = quest_dir or str(repo / "tmp/zsdx")
         self.solarus_home = repo / "tmp/solarus-home"
+        state_dir = repo / "tmp"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        self._state_path = state_dir / f"solarus_state_{id(self)}.txt"
         self._ensure_runtime_files()
         super().__init__(width=width, height=height, boot_wait=boot_wait, **kw)
 
@@ -96,6 +107,7 @@ class SolarusZeldaEnv(ProcGameEnv):
             f"HOME={self.solarus_home}",
             "SDL_AUDIODRIVER=dummy",
             "LIBGL_ALWAYS_SOFTWARE=1",
+            f"SOLARUS_STATE_EXPORT={self._state_path}",
             self.solarus_binary,
             "-no-audio",
             "-suspend-unfocused=no",
@@ -105,6 +117,39 @@ class SolarusZeldaEnv(ProcGameEnv):
             '-s=sol.language.set_language("en")',
             self.quest_dir,
         ]
+
+    def read_state(self) -> dict:
+        """Ground-truth hero state exported by the Lua on_update hook."""
+        fallback_path = self.solarus_home / ".solarus/zsdx/nitrogen_solarus_state.txt"
+        for path in (self._state_path, fallback_path):
+            try:
+                parts = Path(path).read_text(encoding="utf-8").split()
+                if len(parts) < 9:
+                    continue
+                running = int(parts[0])
+                x = float(parts[1])
+                y = float(parts[2])
+                layer = int(float(parts[3]))
+                life = int(float(parts[4]))
+                max_life = int(float(parts[5]))
+                paused = int(parts[6])
+                in_menu = int(parts[7])
+                map_id = parts[8]
+                return {
+                    "x": round(x, 1),
+                    "y": round(y, 1),
+                    "layer": layer,
+                    "life": life,
+                    "lives": life,
+                    "max_life": max_life,
+                    "map": map_id,
+                    "running": running,
+                    "paused": paused,
+                    "in_menu": in_menu,
+                }
+            except Exception:
+                continue
+        return {}
 
     def reset_macro(self, scenario):
         return [

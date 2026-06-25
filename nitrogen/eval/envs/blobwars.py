@@ -125,6 +125,12 @@ class BlobwarsEnv(ProcGameEnv):
         self._freeze_game()
         return obs
 
+    def _unpause_world(self) -> None:
+        self._unfreeze_game()
+
+    def _pause_world(self) -> None:
+        self._freeze_game()
+
     def _apply(self, action_chunk):
         self._unfreeze_game()
         try:

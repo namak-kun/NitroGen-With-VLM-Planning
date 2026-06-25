@@ -56,6 +56,77 @@ OBJECTIVES = {
 MENU_MASK = {"thextech": (19,), "sdlpop": (19,), "castlevania_godot": (19,),
              "solarus_zelda": (16, 19)}  # 19 = START; solarus also maps RTRIG(16) -> pause
 
+# ---- GROUNDED System-2 prompt (best from planner_poc/sweep_prompts.py: A_broad_concrete) -----------
+# The planner gets: control scheme (per genre) + the agent's OWN recent actions (no privileged state)
+# + a light grounding nudge to use concrete control terms ("move RIGHT") not vague words ("forward").
+GENRE_OF = {
+    "stk": "racing", "trigger_rally": "racing", "xmoto": "racing", "dustracing": "racing",
+    "thextech": "platformer", "sdlpop": "platformer", "castlevania_godot": "platformer",
+    "blobwars": "platformer", "pekka_kana_2": "platformer", "mighty_retro_zero": "platformer",
+    "solarus_zelda": "topdown", "witchblast": "topdown", "freedink": "topdown", "flare_arpg": "topdown",
+    "chromium_bsu": "shmup", "opentyrian": "shmup", "starfighter": "shmup",
+}
+CONTROLS = {
+    "racing": "Controls: steer LEFT or RIGHT, ACCELERATE, BRAKE.",
+    "platformer": "Controls: move LEFT or RIGHT, look UP, crouch DOWN, JUMP, ATTACK. To reach a higher "
+                  "ledge you must JUMP (moving sideways alone will not climb).",
+    "topdown": "Controls: move LEFT, RIGHT, UP or DOWN, ATTACK, ACTION to interact.",
+    "shmup": "Controls: move LEFT, RIGHT, UP or DOWN, FIRE.",
+}
+GROUND_INSTR = ("In one sentence, say what the agent should do next and briefly why, naming the "
+                "concrete direction to move (e.g. left, right, up, down, jump) rather than vague words "
+                "like 'forward', 'explore' or 'the image'.")
+
+
+def _first_sentence(plan: str) -> str:
+    """Keep the plan to ONE clean sentence: drop a leading 'Based on .../Looking at ...' preamble and
+    cut after the first sentence so freeform plans stay concise (and never truncate mid-thought)."""
+    p = plan.strip().strip('"').strip()
+    p = p.replace("**", "").replace("*", "")        # strip stray markdown emphasis
+    # strip a description-preamble clause up to the first comma if it starts with a stock opener.
+    low = p.lower()
+    for opener in ("based on", "looking at", "from the", "in the provided", "the analysis"):
+        if low.startswith(opener) and "," in p:
+            p = p.split(",", 1)[1].strip()
+            p = p[:1].upper() + p[1:]
+            break
+    # first sentence only
+    for sep in (". ", "! ", "? "):
+        if sep in p:
+            p = p.split(sep, 1)[0] + sep.strip()
+            break
+    return p.strip()
+# direction/button decode for the action-history summary (the agent's OWN recent actions).
+_HIST_BTN = [(18, "JUMP"), (20, "ATTACK"), (16, "ACCELERATE/FIRE"), (9, "BRAKE")]
+
+
+def summarize_actions(rows, thresh=0.2):
+    """Summarize the agent's recent executed action rows into a short, non-privileged history string
+    (its own inputs only -- NO game state). E.g. 'Recent actions: moved RIGHT 12, JUMP 6 of last 18.'"""
+    if not rows:
+        return ""
+    n = len(rows)
+    cnt = {"LEFT": 0, "RIGHT": 0, "UP": 0, "DOWN": 0}
+    btn = {lbl: 0 for _, lbl in _HIST_BTN}
+    for row in rows:
+        lx, ly = float(row[JLX]), float(row[JLY])
+        if lx < 0.5 - thresh:
+            cnt["LEFT"] += 1
+        elif lx > 0.5 + thresh:
+            cnt["RIGHT"] += 1
+        if ly < 0.5 - thresh:
+            cnt["UP"] += 1
+        elif ly > 0.5 + thresh:
+            cnt["DOWN"] += 1
+        for idx, lbl in _HIST_BTN:
+            if float(row[idx]) > 0.5:
+                btn[lbl] += 1
+    parts = [f"{k} {v}" for k, v in cnt.items() if v]
+    parts += [f"{k} {v}" for k, v in btn.items() if v]
+    if not parts:
+        return f"Recent actions (last {n} steps): mostly idle (no strong direction)."
+    return f"Recent actions (last {n} steps): " + ", ".join(parts) + "."
+
 
 def font(sz):
     for p in ["/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
@@ -69,8 +140,7 @@ F = font(15); Fbig = font(19)
 
 # game-agnostic System-2 prompt so generated plans aren't biased by the platformer DEFAULT_SYS.
 PLAN_SYS = ("You are the high-level planner for an agent playing a 2D video game. You see the most "
-            "recent frames (oldest first). Output ONE short imperative directive (max 8 words) for "
-            "what the agent should do next. Output only the directive, no explanation.")
+            "recent frames (oldest first). Decide the single best next move.")
 
 
 def annotate(frame, row, cycle, row_i, A, plan, env_name, state):
@@ -117,6 +187,13 @@ def main():
     ap.add_argument("--qwen", default=os.environ.get("QWEN", "Qwen/Qwen3.5-2B"))
     ap.add_argument("--A", type=int, default=4, help="execution horizon: rows executed open-loop per re-infer")
     ap.add_argument("--nrows", type=int, default=48, help="total action rows to execute")
+    ap.add_argument("--fps", type=int, default=5, help="output video framerate (lower = slower playback)")
+    ap.add_argument("--nframes", type=int, default=4,
+                    help="number of recent frames the TEXT planner sees (multi-frame -> perceives "
+                         "dynamics like a breaking tile). DiT conditioning stays single-frame.")
+    ap.add_argument("--frame-stride", type=int, default=3,
+                    help="stride between the planner's frames (in captured-frame units), so the window "
+                         "spans more time without redundant near-identical frames.")
     ap.add_argument("--cfg", type=float, default=8.0)
     ap.add_argument("--plan", default=None, help="fixed plan text; if omitted, generate a fresh plan each cycle")
     ap.add_argument("--null", action="store_true",
@@ -166,15 +243,27 @@ def main():
                       max_steps=args.nrows, cfg_scale=args.cfg)
         obs = env.reset(sc)
         cur = obs.frame
+        sys_prompt = PLAN_SYS          # role only -- injecting a control SCHEME makes plans terse
+        recent_rows = []          # the agent's own recent executed action rows (for grounded history)
+        frame_hist = [cur]        # rolling window of recently captured frames (for multi-frame planning)
         while executed < args.nrows:
-            # System-2: the plan that will drive the next A actions (skipped in --null base mode).
+            # System-2: freeform-but-GROUNDED plan over a multi-frame WINDOW (so it can perceive
+            # dynamics like a breaking tile) + the agent's OWN recent actions (no privileged state).
+            # DiT conditioning stays single-frame (it was trained that way); only the TEXT planner gets
+            # the window. Keep the objective (elicits a descriptive plan); the grounding nudge only
+            # anchors the DIRECTION word (left/right/up/down) -- it does NOT compress the sentence.
             if args.null:
                 plan = "(null / no plan — base DiT)"
             elif args.plan:
                 plan = args.plan
             else:
-                plan = pol.pl.generate_plan([cur], pol.device, instruction=objective,
-                                            system=PLAN_SYS) or "advance"
+                win = frame_hist[::-1][::args.frame_stride][:args.nframes][::-1]  # oldest->newest
+                # feed the frame WINDOW (perception of dynamics) but do NOT announce it verbosely --
+                # a "you see N frames" preamble makes the 2B ramble "Based on the provided frames...".
+                instr = f"{objective} {GROUND_INSTR}"
+                plan = pol.pl.generate_plan(win, pol.device, instruction=instr,
+                                            system=sys_prompt, max_new_tokens=40) or "advance"
+                plan = _first_sentence(plan)
             chunk = pol._sample_chunk(cur, "" if args.null else plan, args.cfg,
                                       plan_frames=[cur], null=args.null)  # (H, 25)
             for b in MENU_MASK.get(args.env, ()):     # keep the agent in gameplay (no pause-strand)
@@ -194,6 +283,10 @@ def main():
                     ev = "   <<< ENTERED MENU (stranded)"; entered_menu = True
                 log.append(f"  exec{ri}: stick=({lx:+.2f},{ly:+.2f}) buttons={','.join(btns) or '-'}"
                            f"  state={st or '{}'}{ev}")
+                frame_hist.append(frame)
+            recent_rows.extend(r for r, _, _ in rows)
+            recent_rows = recent_rows[-H:]
+            frame_hist = frame_hist[-(args.nframes * args.frame_stride + 2):]
             cur = rows[-1][1]
             executed += A
             cycle += 1
@@ -203,7 +296,7 @@ def main():
         env.close()
 
     mp4 = f"{out_root}/play.mp4"
-    subprocess.run(["ffmpeg", "-loglevel", "quiet", "-y", "-framerate", "5",
+    subprocess.run(["ffmpeg", "-loglevel", "quiet", "-y", "-framerate", str(args.fps),
                     "-i", f"{frame_dir}/f%04d.png", "-pix_fmt", "yuv420p",
                     "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", mp4])
     with open(f"{out_root}/actions.txt", "w") as fh:

@@ -1,0 +1,184 @@
+env=solarus_zelda  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are a top-down adventurer. What should the agent do next to explore?
+
+# re-plan#00  plan='Move right to continue exploring the area near the wooden house and fence.'
+  exec0: stick=(+0.90,+0.63) buttons=A/jump,B  state={'x': 1008.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.93,+0.78) buttons=A/jump,B  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#01  plan='Move right to continue exploring the area near the wooden buildings and the tree.'
+  exec0: stick=(-0.27,-0.58) buttons=Dl  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(-0.45,-0.44) buttons=Dl  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#02  plan='Move right to explore the area near the character in green.'
+  exec0: stick=(+0.70,+0.93) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.50,+0.88) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#03  plan='Move down to continue exploring the area.'
+  exec0: stick=(+0.61,+0.16) buttons=A/jump,X/shoot,Y,RB  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(-0.20,-0.13) buttons=A/jump,X/shoot  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#04  plan='Move right to continue exploring the area near the large house.'
+  exec0: stick=(+0.95,+0.32) buttons=A/jump,X/shoot,B,Y  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.96,+0.36) buttons=A/jump,X/shoot,B,Y  state={'x': 993.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#05  plan='Move right to continue exploring the area near the house.'
+  exec0: stick=(+1.21,+1.05) buttons=X/shoot  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.67,+1.01) buttons=X/shoot  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#06  plan='Move down to explore the area below the current path.'
+  exec0: stick=(+0.64,+0.02) buttons=A/jump,LB  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.62,-0.04) buttons=A/jump,LB  state={'x': 1016.0, 'y': 614.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#07  plan='Move down to access the path leading toward the village entrance.'
+  exec0: stick=(+0.38,+0.03) buttons=X/shoot  state={'x': 1008.0, 'y': 601.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.06,+0.59) buttons=X/shoot  state={'x': 1008.0, 'y': 601.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#08  plan='Move right to explore the area near the large house and the character in green.'
+  exec0: stick=(+0.84,+0.83) buttons=-  state={'x': 128.0, 'y': 213.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.88,+0.80) buttons=A/jump  state={'x': 128.0, 'y': 213.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#09  plan='Move down to access the lower area of the village and continue exploring.'
+  exec0: stick=(+0.89,+0.37) buttons=A/jump,X/shoot,B,Y  state={'x': 128.0, 'y': 213.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.06,+0.15) buttons=A/jump  state={'x': 172.0, 'y': 154.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#10  plan='Move right to access the new area and collect the green gem.'
+  exec0: stick=(+1.04,+0.23) buttons=B  state={'x': 225.0, 'y': 109.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.02,+0.50) buttons=B,Y  state={'x': 292.0, 'y': 109.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#11  plan='Move right to access the new area containing the green potion and chest.'
+  exec0: stick=(-1.00,-0.52) buttons=Dl  state={'x': 288.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(-1.05,-0.42) buttons=A/jump,Dl  state={'x': 288.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#12  plan='Move right to continue exploring the interior of the house.'
+  exec0: stick=(+0.35,+0.96) buttons=X/shoot  state={'x': 288.0, 'y': 104.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.27,+0.94) buttons=X/shoot  state={'x': 288.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#13  plan='Move right to continue exploring the room and locate the exit.'
+  exec0: stick=(+0.95,+0.09) buttons=B  state={'x': 320.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.92,+0.04) buttons=A/jump,B  state={'x': 320.0, 'y': 98.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#14  plan='The agent should move right to explore the long corridor on the right side of the room.'
+  exec0: stick=(+0.97,+0.10) buttons=X/shoot,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.91,+0.06) buttons=X/shoot,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#15  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.85,+0.91) buttons=X/shoot  state={'x': 320.0, 'y': 119.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.67,+0.93) buttons=X/shoot,RB  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#16  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.86,+0.88) buttons=-  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.90,+0.85) buttons=-  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#17  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.58,+1.04) buttons=X/shoot,Y  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.69,+1.08) buttons=X/shoot  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#18  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+1.05,+0.10) buttons=A/jump,B,RB  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.97,+0.26) buttons=A/jump,B,RB  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#19  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+1.05,-0.08) buttons=-  state={'x': 320.0, 'y': 94.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.02,-0.00) buttons=-  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#20  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+1.43,-0.06) buttons=B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.08,+0.36) buttons=B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#21  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.35,+0.94) buttons=Dl  state={'x': 320.0, 'y': 113.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.84,+0.86) buttons=-  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#22  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.96,+0.42) buttons=X/shoot,B,Y  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.02,+0.29) buttons=X/shoot,B,Y  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#23  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.92,+0.72) buttons=B  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.91,+0.75) buttons=B  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#24  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.73,+0.81) buttons=A/jump,B  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.41,+0.75) buttons=A/jump  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#25  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+1.16,+0.07) buttons=B,LB,Dn,Dl  state={'x': 320.0, 'y': 91.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.15,-0.03) buttons=B,LB,Dn,Dl  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#26  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.69,+0.07) buttons=Y  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.82,+0.14) buttons=Y  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#27  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.81,+0.35) buttons=A/jump,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.96,+0.23) buttons=A/jump,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#28  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.55,+0.46) buttons=X/shoot,B,Y,RB  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.24,+0.66) buttons=X/shoot,B,Y,RB  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#29  plan='The agent should move up, as the character is currently at the bottom of the rightmost corridor and needs to proceed further into the dungeon.'
+  exec0: stick=(+0.95,+0.23) buttons=X/shoot,Y  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.97,+0.33) buttons=X/shoot  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#30  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.94,+0.27) buttons=B,Y,LB  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.99,+0.32) buttons=B,Y,LB  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#31  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.29,+0.79) buttons=A/jump,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.31,+0.86) buttons=B  state={'x': 320.0, 'y': 77.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#32  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.95,+0.80) buttons=A/jump  state={'x': 320.0, 'y': 80.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.94,+0.83) buttons=A/jump  state={'x': 320.0, 'y': 104.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#33  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.97,+0.27) buttons=-  state={'x': 320.0, 'y': 110.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.03,+0.22) buttons=-  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#34  plan='The agent should move right to continue exploring the long corridor.'
+  exec0: stick=(+0.34,+0.94) buttons=A/jump,Y  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.38,+0.92) buttons=Y  state={'x': 320.0, 'y': 80.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#35  plan='The agent should move right to continue exploring the long corridor on the right side of the room.'
+  exec0: stick=(+0.85,+0.20) buttons=A/jump  state={'x': 320.0, 'y': 86.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.00,+0.38) buttons=X/shoot,B  state={'x': 320.0, 'y': 86.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#36  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+1.01,+0.86) buttons=A/jump,X/shoot  state={'x': 320.0, 'y': 86.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.79,+0.87) buttons=A/jump,X/shoot  state={'x': 320.0, 'y': 114.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#37  plan='Move right to continue exploring the room and locate the next area of interest.'
+  exec0: stick=(+0.74,+0.96) buttons=A/jump  state={'x': 320.0, 'y': 121.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.79,+0.96) buttons=A/jump  state={'x': 320.0, 'y': 142.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#38  plan='The agent should move right to continue exploring the long corridor.'
+  exec0: stick=(+0.99,+0.57) buttons=A/jump,Dn  state={'x': 320.0, 'y': 152.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.96,+0.63) buttons=A/jump,B,Dn  state={'x': 320.0, 'y': 152.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#39  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.67,+0.91) buttons=X/shoot  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.75,+0.88) buttons=-  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#40  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.97,-0.06) buttons=-  state={'x': 320.0, 'y': 94.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.89,-0.49) buttons=-  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#41  plan='The agent should move right to continue exploring the long corridor.'
+  exec0: stick=(+1.11,-0.16) buttons=-  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.96,+0.02) buttons=-  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#42  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.36,+0.88) buttons=X/shoot  state={'x': 320.0, 'y': 119.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.46,+0.90) buttons=X/shoot  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#43  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.81,+0.12) buttons=Y  state={'x': 320.0, 'y': 97.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.80,+0.11) buttons=Y  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#44  plan='The agent should move up, as the character is currently standing on the floor of the rightmost corridor and moving up will allow them to progress toward the upper area of the map.'
+  exec0: stick=(+0.84,+0.64) buttons=A/jump,X/shoot,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.44,+0.45) buttons=A/jump,X/shoot,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#45  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.73,+0.65) buttons=A/jump,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.84,+0.63) buttons=A/jump,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#46  plan='The agent should move up the right corridor to continue exploring the area.'
+  exec0: stick=(+1.10,+0.08) buttons=B,Y,LB  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.40,+0.74) buttons=A/jump,B,Y,LB  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#47  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.78,+0.90) buttons=B  state={'x': 320.0, 'y': 122.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.65,+0.94) buttons=B,Y  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#48  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.79,+0.44) buttons=A/jump  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.98,+0.68) buttons=A/jump  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#49  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.83,+0.11) buttons=-  state={'x': 320.0, 'y': 94.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.83,+0.13) buttons=-  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#50  plan='The agent should move right to explore the long corridor on the right side of the room.'
+  exec0: stick=(+0.94,+0.24) buttons=A/jump,X/shoot,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.89,-0.03) buttons=A/jump,X/shoot,B  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#51  plan='The agent should move right to explore the corridor ahead, as it offers a clear path to discover new areas and collect items.'
+  exec0: stick=(+0.57,+0.89) buttons=A/jump,X/shoot,Y  state={'x': 320.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.49,+0.93) buttons=A/jump,X/shoot,B,Y  state={'x': 320.0, 'y': 86.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#52  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.82,+0.83) buttons=X/shoot  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.44,+0.89) buttons=A/jump,X/shoot  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#53  plan='The agent should move up the right corridor to continue exploring the area.'
+  exec0: stick=(+0.80,+0.88) buttons=A/jump,X/shoot,Y  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.75,+0.92) buttons=A/jump,X/shoot,Y,LB  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#54  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.74,+0.76) buttons=X/shoot,B  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.31,+0.94) buttons=X/shoot,B  state={'x': 320.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#55  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+1.11,+0.18) buttons=X/shoot  state={'x': 320.0, 'y': 91.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.13,+0.20) buttons=A/jump  state={'x': 320.0, 'y': 88.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#56  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.59,+0.13) buttons=A/jump  state={'x': 320.0, 'y': 88.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.01,+0.21) buttons=A/jump  state={'x': 320.0, 'y': 64.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#57  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.80,+0.88) buttons=A/jump,B,Y  state={'x': 320.0, 'y': 58.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.90,+0.84) buttons=A/jump,X/shoot,B,Y  state={'x': 320.0, 'y': 97.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#58  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.70,+0.86) buttons=A/jump,X/shoot,B,LB  state={'x': 320.0, 'y': 108.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.66,+0.79) buttons=A/jump,X/shoot,B,LB  state={'x': 320.0, 'y': 132.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#59  plan='The agent should move right to continue exploring the room.'
+  exec0: stick=(+0.93,+0.57) buttons=X/shoot  state={'x': 320.0, 'y': 138.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.96,+0.51) buttons=X/shoot  state={'x': 320.0, 'y': 138.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}

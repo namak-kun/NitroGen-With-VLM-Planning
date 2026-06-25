@@ -65,6 +65,13 @@ class ProcGameEnv(GameEnv):
     # sf::Keyboard::isKeyPressed need global XTEST key state instead, so subclasses can disable
     # window-targeted key injection.
     target_keys_to_window: bool = True
+    # Reset strategy. Menu/progression games can't be reliably reset by replaying reset_macro on a
+    # game that has already advanced (the macro assumes the title/clean state). When reset_by_relaunch
+    # is True, reset() RESPAWNS the game process (keeping Xvfb/WM up) for a guaranteed-clean state, then
+    # replays reset_macro to walk title->gameplay. restart_wait is the post-respawn settle (defaults to
+    # boot_wait; set a smaller value for games that warm-relaunch fast).
+    reset_by_relaunch: bool = False
+    restart_wait: float | None = None
 
     def __init__(self, width: int = 800, height: int = 600, display: int | None = None,
                  boot_wait: float = 15.0, chunk_seconds: float = 0.6,
@@ -134,13 +141,32 @@ class ProcGameEnv(GameEnv):
         if self.freeze_during_inference:
             from ..speedhack import SpeedHack
             self._sh = SpeedHack()
+        self._launch_game(wait=self.boot_wait)
+
+    def _launch_game(self, wait: float):
+        """(Re)spawn just the game process on the existing Xvfb/WM, wait for it to settle, and (for
+        keyboard control) re-find + focus its window. Shared by boot() and the relaunch reset path."""
         self._game = subprocess.Popen(self.launch_cmd(), env=self._env(),
                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(self.boot_wait)
+        time.sleep(wait)
         if self.control == "keyboard":
             self._wid = self._find_window()
             if self.window_manager and self._wid:
                 self._focus_window()
+
+    def _relaunch_game(self):
+        """Kill the current game process and spawn a fresh one (clean state) on the same display."""
+        try:
+            if self._game is not None:
+                self._game.terminate()
+                try:
+                    self._game.wait(timeout=3)
+                except Exception:
+                    self._game.kill()
+        except Exception:
+            pass
+        wait = self.restart_wait if self.restart_wait is not None else self.boot_wait
+        self._launch_game(wait=wait)
 
     def _focus_window(self):
         """Assert input focus on the game window (needed for focus-gated games, e.g. SFML). Uses
@@ -184,10 +210,21 @@ class ProcGameEnv(GameEnv):
             return np.zeros((self.height, self.width, 3), np.uint8)
         return np.frombuffer(buf[:n], np.uint8).reshape(self.height, self.width, 3).copy()
 
-    def _apply(self, action_chunk: np.ndarray):
-        """Apply one chunk: unpause, drive input for chunk_seconds (busy-wait), re-freeze."""
+    # ---- freeze/unfreeze hooks (override for non-speedhack envs, e.g. SIGSTOP) ----------
+    def _unpause_world(self):
+        """Resume the game world so input takes effect. Default = speedhack unpause. Envs that
+        freeze differently (SIGSTOP/SIGCONT, etc.) override this + _pause_world."""
         if self._sh is not None:
             self._sh.unpause()
+
+    def _pause_world(self):
+        """Re-freeze the game world (default = speedhack pause)."""
+        if self._sh is not None:
+            self._sh.pause()
+
+    def _apply(self, action_chunk: np.ndarray):
+        """Apply one chunk: unpause, drive input for chunk_seconds (busy-wait), re-freeze."""
+        self._unpause_world()
         if self.control == "keyboard":
             self._set_keys(self.action_to_keys(action_chunk))
             t = time.perf_counter()
@@ -203,8 +240,7 @@ class ProcGameEnv(GameEnv):
                 t = time.perf_counter()
                 while time.perf_counter() - t < per:
                     pass
-        if self._sh is not None:
-            self._sh.pause()
+        self._pause_world()
 
     # ---- GameEnv interface -------------------------------------------------------------
     def apply_chunk_capture(self, action_chunk: np.ndarray, per_row: float | None = None) -> list:
@@ -212,15 +248,14 @@ class ProcGameEnv(GameEnv):
         state = read_state() ground truth (empty {} if the env exports none). Generalises
         CaveStoryEnv.apply_chunk_capture to any ProcGameEnv so the annotated/action-horizon rollout
         can see the game respond to EACH action AND log per-action ground-truth state (position,
-        lives, death). The world is unpaused only for the duration of these rows (speedhack
-        re-freezes after). per_row defaults to chunk_seconds/len(rows)."""
+        lives, death). The world is unpaused only for the duration of these rows (re-frozen after via
+        the _pause_world hook). per_row defaults to chunk_seconds/len(rows)."""
         a = np.asarray(action_chunk, dtype=np.float32)
         if a.ndim == 1:
             a = a[None]
         per = per_row if per_row is not None else (self.chunk_seconds / max(a.shape[0], 1))
         out = []
-        if self._sh is not None:
-            self._sh.unpause()
+        self._unpause_world()
         for row in a:
             if self.control == "keyboard":
                 self._set_keys(self.action_to_keys(row[None]))
@@ -239,11 +274,12 @@ class ProcGameEnv(GameEnv):
             self._set_keys(set())
         elif self._pad is not None:
             self._pad.neutral()
-        if self._sh is not None:
-            self._sh.pause()
+        self._pause_world()
         return out
 
     def reset(self, scenario: Optional[Scenario] = None) -> Observation:
+        if self.reset_by_relaunch:
+            self._relaunch_game()        # guaranteed-clean state for menu/progression games
         if self._sh is not None:
             self._sh.unpause()
         macro = self.reset_macro(scenario)

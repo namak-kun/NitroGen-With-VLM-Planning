@@ -13,6 +13,7 @@ class CastlevaniaGodotEnv(ProcGameEnv):
     name = "castlevania_godot"
     window_name = "Castlevania on Godot"
     control = "keyboard"
+    reset_by_relaunch = True             # title/progression game: respawn for a clean reset
 
     def __init__(
         self,

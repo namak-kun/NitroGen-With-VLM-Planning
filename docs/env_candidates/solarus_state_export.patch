@@ -1,0 +1,171 @@
+diff --git a/tmp/zsdx/data/main.lua b/tmp/zsdx/data/main.lua
+--- a/tmp/zsdx/data/main.lua
++++ b/tmp/zsdx/data/main.lua
+@@ -211,6 +211,167 @@ function sol.main:on_update()
+   end
+ end
+ 
++-- NitroGen ground-truth state export.
++-- The Python env passes SOLARUS_STATE_EXPORT=<path>.  Solarus quests may run
++-- with a sandboxed Lua standard library, so prefer io/os when available and
++-- fall back to sol.file in the quest write directory.
++local nitrogen_state_export_path = nil
++if os ~= nil and type(os.getenv) == "function" then
++  local ok, value = pcall(os.getenv, "SOLARUS_STATE_EXPORT")
++  if ok then
++    nitrogen_state_export_path = value
++  end
++end
++
++local function nitrogen_make_io_writer(path)
++  if path == nil or path == "" or io == nil or type(io.open) ~= "function" then
++    return nil
++  end
++  local ok, file = pcall(io.open, path, "w")
++  if not ok or file == nil then
++    return nil
++  end
++  file:close()
++  local temp_path = path .. ".tmp"
++  local can_rename = os ~= nil and type(os.rename) == "function"
++  return function(line)
++    if can_rename then
++      local tmp_ok, tmp = pcall(io.open, temp_path, "w")
++      if tmp_ok and tmp ~= nil then
++        tmp:write(line)
++        tmp:flush()
++        tmp:close()
++        local rename_ok = pcall(os.rename, temp_path, path)
++        if rename_ok then
++          return true
++        end
++      end
++    end
++    local write_ok, out = pcall(io.open, path, "w")
++    if write_ok and out ~= nil then
++      out:write(line)
++      out:flush()
++      out:close()
++      return true
++    end
++    return false
++  end
++end
++
++local function nitrogen_make_sol_file_writer(path)
++  if sol.file == nil or type(sol.file.open) ~= "function" then
++    return nil
++  end
++  local ok, file = pcall(sol.file.open, path, "w")
++  if not ok or file == nil then
++    return nil
++  end
++  file:close()
++  return function(line)
++    local write_ok, out = pcall(sol.file.open, path, "w")
++    if write_ok and out ~= nil then
++      out:write(line)
++      out:flush()
++      out:close()
++      return true
++    end
++    return false
++  end
++end
++
++local nitrogen_write_state = nitrogen_make_io_writer(nitrogen_state_export_path)
++local nitrogen_state_export_method = "io.open(os.getenv('SOLARUS_STATE_EXPORT'))"
++if nitrogen_write_state == nil then
++  nitrogen_write_state = nitrogen_make_sol_file_writer("nitrogen_solarus_state.txt")
++  nitrogen_state_export_method = "sol.file.open('nitrogen_solarus_state.txt')"
++end
++if nitrogen_write_state == nil then
++  nitrogen_state_export_method = "stdout"
++end
++print("NitroGen Solarus state export using " .. nitrogen_state_export_method)
++
++local function nitrogen_state_field(value)
++  value = tostring(value or "none")
++  return value:gsub("%s+", "_")
++end
++
++local function nitrogen_bool(value)
++  return value and 1 or 0
++end
++
++local function nitrogen_export_state()
++  local running = 0
++  local x, y, layer = 0, 0, 0
++  local life, max_life = 0, 0
++  local paused = 0
++  local in_menu = 1
++  local map_id = "menu"
++
++  local game = sol.main.get_game()
++  if game ~= nil then
++    local ok_paused, paused_value = pcall(function()
++      if type(game.is_paused) == "function" then
++        return game:is_paused()
++      end
++      return false
++    end)
++    if ok_paused then
++      paused = nitrogen_bool(paused_value)
++    end
++
++    local ok_hero, hero = pcall(function()
++      return game:get_hero()
++    end)
++    local ok_map, map = pcall(function()
++      return game:get_map()
++    end)
++
++    if ok_hero and hero ~= nil and ok_map and map ~= nil then
++      local ok_pos, px, py, player_layer = pcall(function()
++        return hero:get_position()
++      end)
++      if ok_pos then
++        running = 1
++        in_menu = paused
++        x = tonumber(px) or 0
++        y = tonumber(py) or 0
++        layer = tonumber(player_layer) or 0
++
++        local ok_life, current_life = pcall(function()
++          return game:get_life()
++        end)
++        if ok_life then
++          life = tonumber(current_life) or 0
++        end
++
++        local ok_max_life, current_max_life = pcall(function()
++          return game:get_max_life()
++        end)
++        if ok_max_life then
++          max_life = tonumber(current_max_life) or 0
++        end
++
++        local ok_map_id, current_map_id = pcall(function()
++          return map:get_id()
++        end)
++        if ok_map_id then
++          map_id = nitrogen_state_field(current_map_id)
++        end
++      end
++    end
++  end
++
++  local line = string.format("%d %.2f %.2f %d %d %d %d %d %s\n",
++      running, x, y, layer, life, max_life, paused, in_menu, map_id)
++  if nitrogen_write_state ~= nil then
++    nitrogen_write_state(line)
++  else
++    print("NITROGEN_SOLARUS_STATE " .. line)
++  end
++end
++
++sol.main:register_event("on_update", nitrogen_export_state)
++
+ -- Event called when the player pressed a keyboard key.
+ function sol.main:on_key_pressed(key, modifiers)
+ 

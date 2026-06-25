@@ -23,3 +23,10 @@ docs/DATAFLOW.md.bak
 # Local data pools / extraction outputs
 /tmp/
 /.nitrogen-env-build/
+
+# Commercial-game ROMs + YouTube-derived frames (copyrighted; research-local only, never commit)
+/Game data/
+docs/yt_farm/
+# Emulator/recorded gameplay frames (ROM-derived data, not code)
+docs/idm_data/
+docs/recordings/

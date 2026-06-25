@@ -1,0 +1,154 @@
+env=solarus_zelda  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=4  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are a top-down adventurer. What should the agent do next to explore?
+
+# re-plan#00  plan='Move right to continue exploring the area near the wooden house and fence.'
+  exec0: stick=(+0.42,-0.06) buttons=A/jump,X/shoot,B,Y  state={'x': 1008.0, 'y': 607.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.28,-0.07) buttons=A/jump,X/shoot,B,Y  state={'x': 1008.0, 'y': 601.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.25,-0.01) buttons=A/jump,B,Y  state={'x': 1008.0, 'y': 601.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.24,+0.07) buttons=A/jump,B  state={'x': 1008.0, 'y': 601.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#01  plan='Move right to continue exploring the area near the large tree and the fenced building.'
+  exec0: stick=(+0.89,+0.81) buttons=Y  state={'x': 128.0, 'y': 213.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.90,+0.89) buttons=A/jump,B,Y  state={'x': 128.0, 'y': 213.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.87,+0.89) buttons=A/jump,B,Y  state={'x': 128.0, 'y': 225.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.91,+0.85) buttons=A/jump,B,Y  state={'x': 128.0, 'y': 234.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#02  plan='Move right to continue exploring the interior of the house.'
+  exec0: stick=(-0.13,+0.66) buttons=A/jump,X/shoot,B,LT/brake,Dr  state={'x': 128.0, 'y': 234.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.27,+0.93) buttons=A/jump,X/shoot,B,LT/brake,Dr  state={'x': 1008.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.33,+0.96) buttons=A/jump,X/shoot,B,LT/brake,Dr  state={'x': 1008.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.42,+0.93) buttons=A/jump,B,LT/brake,Dr  state={'x': 1008.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#03  plan='Move right to continue exploring the area outside the house.'
+  exec0: stick=(-0.16,-0.49) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(-0.31,-0.54) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(-0.92,-0.56) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(-0.97,-0.40) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#04  plan='Move right to continue exploring the area outside the house.'
+  exec0: stick=(+1.13,+1.07) buttons=X/shoot  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.36,+1.14) buttons=A/jump,X/shoot  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+1.10,+1.05) buttons=X/shoot  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.99,+0.99) buttons=-  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#05  plan='Move down to investigate the area near the path and the character with purple hair.'
+  exec0: stick=(+0.02,-0.04) buttons=X/shoot  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.02,+0.11) buttons=X/shoot  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(-0.03,+0.03) buttons=X/shoot  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(-0.01,+0.09) buttons=X/shoot  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#06  plan='Move right to explore the area near the large house and the character in green.'
+  exec0: stick=(+0.53,+1.19) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.50,+1.19) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.54,+1.20) buttons=B  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.53,+1.19) buttons=B  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#07  plan='Move right to explore the area near the large house and the character with the green hat.'
+  exec0: stick=(+0.56,+0.85) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.00,+0.93) buttons=A/jump,X/shoot  state={'x': 965.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.31,+0.78) buttons=A/jump,X/shoot  state={'x': 965.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.27,+0.80) buttons=A/jump,X/shoot  state={'x': 965.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#08  plan='Move right to explore the area near the large house and the tree.'
+  exec0: stick=(+0.42,+0.95) buttons=A/jump  state={'x': 965.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.39,+0.97) buttons=A/jump  state={'x': 965.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.45,+0.96) buttons=A/jump  state={'x': 965.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.50,+0.94) buttons=-  state={'x': 965.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#09  plan='Move right to explore the area near the large house and the character in green.'
+  exec0: stick=(-0.34,+0.61) buttons=Y  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(-0.28,+0.68) buttons=Y  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(-0.24,+0.63) buttons=Y  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(-0.11,+0.60) buttons=Y,LB  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#10  plan='Move right to continue exploring the area beyond the current path.'
+  exec0: stick=(+0.82,+0.29) buttons=B  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.88,+0.38) buttons=B  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.95,+0.59) buttons=B,Y  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.99,+0.78) buttons=A/jump,B,Y  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#11  plan='Move right to continue exploring the area.'
+  exec0: stick=(+0.46,+0.99) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.17,+0.83) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.23,+0.97) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.18,+0.88) buttons=-  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#12  plan='Move right to explore the area near the character in blue armor.'
+  exec0: stick=(+0.80,+0.09) buttons=-  state={'x': 1027.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.80,+0.07) buttons=Dr  state={'x': 1072.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.79,+0.05) buttons=Dr  state={'x': 1072.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.69,+0.02) buttons=-  state={'x': 1072.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#13  plan='Move right to continue exploring the area near the large house.'
+  exec0: stick=(+0.85,+1.03) buttons=B,Dn  state={'x': 1072.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.99,+0.99) buttons=A/jump,X/shoot,B,Y,LB  state={'x': 1072.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.95,+1.02) buttons=A/jump,X/shoot,B,Y,LB  state={'x': 1072.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.87,+1.01) buttons=A/jump,X/shoot,B,Y,LB  state={'x': 1072.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#14  plan='Move right to investigate the character standing near the fence.'
+  exec0: stick=(-0.15,+0.90) buttons=-  state={'x': 1009.0, 'y': 621.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.26,+0.98) buttons=-  state={'x': 1007.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.50,+1.01) buttons=-  state={'x': 1007.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+1.04,+0.53) buttons=-  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#15  plan='Move right to continue exploring the area near the water.'
+  exec0: stick=(+0.13,+0.07) buttons=A/jump,X/shoot  state={'x': 1008.0, 'y': 627.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.14,+0.13) buttons=A/jump,X/shoot  state={'x': 1002.0, 'y': 621.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.14,+0.26) buttons=A/jump,X/shoot  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.05,+0.15) buttons=A/jump,X/shoot,Y  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#16  plan='Move right to continue exploring the area near the water.'
+  exec0: stick=(+0.53,+1.02) buttons=B,LB  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.48,+1.04) buttons=B,LB  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.43,+1.05) buttons=B  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.53,+1.06) buttons=B  state={'x': 960.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#17  plan='Move right to continue exploring the area beyond the current path.'
+  exec0: stick=(+1.37,+1.02) buttons=A/jump,Dr  state={'x': 967.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.31,+0.90) buttons=A/jump,Dr  state={'x': 976.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+1.32,+0.99) buttons=A/jump,X/shoot,Y  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+1.29,+1.05) buttons=A/jump,X/shoot,Y  state={'x': 1016.0, 'y': 629.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#18  plan='Move down to investigate the area near the path and the character with purple hair.'
+  exec0: stick=(+0.14,-0.08) buttons=A/jump,X/shoot  state={'x': 1011.0, 'y': 627.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.46,-0.07) buttons=A/jump  state={'x': 1011.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.56,-0.02) buttons=A/jump  state={'x': 1011.0, 'y': 613.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.70,+0.04) buttons=-  state={'x': 1008.0, 'y': 601.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#19  plan='Move right to continue exploring the area beyond the current path.'
+  exec0: stick=(-0.76,-0.61) buttons=Dr  state={'x': 1008.0, 'y': 601.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '3', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(-0.80,-0.44) buttons=X/shoot,Dr  state={'x': 128.0, 'y': 213.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(-0.79,-0.51) buttons=X/shoot,B,Dr  state={'x': 128.0, 'y': 213.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(-0.80,-0.51) buttons=X/shoot,B,Dr  state={'x': 128.0, 'y': 213.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#20  plan='Move up to enter the room and explore its contents.'
+  exec0: stick=(+0.27,-0.04) buttons=B,LB  state={'x': 120.0, 'y': 161.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.21,+0.01) buttons=A/jump,B,LB  state={'x': 117.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.14,+0.23) buttons=A/jump,B,LB  state={'x': 108.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.10,+0.34) buttons=A/jump,B,LB  state={'x': 80.0, 'y': 157.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#21  plan='Move down to investigate the area near the character with purple hair, as this is a likely location for hidden items or enemies.'
+  exec0: stick=(+0.53,-0.04) buttons=-  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.40,-0.01) buttons=-  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.45,-0.03) buttons=X/shoot  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.40,-0.01) buttons=X/shoot  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#22  plan='Move down to investigate the area below the table.'
+  exec0: stick=(+0.94,+0.23) buttons=B  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(-0.07,+0.07) buttons=A/jump,X/shoot,B  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.05,-0.38) buttons=A/jump,X/shoot,B,Y  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.10,-0.41) buttons=A/jump,X/shoot,B,Y  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#23  plan='The agent should move down, as this is the only available path to continue exploring the room.'
+  exec0: stick=(+1.26,+0.83) buttons=A/jump,B,Y  state={'x': 80.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.10,+0.75) buttons=A/jump,X/shoot,Y  state={'x': 145.0, 'y': 101.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.80,+1.08) buttons=X/shoot,Y  state={'x': 200.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.81,+0.80) buttons=X/shoot,Y  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#24  plan='Move right to access the chest containing the key needed to open the door on the right side of the room.'
+  exec0: stick=(+0.39,+0.92) buttons=A/jump,B  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.38,+0.93) buttons=A/jump,B  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+0.37,+0.96) buttons=A/jump,B  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+0.45,+0.96) buttons=A/jump,B  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#25  plan='Move right to access the new area containing the green gem and chest.'
+  exec0: stick=(+1.01,+0.48) buttons=B,LB  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.99,+0.46) buttons=B,LB  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+1.00,+0.46) buttons=B,LB  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+1.02,+0.46) buttons=A/jump,B,LB  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#26  plan='Move right to access the locked door and the hidden area beyond it.'
+  exec0: stick=(+0.88,+0.67) buttons=A/jump,B  state={'x': 208.0, 'y': 133.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(-0.12,-0.58) buttons=A/jump,B  state={'x': 187.0, 'y': 112.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(-0.19,-0.63) buttons=B  state={'x': 143.0, 'y': 68.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+1.64,+1.28) buttons=A/jump,B  state={'x': 143.0, 'y': 63.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#27  plan='Move up to access the bookshelf and retrieve the book.'
+  exec0: stick=(+1.14,-0.04) buttons=A/jump,X/shoot,LT/brake  state={'x': 146.0, 'y': 61.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+0.88,+0.13) buttons=A/jump,X/shoot  state={'x': 162.0, 'y': 58.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+1.11,+0.12) buttons=A/jump,X/shoot,LT/brake  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+1.07,-0.03) buttons=A/jump,X/shoot,LT/brake  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#28  plan='Move right to access the new area containing the chest and the glowing orb.'
+  exec0: stick=(+1.15,+0.09) buttons=-  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.20,+0.04) buttons=X/shoot  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+1.26,+0.08) buttons=X/shoot  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+1.23,+0.07) buttons=A/jump,X/shoot  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+# re-plan#29  plan='Move right to access the new area and continue exploring.'
+  exec0: stick=(-0.14,-0.93) buttons=-  state={'x': 160.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec1: stick=(+1.32,-0.10) buttons=-  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec2: stick=(+1.36,-0.05) buttons=-  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}
+  exec3: stick=(+1.29,+0.06) buttons=-  state={'x': 176.0, 'y': 53.0, 'layer': 0, 'life': 12, 'lives': 12, 'max_life': 12, 'map': '28', 'running': 1, 'paused': 0, 'in_menu': 0}

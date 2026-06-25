@@ -1,0 +1,184 @@
+env=stk  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=2  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are driving a kart. What should the agent do next to stay on the track and race well?
+
+# re-plan#00  plan='The agent should move right to stay on the track and race well because the kart is currently positioned slightly off the track to the left, and moving right will help correct this alignment.'
+  exec0: stick=(+0.01,-0.07) buttons=-  state={}
+  exec1: stick=(+0.07,-0.07) buttons=-  state={}
+# re-plan#01  plan='The agent should move left to stay on the track and avoid the pit lane, which is the concrete direction to move.'
+  exec0: stick=(+0.47,+0.95) buttons=X/shoot  state={}
+  exec1: stick=(+0.48,+0.95) buttons=X/shoot  state={}
+# re-plan#02  plan='The agent should move right, as the checkered finish line is directly ahead and moving right will keep the kart on the track.'
+  exec0: stick=(+0.87,+0.12) buttons=-  state={}
+  exec1: stick=(+0.89,+0.13) buttons=-  state={}
+# re-plan#03  plan='The agent should steer right to stay on the track and race well.'
+  exec0: stick=(-0.29,-0.36) buttons=RT/accel  state={}
+  exec1: stick=(-0.39,-0.44) buttons=RT/accel  state={}
+# re-plan#04  plan='The agent should move forward to stay on the track and race well.'
+  exec0: stick=(-0.03,+0.28) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(-0.05,+0.25) buttons=X/shoot,B,Y,RT/accel  state={}
+# re-plan#05  plan='The agent should move left because the kart is currently off the track and needs to reposition to stay on the path.'
+  exec0: stick=(+0.99,+0.60) buttons=B,RT/accel,Dl  state={}
+  exec1: stick=(+0.99,+0.58) buttons=B,RT/accel,Dl  state={}
+# re-plan#06  plan='The agent should move right to stay on the track and race well because the kart is currently off the track and needs to correct its position.'
+  exec0: stick=(+1.27,+1.41) buttons=B,RT/accel  state={}
+  exec1: stick=(+1.32,+1.39) buttons=B,RT/accel  state={}
+# re-plan#07  plan='The agent should move right, as the kart is currently positioned on the checkered finish line and needs to transition onto the dirt track to continue racing.'
+  exec0: stick=(+0.44,+1.09) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+0.34,+1.08) buttons=X/shoot,RT/accel  state={}
+# re-plan#08  plan='The agent should steer right to follow the white track line and avoid the off-road terrain.'
+  exec0: stick=(-0.10,+0.05) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec1: stick=(-0.06,+0.08) buttons=A/jump,X/shoot,RT/accel  state={}
+# re-plan#09  plan='The agent should move left to stay on the track and avoid the obstacle ahead.'
+  exec0: stick=(+0.54,+1.06) buttons=B,RT/accel,LB  state={}
+  exec1: stick=(+0.54,+1.07) buttons=B,RT/accel,LB  state={}
+# re-plan#10  plan='The agent should move forward to stay on the track and race well.'
+  exec0: stick=(+0.94,+0.48) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.95,+0.38) buttons=B,RT/accel  state={}
+# re-plan#11  plan='The agent should move forward to stay on the track and race well.'
+  exec0: stick=(+1.02,+0.33) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+1.03,+0.38) buttons=X/shoot,RT/accel  state={}
+# re-plan#12  plan='The agent should move left because the kart is currently off the track, and moving left will bring it back onto the path.'
+  exec0: stick=(+0.62,+0.00) buttons=RT/accel,LB  state={}
+  exec1: stick=(+0.60,-0.04) buttons=RT/accel  state={}
+# re-plan#13  plan='The agent should move forward to stay on the track and race well.'
+  exec0: stick=(+1.00,+0.35) buttons=-  state={}
+  exec1: stick=(+1.00,+0.47) buttons=B  state={}
+# re-plan#14  plan='The agent should steer right to follow the track's path and maintain a safe distance from the oncoming kart.'
+  exec0: stick=(+1.08,+0.07) buttons=Start  state={}
+  exec1: stick=(+1.06,+0.19) buttons=B,Start  state={}
+# re-plan#15  plan='The kart is currently positioned on the right side of the track, leaving a significant gap between the kart and the left edge of the drivable path.'
+  exec0: stick=(+0.18,+0.89) buttons=-  state={}
+  exec1: stick=(+0.18,+0.90) buttons=-  state={}
+# re-plan#16  plan='The kart is currently positioned on the right side of the track, leaving a significant gap between the kart and the left wall.'
+  exec0: stick=(+0.23,+0.94) buttons=B  state={}
+  exec1: stick=(+0.53,+0.64) buttons=X/shoot,B  state={}
+# re-plan#17  plan='The agent should move left to stay on the track and avoid the obstacle on the road.'
+  exec0: stick=(+0.78,+1.04) buttons=X/shoot,B,Y,RT/accel  state={}
+  exec1: stick=(+0.78,+0.98) buttons=A/jump,X/shoot,B,Y,RT/accel  state={}
+# re-plan#18  plan='The agent should move left to stay on the track and avoid the wall, as the kart is currently positioned too far to the right.'
+  exec0: stick=(+0.65,+1.09) buttons=-  state={}
+  exec1: stick=(+0.67,+1.12) buttons=X/shoot  state={}
+# re-plan#19  plan='left'
+  exec0: stick=(-0.47,+1.16) buttons=-  state={}
+  exec1: stick=(-0.79,+1.40) buttons=B  state={}
+# re-plan#20  plan='The agent should move left to stay on the track and avoid the obstacle on the road.'
+  exec0: stick=(+0.84,+0.01) buttons=A/jump,X/shoot,B  state={}
+  exec1: stick=(+0.96,-0.03) buttons=A/jump,X/shoot,B  state={}
+# re-plan#21  plan='The agent should move left to stay on the track and avoid the pit lane, which is the concrete direction to move.'
+  exec0: stick=(+0.60,+1.01) buttons=A/jump,X/shoot  state={}
+  exec1: stick=(+0.65,+1.04) buttons=A/jump,X/shoot  state={}
+# re-plan#22  plan='The agent should move left to stay on the track and avoid the obstacle on the road.'
+  exec0: stick=(+0.94,+0.82) buttons=X/shoot  state={}
+  exec1: stick=(+0.92,+0.86) buttons=X/shoot  state={}
+# re-plan#23  plan='The agent should move left to stay on the track and avoid the obstacle.'
+  exec0: stick=(+0.38,+0.99) buttons=-  state={}
+  exec1: stick=(+0.36,+1.00) buttons=-  state={}
+# re-plan#24  plan='left'
+  exec0: stick=(+2.85,+2.40) buttons=X/shoot,B  state={}
+  exec1: stick=(+1.33,+1.25) buttons=A/jump,X/shoot,B  state={}
+# re-plan#25  plan='left'
+  exec0: stick=(+0.06,-0.75) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.60,-0.75) buttons=A/jump,B,RT/accel  state={}
+# re-plan#26  plan='left'
+  exec0: stick=(+0.35,+2.52) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.46,+2.66) buttons=B,RT/accel  state={}
+# re-plan#27  plan='left'
+  exec0: stick=(+1.51,+1.95) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+2.08,+1.48) buttons=A/jump,X/shoot,B,RT/accel  state={}
+# re-plan#28  plan='left'
+  exec0: stick=(+2.32,+2.55) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+1.79,+1.44) buttons=A/jump,B,RT/accel  state={}
+# re-plan#29  plan='The agent should move right to follow the track's path and avoid the obstacle on the left.'
+  exec0: stick=(-0.10,+0.75) buttons=RT/accel  state={}
+  exec1: stick=(-0.23,+1.08) buttons=RT/accel  state={}
+# re-plan#30  plan='The agent should move right to stay on the track and race well.'
+  exec0: stick=(+0.63,-0.05) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.72,+0.00) buttons=A/jump,X/shoot,B,RT/accel  state={}
+# re-plan#31  plan='The agent should move left to stay on the track and avoid the oncoming car, as indicated by the "WRONG WAY!" message and the position of the other kart.'
+  exec0: stick=(+0.74,+0.94) buttons=A/jump  state={}
+  exec1: stick=(+0.74,+0.93) buttons=A/jump  state={}
+# re-plan#32  plan='The agent should move left to stay on the track and avoid the "WRONG WAY!" message and obstacles.'
+  exec0: stick=(+0.09,+0.56) buttons=-  state={}
+  exec1: stick=(+0.04,+0.34) buttons=B  state={}
+# re-plan#33  plan='The agent should move left to stay on the track and avoid the "WRONG WAY!" message, which indicates the kart is off the path.'
+  exec0: stick=(+0.96,+0.42) buttons=X/shoot,B,RT/accel,Dl  state={}
+  exec1: stick=(+0.96,+0.42) buttons=X/shoot,B,RT/accel,Dl  state={}
+# re-plan#34  plan='The agent should steer left to follow the white track line and avoid the "WRONG WAY!" message, which indicates the current path is off-course.'
+  exec0: stick=(+0.95,+0.02) buttons=X/shoot,B,Y  state={}
+  exec1: stick=(+0.97,+0.05) buttons=A/jump,X/shoot,B  state={}
+# re-plan#35  plan='The agent should move left to stay on the track and avoid the oncoming kart, as indicated by the white line on the minimap.'
+  exec0: stick=(+0.88,+0.17) buttons=B  state={}
+  exec1: stick=(+0.87,+0.17) buttons=B  state={}
+# re-plan#36  plan='jump'
+  exec0: stick=(+0.86,+0.71) buttons=A/jump  state={}
+  exec1: stick=(+1.10,+0.91) buttons=A/jump,X/shoot  state={}
+# re-plan#37  plan='The kart is currently off the track and moving away from the designated path.'
+  exec0: stick=(+0.47,+1.19) buttons=X/shoot  state={}
+  exec1: stick=(+0.47,+1.22) buttons=X/shoot  state={}
+# re-plan#38  plan='The agent should move left to stay on the track and avoid the oncoming kart, as indicated by the "WRONG WAY!" message and the kart's position relative to the track.'
+  exec0: stick=(+0.63,+1.56) buttons=A/jump,RT/accel  state={}
+  exec1: stick=(+0.61,+1.55) buttons=A/jump,RT/accel  state={}
+# re-plan#39  plan='The agent should move left to stay on the track and avoid the oncoming kart, as indicated by the "WRONG WAY!" message and the kart's position relative to the track.'
+  exec0: stick=(+0.10,+0.01) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec1: stick=(+0.11,+0.02) buttons=X/shoot,RT/accel  state={}
+# re-plan#40  plan='The agent should move left to stay on the track and avoid the oncoming kart, as indicated by the "WRONG WAY!" message and the kart's position relative to the track boundary.'
+  exec0: stick=(+0.67,+0.84) buttons=-  state={}
+  exec1: stick=(+0.54,+0.88) buttons=-  state={}
+# re-plan#41  plan='left'
+  exec0: stick=(+2.52,+0.13) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+2.42,+0.50) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#42  plan='The agent should move left to stay on the track and avoid the obstacle.'
+  exec0: stick=(+0.93,+0.50) buttons=RT/accel  state={}
+  exec1: stick=(+0.79,+0.49) buttons=X/shoot,RT/accel  state={}
+# re-plan#43  plan='The agent should move right to stay on the track and race well because the current path is off the course, and moving right will guide the kart back onto the designated racing line.'
+  exec0: stick=(+1.00,+1.42) buttons=-  state={}
+  exec1: stick=(+1.05,+1.63) buttons=-  state={}
+# re-plan#44  plan='The agent should move right, as the track curves rightward and the kart is currently positioned to the left of the path, which is necessary to follow the course.'
+  exec0: stick=(+0.40,+0.93) buttons=RT/accel,LT/brake  state={}
+  exec1: stick=(+0.37,+0.95) buttons=RT/accel,LT/brake  state={}
+# re-plan#45  plan='right'
+  exec0: stick=(+0.15,-1.01) buttons=B,RT/accel  state={}
+  exec1: stick=(-0.27,-1.77) buttons=B,RT/accel  state={}
+# re-plan#46  plan='right'
+  exec0: stick=(+2.06,-0.04) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+1.07,-0.27) buttons=A/jump,B,RT/accel  state={}
+# re-plan#47  plan='The agent should move right, as the track curves rightward and the kart is currently positioned to the left of the path, which would cause it to veer off the course.'
+  exec0: stick=(+0.83,+0.58) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+1.14,+0.98) buttons=A/jump,B,RT/accel  state={}
+# re-plan#48  plan='The agent should move right, as the track curves rightward and the kart is currently positioned to the left of the path, which is necessary to follow the course.'
+  exec0: stick=(-0.65,-0.55) buttons=RT/accel,Start  state={}
+  exec1: stick=(-0.68,-0.53) buttons=X/shoot,RT/accel,Start  state={}
+# re-plan#49  plan='The agent should move right, as the track curves rightward and the kart is currently positioned to the left of the path, which is necessary to follow the course.'
+  exec0: stick=(+0.04,+0.42) buttons=B,RT/accel,LB  state={}
+  exec1: stick=(+0.85,+0.90) buttons=B,RT/accel,LB  state={}
+# re-plan#50  plan='The agent should move right, as the kart is currently positioned on the left side of the track and moving forward will cause it to leave the drivable path.'
+  exec0: stick=(+0.71,+0.96) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.76,+0.93) buttons=RT/accel  state={}
+# re-plan#51  plan='left'
+  exec0: stick=(+0.61,+1.73) buttons=A/jump,X/shoot,B  state={}
+  exec1: stick=(+0.70,+2.12) buttons=A/jump,X/shoot  state={}
+# re-plan#52  plan='left'
+  exec0: stick=(+1.16,+1.12) buttons=RT/accel  state={}
+  exec1: stick=(+1.40,+1.60) buttons=RT/accel  state={}
+# re-plan#53  plan='The kart is currently off the track, as indicated by the large gap between the car and the white line on the minimap.'
+  exec0: stick=(+0.13,+0.32) buttons=X/shoot,B,Y  state={}
+  exec1: stick=(+0.12,+0.64) buttons=X/shoot,B  state={}
+# re-plan#54  plan='The kart is currently on a steep, upward slope.'
+  exec0: stick=(+0.43,+1.08) buttons=RT/accel  state={}
+  exec1: stick=(+0.16,+1.04) buttons=B,RT/accel  state={}
+# re-plan#55  plan='right'
+  exec0: stick=(+0.28,-1.39) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(-0.13,-1.58) buttons=B,RT/accel  state={}
+# re-plan#56  plan='left'
+  exec0: stick=(+1.12,+0.70) buttons=B,RT/accel  state={}
+  exec1: stick=(+1.25,+0.50) buttons=B,RT/accel  state={}
+# re-plan#57  plan='left'
+  exec0: stick=(-0.25,+0.31) buttons=B,RT/accel  state={}
+  exec1: stick=(-0.18,+0.32) buttons=B,RT/accel  state={}
+# re-plan#58  plan='left'
+  exec0: stick=(+1.10,+0.98) buttons=B  state={}
+  exec1: stick=(+0.36,+0.46) buttons=B  state={}
+# re-plan#59  plan='jump'
+  exec0: stick=(+0.58,+0.99) buttons=A/jump  state={}
+  exec1: stick=(+0.65,+1.17) buttons=A/jump,X/shoot,Y  state={}

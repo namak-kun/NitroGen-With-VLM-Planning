@@ -19,6 +19,7 @@ class DustRacingEnv(ProcGameEnv):
     window_name = "Dust Racing"
     control = "keyboard"
     window_manager = "matchbox-window-manager"
+    reset_by_relaunch = True             # menu-driven race setup: respawn for a clean reset
 
     def __init__(self, always_accel: bool = True, width: int = 800, height: int = 600,
                  boot_wait: float = 14.0, **kw):

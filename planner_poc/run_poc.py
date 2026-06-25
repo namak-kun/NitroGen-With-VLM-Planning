@@ -43,41 +43,112 @@ PLAN_TEXT = {
 }
 
 
+# Registry for the remaining built env classes that take the standard (boot_wait, freeze_during_inference)
+# constructor. Keeps make_env_factory's explicit if-chain for envs needing special args (stk, custom
+# levels, emulators) while making EVERY built env reachable from the recorder/POC harness.
+ENV_REGISTRY = {
+    "baba": ("baba", "BabaEnv", 14.0),
+    "cavestory": ("cavestory", "CaveStoryEnv", 11.0),
+    "dustracing": ("dustracing", "DustRacingEnv", 14.0),
+    "flare_arpg": ("flare_arpg", "FlareARPGEnv", 14.0),
+    "freedink": ("freedink", "FreeDinkEnv", 14.0),
+    "ikemen": ("ikemen", "IkemenEnv", 16.0),
+    "mrrescue": ("mrrescue", "MrRescueEnv", 12.0),
+    "naev": ("naev", "NaevEnv", 16.0),
+    "openmw": ("openmw", "OpenMWEnv", 20.0),
+    "opentyrian": ("opentyrian", "OpenTyrianEnv", 12.0),
+    "parsec47": ("parsec47", "Parsec47Env", 12.0),
+    "pekka_kana_2": ("pekka_kana_2", "PekkaKana2Env", 12.0),
+    "shattered_pd": ("shattered_pd", "ShatteredPDEnv", 16.0),
+    "sokoban": ("sokoban", "SokobanEnv", 12.0),
+    "starfighter": ("starfighter", "StarfighterEnv", 12.0),
+    "theseeker": ("theseeker", "TheSeekerEnv", 16.0),
+    "wesnoth": ("wesnoth", "WesnothEnv", 16.0),
+    "zelda_classic": ("zelda_classic", "ZeldaClassicEnv", 14.0),
+    "daemon_vs_demon": ("daemon_vs_demon", "DaemonVsDemonEnv", 14.0),
+    "mighty_retro_zero": ("mighty_retro_zero", "MightyRetroZeroEnv", 14.0),
+    "mmx8": ("mmx8", "MMX8Env", 16.0),
+    "megaman_maverick": ("megaman_maverick", "MegamanMaverickEnv", 16.0),
+    "floatmancer": ("floatmancer", "FloatmancerEnv", 12.0),
+    "platformer_challenge": ("platformer_challenge", "PlatformerChallengeEnv", 12.0),
+    "space_rescue_squad": ("space_rescue_squad", "SpaceRescueSquadEnv", 12.0),
+}
+
+# Special-cased env names handled explicitly in factory() (custom args / custom levels / emulators).
+SPECIAL_ENVS = {"stk", "sdlpop", "thextech", "thextech_get_flower", "notebook_adventure",
+                "blind_jump", "castlevania_godot", "xmoto", "trigger_rally", "solarus_zelda",
+                "chromium_bsu", "blobwars", "witchblast"}
+KNOWN_ENVS = SPECIAL_ENVS | set(ENV_REGISTRY)
+
+# Envs whose build ARTIFACTS were lost (verified by planner_poc/env_healthcheck.py 2026-06-24): they
+# raise FileNotFoundError/RuntimeError at construction. Hidden from list_envs() by default so the
+# recorder dropdown doesn't surface dead options. Re-fetch/rebuild the artifact to re-enable. The
+# value is the missing piece (for whoever restores it).
+BROKEN_ENVS = {
+    "daemon_vs_demon": "Godot 2.1.6 binary missing (.nitrogen-env-build/godot...)",
+    "megaman_maverick": "built LWJGL3 jar missing (.nitrogen-env-build/megaman-maverick/...)",
+    "openmw": "OpenMW free Example Suite data missing",
+    "theseeker": "The Seeker binary missing (.nitrogen-env-build/TheSeeker...)",
+    "zelda_classic": "ZQuest Classic zplayer runtime missing (.nitrogen-env-build/zelda_classic/runtime)",
+}
+
+
+def list_envs(include_broken=False):
+    """Env names make_env_factory can build. Excludes envs with lost build artifacts by default
+    (see BROKEN_ENVS) so the recorder only offers ones that actually boot."""
+    names = KNOWN_ENVS if include_broken else (KNOWN_ENVS - set(BROKEN_ENVS))
+    return sorted(names)
+
+
 def make_env_factory(name, **kw):
     """Return a 0-arg factory that boots a FRESH env (clean same-start per plan)."""
     def factory():
         if name == "stk":
             from nitrogen.eval.envs.supertuxkart import SuperTuxKartEnv
             return SuperTuxKartEnv(track=kw.get("track", "hacienda"), ai=1, laps=1,
-                                   boot_wait=kw.get("boot_wait", 20.0), freeze_during_inference=True)
+                                   boot_wait=kw.get("boot_wait", 20.0), freeze_during_inference=kw.get("freeze", True))
         if name == "sdlpop":
             from nitrogen.eval.envs.sdlpop import SDLPoPEnv
-            return SDLPoPEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
+            return SDLPoPEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=kw.get("freeze", True))
         if name == "thextech":
             from nitrogen.eval.envs.thextech import TheXTechEnv
-            return TheXTechEnv(boot_wait=kw.get("boot_wait", 15.0), freeze_during_inference=True)
+            return TheXTechEnv(boot_wait=kw.get("boot_wait", 15.0), freeze_during_inference=kw.get("freeze", True))
+        if name == "thextech_get_flower":
+            from nitrogen.eval.envs.thextech import TheXTechGetFlowerEnv
+            return TheXTechGetFlowerEnv(boot_wait=kw.get("boot_wait", 5.0), freeze_during_inference=kw.get("freeze", True))
+        if name == "notebook_adventure":
+            from nitrogen.eval.envs.notebook_adventure import NotebookAdventureEnv
+            return NotebookAdventureEnv()
+        if name == "blind_jump":
+            from nitrogen.eval.envs.blind_jump import BlindJumpEnv
+            return BlindJumpEnv()
         if name == "castlevania_godot":
             from nitrogen.eval.envs.castlevania_godot import CastlevaniaGodotEnv
-            return CastlevaniaGodotEnv(boot_wait=kw.get("boot_wait", 15.0), freeze_during_inference=True)
+            return CastlevaniaGodotEnv(boot_wait=kw.get("boot_wait", 15.0), freeze_during_inference=kw.get("freeze", True))
         if name == "xmoto":
             from nitrogen.eval.envs.xmoto import XMotoEnv
-            return XMotoEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
+            return XMotoEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=kw.get("freeze", True))
         if name == "trigger_rally":
             from nitrogen.eval.envs.trigger_rally import TriggerRallyEnv
-            return TriggerRallyEnv(boot_wait=kw.get("boot_wait", 14.0), freeze_during_inference=True)
+            return TriggerRallyEnv(boot_wait=kw.get("boot_wait", 14.0), freeze_during_inference=kw.get("freeze", True))
         if name == "solarus_zelda":
             from nitrogen.eval.envs.solarus_zelda import SolarusZeldaEnv
-            return SolarusZeldaEnv(boot_wait=kw.get("boot_wait", 14.0), freeze_during_inference=True)
+            return SolarusZeldaEnv(boot_wait=kw.get("boot_wait", 14.0), freeze_during_inference=kw.get("freeze", True))
         if name == "chromium_bsu":
             from nitrogen.eval.envs.chromium_bsu import ChromiumBSUEnv
-            return ChromiumBSUEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
+            return ChromiumBSUEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=kw.get("freeze", True))
         if name == "blobwars":
             from nitrogen.eval.envs.blobwars import BlobwarsEnv
-            return BlobwarsEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
+            return BlobwarsEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=kw.get("freeze", True))
         if name == "witchblast":
             from nitrogen.eval.envs.witchblast import WitchBlastEnv
-            return WitchBlastEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=True)
-        raise ValueError(f"unknown env {name}")
+            return WitchBlastEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=kw.get("freeze", True))
+        if name in ENV_REGISTRY:
+            mod, cls, bw = ENV_REGISTRY[name]
+            import importlib
+            EnvCls = getattr(importlib.import_module(f"nitrogen.eval.envs.{mod}"), cls)
+            return EnvCls(boot_wait=kw.get("boot_wait", bw), freeze_during_inference=kw.get("freeze", True))
+        raise ValueError(f"unknown env {name!r}. Known: {', '.join(sorted(KNOWN_ENVS))}")
     return factory
 
 

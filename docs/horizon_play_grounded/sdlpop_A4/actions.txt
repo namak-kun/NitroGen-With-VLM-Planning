@@ -1,0 +1,154 @@
+env=sdlpop  ckpt=runs/stage2_2b_btn/plan_stage1_600.pt  A=4  H=18  cfg=8.0
+plan_mode=GENERATED per re-infer
+per_row=0.033s  objective=You are a platformer hero. What should the agent do next to advance through the level?
+
+# re-plan#00  plan='Jump to the right to avoid the enemy and continue advancing through the level.'
+  exec0: stick=(+0.65,+1.01) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+1.14,+1.09) buttons=X/shoot,RT/accel  state={}
+  exec2: stick=(+1.09,+1.09) buttons=X/shoot,RT/accel  state={}
+  exec3: stick=(+1.06,+1.06) buttons=X/shoot,RT/accel  state={}
+# re-plan#01  plan='The agent should jump to the right to reach the next platform, as the leftward movement is blocked by the torches and the rightward jump is necessary to progress.'
+  exec0: stick=(+0.99,+0.23) buttons=X/shoot,Y  state={}
+  exec1: stick=(+1.06,+0.30) buttons=X/shoot,B  state={}
+  exec2: stick=(+0.99,+0.23) buttons=X/shoot,B,Y,RT/accel  state={}
+  exec3: stick=(+0.92,+0.14) buttons=X/shoot,B  state={}
+# re-plan#02  plan='The agent should jump to the right to reach the next platform, as the leftmost platform is currently inaccessible due to the character's position.'
+  exec0: stick=(+0.55,+1.06) buttons=RT/accel  state={}
+  exec1: stick=(+0.51,+1.07) buttons=B,RT/accel  state={}
+  exec2: stick=(+0.50,+1.09) buttons=B,RT/accel  state={}
+  exec3: stick=(+0.48,+1.12) buttons=B,RT/accel  state={}
+# re-plan#03  plan='The agent should jump to the right to reach the next platform, as the character is currently on the leftmost ledge and must move right to progress.'
+  exec0: stick=(+1.25,+0.99) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+1.37,+0.99) buttons=X/shoot,Y,RT/accel  state={}
+  exec2: stick=(+1.35,+0.98) buttons=X/shoot,Y,RT/accel  state={}
+  exec3: stick=(+1.35,+1.00) buttons=X/shoot,RT/accel  state={}
+# re-plan#04  plan='The agent should jump to the right to reach the next platform and continue progressing through the level.'
+  exec0: stick=(+0.85,+0.55) buttons=X/shoot,RT/accel  state={}
+  exec1: stick=(+0.84,+0.55) buttons=X/shoot,B,RT/accel  state={}
+  exec2: stick=(+0.82,+0.58) buttons=X/shoot,B,RT/accel  state={}
+  exec3: stick=(+0.83,+0.57) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#05  plan='The agent should jump to the right to reach the next platform and continue progressing through the level.'
+  exec0: stick=(+1.20,+0.30) buttons=X/shoot,B  state={}
+  exec1: stick=(+1.22,+0.38) buttons=X/shoot,B  state={}
+  exec2: stick=(+1.12,+0.31) buttons=X/shoot  state={}
+  exec3: stick=(+1.12,+0.35) buttons=X/shoot  state={}
+# re-plan#06  plan='The agent should jump down to the lower platform to continue progressing through the level.'
+  exec0: stick=(+0.74,+0.03) buttons=RT/accel  state={}
+  exec1: stick=(+0.95,+0.25) buttons=RT/accel  state={}
+  exec2: stick=(+0.96,+0.34) buttons=RT/accel  state={}
+  exec3: stick=(+0.96,+0.30) buttons=RT/accel  state={}
+# re-plan#07  plan='The agent should jump down to the lower platform to continue progressing through the level.'
+  exec0: stick=(+0.96,+0.28) buttons=RT/accel  state={}
+  exec1: stick=(+0.95,+0.25) buttons=RT/accel  state={}
+  exec2: stick=(+0.94,+0.36) buttons=RT/accel  state={}
+  exec3: stick=(+0.97,+0.35) buttons=RT/accel  state={}
+# re-plan#08  plan='The agent should jump to the right to reach the next platform, as the character is currently on a lower ledge and needs to ascend to continue progressing.'
+  exec0: stick=(+0.37,+0.90) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+0.34,+0.91) buttons=A/jump,B,RT/accel  state={}
+  exec2: stick=(+0.48,+0.96) buttons=A/jump,B,Y,RT/accel  state={}
+  exec3: stick=(+0.35,+0.95) buttons=A/jump,B,Y,RT/accel  state={}
+# re-plan#09  plan='The agent should jump to the right to reach the next platform, as the left path is blocked by a wall and the right path leads to an open area.'
+  exec0: stick=(+1.13,+0.37) buttons=A/jump  state={}
+  exec1: stick=(+1.13,+0.36) buttons=A/jump  state={}
+  exec2: stick=(+1.14,+0.35) buttons=-  state={}
+  exec3: stick=(+1.13,+0.35) buttons=-  state={}
+# re-plan#10  plan='The agent should jump to the right to reach the lower platform, as this is the only viable path to continue progressing through the level.'
+  exec0: stick=(+1.19,+0.50) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec1: stick=(+1.14,+0.37) buttons=X/shoot,RT/accel  state={}
+  exec2: stick=(+1.20,+0.45) buttons=X/shoot,RT/accel  state={}
+  exec3: stick=(+1.20,+0.44) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#11  plan='The agent should jump to the right to reach the ledge above the torches, as this is the only viable path to progress forward.'
+  exec0: stick=(+0.38,+0.07) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec1: stick=(-0.29,-0.33) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec2: stick=(-0.74,-0.58) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec3: stick=(-0.62,-0.38) buttons=A/jump,RT/accel  state={}
+# re-plan#12  plan='The agent should jump to the right to reach the ledge above the enemy, as this is the only viable path to progress.'
+  exec0: stick=(+0.07,+0.59) buttons=B  state={}
+  exec1: stick=(+0.05,+0.61) buttons=B  state={}
+  exec2: stick=(+0.05,+0.58) buttons=X/shoot,B,Y  state={}
+  exec3: stick=(+0.04,+0.58) buttons=X/shoot,B,Y  state={}
+# re-plan#13  plan='The agent should jump to the right to reach the next platform, as the left path is blocked by torches and the right path leads to an open area.'
+  exec0: stick=(+0.95,+0.41) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+0.96,+0.42) buttons=A/jump,B,RT/accel  state={}
+  exec2: stick=(+0.95,+0.27) buttons=A/jump,B,RT/accel  state={}
+  exec3: stick=(+0.93,+0.15) buttons=A/jump,B,RT/accel  state={}
+# re-plan#14  plan='The agent should jump to the right to reach the lower platform and continue progressing through the level.'
+  exec0: stick=(+0.98,+0.33) buttons=A/jump,B,RT/accel,LB  state={}
+  exec1: stick=(+0.91,+0.37) buttons=A/jump,B,RT/accel,LB  state={}
+  exec2: stick=(+0.87,+0.27) buttons=A/jump,B,RT/accel  state={}
+  exec3: stick=(+0.87,+0.24) buttons=B,RT/accel  state={}
+# re-plan#15  plan='The agent should jump to the right to reach the platform where the torches are located, as this is the only viable path to progress.'
+  exec0: stick=(+0.88,+0.95) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+0.87,+0.94) buttons=B,RT/accel  state={}
+  exec2: stick=(+0.88,+0.93) buttons=RT/accel  state={}
+  exec3: stick=(+0.89,+0.95) buttons=RT/accel  state={}
+# re-plan#16  plan='The agent should jump to the right to reach the platform where the torches are located, as this is the only viable path to proceed forward.'
+  exec0: stick=(-0.06,+0.49) buttons=B,Y,RT/accel  state={}
+  exec1: stick=(-0.06,+0.53) buttons=A/jump,B,Y,RT/accel,Dl  state={}
+  exec2: stick=(-0.05,+0.65) buttons=A/jump,B,Y,RT/accel,Dl  state={}
+  exec3: stick=(-0.07,+0.51) buttons=A/jump,B,Y,RT/accel  state={}
+# re-plan#17  plan='The agent should jump to the right to reach the platform where the torches are located, as this is the only viable path to progress.'
+  exec0: stick=(-0.24,+0.17) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(-0.30,-0.02) buttons=A/jump,B,RT/accel  state={}
+  exec2: stick=(-0.32,-0.05) buttons=A/jump,B,RT/accel  state={}
+  exec3: stick=(-0.36,-0.02) buttons=A/jump,B,RT/accel  state={}
+# re-plan#18  plan='jump to reach the higher platform and continue progressing through the level.'
+  exec0: stick=(+0.97,+0.20) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.97,+0.20) buttons=A/jump,X/shoot,B,Y,RT/accel  state={}
+  exec2: stick=(+0.97,+0.19) buttons=B,RT/accel  state={}
+  exec3: stick=(+0.95,+0.19) buttons=B,RT/accel  state={}
+# re-plan#19  plan='The agent should jump to the right to reach the next platform, as the current position is blocked by the wall and the rightward jump is the only viable path forward.'
+  exec0: stick=(+0.47,-0.00) buttons=B,RT/accel  state={}
+  exec1: stick=(-0.27,-0.02) buttons=B,RT/accel  state={}
+  exec2: stick=(-0.22,+0.01) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec3: stick=(-0.19,+0.02) buttons=A/jump,X/shoot,B,RT/accel  state={}
+# re-plan#20  plan='The agent should jump to the right to reach the next platform, as the leftward jump is blocked by the wall and the rightward jump is the only viable path forward.'
+  exec0: stick=(+0.04,+0.73) buttons=X/shoot,B,RT/accel  state={}
+  exec1: stick=(+0.01,+0.68) buttons=X/shoot,B,Y,RT/accel  state={}
+  exec2: stick=(+0.08,+0.73) buttons=X/shoot,B,RT/accel  state={}
+  exec3: stick=(+0.07,+0.92) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#21  plan='The agent should jump to the right to reach the next platform, as the character is currently on a lower ledge and needs to ascend to continue progressing.'
+  exec0: stick=(+0.47,+0.02) buttons=RT/accel  state={}
+  exec1: stick=(+0.46,-0.01) buttons=A/jump,RT/accel  state={}
+  exec2: stick=(+0.47,+0.01) buttons=A/jump,RT/accel  state={}
+  exec3: stick=(+0.44,+0.01) buttons=A/jump,Y,RT/accel  state={}
+# re-plan#22  plan='The agent should jump to the right to reach the next platform, as the current position is too low to proceed.'
+  exec0: stick=(-0.15,+0.22) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(-0.20,+0.26) buttons=A/jump,B,RT/accel  state={}
+  exec2: stick=(-0.24,+0.22) buttons=A/jump,B,RT/accel  state={}
+  exec3: stick=(-0.16,+0.13) buttons=B,RT/accel  state={}
+# re-plan#23  plan='The agent should jump to the right to reach the next platform, as the current position is too low to proceed.'
+  exec0: stick=(+1.09,+0.88) buttons=B,RT/accel  state={}
+  exec1: stick=(+1.08,+0.87) buttons=B,RT/accel  state={}
+  exec2: stick=(+1.05,+0.91) buttons=A/jump,B,Y,RT/accel  state={}
+  exec3: stick=(+1.02,+0.90) buttons=A/jump,B,Y,RT/accel  state={}
+# re-plan#24  plan='The agent should jump to the right to reach the next platform, as the character is currently on the left side of the current platform and needs to move rightward to progress.'
+  exec0: stick=(+0.61,-0.07) buttons=B,RT/accel  state={}
+  exec1: stick=(+0.89,+0.16) buttons=X/shoot,B,RT/accel  state={}
+  exec2: stick=(+0.94,+0.20) buttons=X/shoot,B,RT/accel  state={}
+  exec3: stick=(+0.96,+0.23) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#25  plan='The agent should jump to the right to reach the next platform, as the current position is too low to proceed.'
+  exec0: stick=(+1.00,+0.85) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+0.99,+0.84) buttons=A/jump,B,RT/accel  state={}
+  exec2: stick=(+1.03,+0.83) buttons=B,RT/accel  state={}
+  exec3: stick=(+0.98,+0.83) buttons=X/shoot,B,RT/accel  state={}
+# re-plan#26  plan='The agent should jump to the right to reach the next platform, as the current position is too low to proceed.'
+  exec0: stick=(+1.03,+0.86) buttons=A/jump,B,RT/accel  state={}
+  exec1: stick=(+0.96,+0.82) buttons=B,Y,RT/accel  state={}
+  exec2: stick=(+0.96,+0.83) buttons=B,Y,RT/accel,LB  state={}
+  exec3: stick=(+0.96,+0.84) buttons=B,Y,RT/accel,LB  state={}
+# re-plan#27  plan='The agent should jump to the right to reach the next platform, as the current position is too low to proceed.'
+  exec0: stick=(-0.50,+0.75) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec1: stick=(-0.43,+0.73) buttons=A/jump,X/shoot,RT/accel  state={}
+  exec2: stick=(-0.36,+0.79) buttons=A/jump,X/shoot,B,RT/accel  state={}
+  exec3: stick=(-0.24,+0.98) buttons=A/jump,X/shoot,B,RT/accel  state={}
+# re-plan#28  plan='The agent should jump to the right to reach the next platform, as the character is currently on the left side of the current level and needs to move rightward to progress.'
+  exec0: stick=(+0.86,+1.96) buttons=X/shoot,Y,RT/accel  state={}
+  exec1: stick=(+0.79,+1.87) buttons=X/shoot,Y,RT/accel  state={}
+  exec2: stick=(+0.73,+1.76) buttons=X/shoot,Y,RT/accel  state={}
+  exec3: stick=(+0.76,+1.84) buttons=X/shoot,RT/accel  state={}
+# re-plan#29  plan='The agent should jump to the right to reach the next platform, as the character is currently on the left side of the current platform and needs to move rightward to progress.'
+  exec0: stick=(-0.08,+0.96) buttons=A/jump,RT/accel  state={}
+  exec1: stick=(-0.12,+0.99) buttons=X/shoot,B,RT/accel  state={}
+  exec2: stick=(-0.11,+0.93) buttons=X/shoot,B,RT/accel  state={}
+  exec3: stick=(-0.09,+1.01) buttons=X/shoot,B,RT/accel  state={}

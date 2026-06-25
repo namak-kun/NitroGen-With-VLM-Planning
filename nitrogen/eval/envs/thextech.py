@@ -9,13 +9,19 @@ patch is saved at docs/env_candidates/thextech_state_export.patch; apply it to t
 """
 from __future__ import annotations
 
+import subprocess
+import time
+from pathlib import Path
+
 import numpy as np
 
 from .proc_game_env import ProcGameEnv
-from ..core import JLX, JLY
+from ..core import JLX, JLY, Observation
 
 I_RTRIG, I_SOUTH, I_START, I_WEST = 16, 18, 19, 20
 STICK_THRESH = 0.25
+REPO = Path(__file__).resolve().parents[3]
+GET_FLOWER_GO_RIGHT_LEVEL = str(REPO / "docs" / "env_candidates" / "thextech_minimal_get_flower_go_right.lvlx")
 
 
 class TheXTechEnv(ProcGameEnv):
@@ -54,6 +60,53 @@ class TheXTechEnv(ProcGameEnv):
             "-c", self.asset_dir,
             "-l", level_path,
         ]
+
+    # max time to wait for a warm relaunch to reach the loaded level before giving up (we poll and
+    # return as soon as the state export shows the level is live, so this is just an upper bound)
+    restart_wait: float = 5.0
+
+    def reset(self, scenario=None) -> Observation:
+        """Robustly restart the level by RELAUNCHING the game process (keeping Xvfb/WM up).
+
+        TheXTech in level-test mode shows a 6-item menu that WRAPS and starts at an unknown cursor
+        position, so menu-navigation restart is unreliable. Respawning thextech always lands at a clean
+        level start. We poll the state export and return as soon as the level is live (warm relaunch is
+        typically ~1.5-2.5s), so reset is as fast as the engine allows."""
+        import os
+        try:
+            if self._game is not None:
+                self._game.terminate()
+                try:
+                    self._game.wait(timeout=3)
+                except Exception:
+                    self._game.kill()
+        except Exception:
+            pass
+        try:
+            if os.path.exists(self._state_path):
+                os.remove(self._state_path)              # so we can detect the FRESH level coming up
+        except Exception:
+            pass
+        if self._sh is not None:
+            self._sh.unpause()                           # run at normal speed while the level loads
+        self._game = subprocess.Popen(self.launch_cmd(), env=self._env(),
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        deadline = time.time() + self.restart_wait
+        while time.time() < deadline:                    # return as soon as the level is live
+            time.sleep(0.1)
+            st = self.read_state()
+            if st and not st.get("in_menu") and st.get("y", 0) > 0:
+                break
+        if self.control == "keyboard":
+            self._wid = self._find_window()
+            if self.window_manager and self._wid:
+                self._focus_window()
+            self._set_keys(set())
+        if self._sh is not None:
+            self._sh.pause()
+        self._step = 0
+        return Observation(frame=self._grab(), state={"step": 0, **self.read_state()},
+                           step_idx=0, done=False)
 
     def read_state(self) -> dict:
         """Ground-truth player state from the source-patched export file (y increases DOWNWARD).
@@ -114,3 +167,15 @@ class TheXTechEnv(ProcGameEnv):
         if (a[:, I_START] > 0.5).mean() >= 0.3:
             keys.add("Return")
         return keys
+
+
+class TheXTechGetFlowerEnv(TheXTechEnv):
+    """Tiny authored RL task: grab the flower/powerup and run right to the offscreen exit."""
+
+    name = "thextech_get_flower"
+
+    def __init__(self, level: str = GET_FLOWER_GO_RIGHT_LEVEL, **kw):
+        super().__init__(level=level, **kw)
+
+
+__all__ = ["TheXTechEnv", "TheXTechGetFlowerEnv", "GET_FLOWER_GO_RIGHT_LEVEL"]
