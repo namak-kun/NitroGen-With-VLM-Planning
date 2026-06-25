@@ -4,11 +4,12 @@ Chronological, exact-config record of every experiment. Newest at bottom.
 Conventions: all runs on 1×A100-80GB, torch 2.11+cu130, transformers 5.12.1,
 NitroGen `ng.pt` (EMA, action_dim=25, horizon=18), planner Qwen3.5-0.8B (frozen).
 
-> ℹ️ **Coverage:** this log runs **EXP-000 … EXP-049b** (the 0.8B-backbone, synthetic-plan era,
-> through 2026-06-19). The later **2B-backbone Stage-2 era** (clean-label left/right recovery, button
-> steering, counterfactual override, the released `stage2_2b_*` checkpoints, 2026-06-22 → 06-24) is
-> recorded in **[`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md)** (per-checkpoint training + results) and
-> the stored project memories. Start at **[`AGENTS.md`](AGENTS.md)** for the current handoff state.
+> ℹ️ **Coverage:** EXP-000 … EXP-049b is the **0.8B-backbone, synthetic-plan era** (through 2026-06-19,
+> ending in a VERDICT). The **2B-backbone Stage-2 era** (EXP-050..054: clean-label left/right recovery,
+> button steering, counterfactual override; the released `stage2_2b_*` checkpoints, 2026-06-22 → 06-24)
+> is appended at the bottom of this file, with full per-checkpoint detail in
+> **[`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md)**. Start at **[`AGENTS.md`](AGENTS.md)** for the
+> current handoff state.
 
 > ⚠️ Evaluation philosophy (per @namak-kun): the success signal is **counterfactual**:
 > (1) **steering** — does conditioning on plan P change the policy *in P's direction*?
@@ -2396,3 +2397,73 @@ RECOMMENDATION (honest, despite the env build falling on me):
    logged actions cannot teach overriding its own prior), but DEFER until the eval env confirms.
 The data result is the clincher: I expected scale to help and it degraded -- the single strongest
 piece of evidence that env-free has a real ceiling, not just an untuned recipe.
+
+---
+
+# Stage-2, 2B backbone era (2026-06-22 → 06-24)
+
+> The 0.8B/synthetic log above ends at the 2026-06-19 VERDICT, which recommended an EVALUATION
+> environment first and a 2B planner. This section follows through. **Per-checkpoint training recipes,
+> exact flags, data caches and results are in [`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md)** — these
+> entries are the experiment-log summary. Released checkpoints (slim plan_head+LoRA): `ckpts/handoff_zips/`.
+
+## EXP-050  2B backbone redesign: resampler at native dim, adapter AFTER the resampler — 2026-06-22
+
+Upgraded the planner backbone Qwen3.5-0.8B → **2B** and moved the plan resampler to run in the
+backbone's NATIVE hidden dim (2048), with the linear PlanAdapter projecting the K pooled tokens to the
+DiT dim (1024) AFTER the resampler (was: project first). Backward compatible (0.8B=1024, 2B=2048,
+9B=4096); `eval_policy.py` infers the dim from `plan_head.resampler.queries`. Frame-conditioned plan
+hiddens cached via `cache_mm_hidden.py` (resampler cross-attends BOTH boundary frames + plan text →
+frame-specific K tokens). All `stage2_2b_*` runs use this.
+
+## EXP-051  Clean-label run RECOVERS env-free left/right (the adapter was the culprit) — 2026-06-23
+
+Probing the 2B direction run (`stage2_2b_dir`, step 2500) localized the left/right loss to the
+**PlanAdapter** (projection-after-resampler): resampler-out keeps left/right (0.639) but adapter-out
+COLLAPSES it (0.501 ≈ chance), while up/down survives both (0.86→0.88). Root cause measured: **31%** of
+left/right directional plans had plan-stated-dir ≠ action-dir (reference-frame / window label noise).
+FIX: filter the Stage-2 caches to direction-consistent chunks only (1357), retrain → `stage2_2b_clean`
+(step 2000): DiT-space left/right token sep **0.50 → 0.688**, adapter no longer destroys it. So env-free
+left/right is a representation/training bug in ONE module, NOT the needs-dynamics wall the 0.8B verdict
+suggested for *direction*. (`dir_s2500` is kept as the negative control.) Checkpoints: `clean_s2000`,
+`dir_s2500`.
+
+## EXP-052  Button steering: broaden Job-1 from directions to 5/5 buttons — 2026-06-24
+
+Added a BUTTON counterfactual cache (`cache_mm_button_cf.py`, ~1357 pairs): pair each gameplay frame
+with a chunk whose dominant button is a target B (jump/accelerate/attack/brake/dash), terse synthetic
+plan ("jump"/"accelerate"/…), override action presses B. Train warm-started on clean + LoRA on DiT
+cross-attn + `--mm-button-cf-lookup … --s2-button-cf-ratio`. Baseline 2/5 selective →
+**`stage2_2b_btn` step 600 = 5/5** (env-free `eval_buttons.py` = P(button|plan) selectivity) while
+RETAINING left/right + up/down. This is the **main eval checkpoint** (`btn_s600`).
+
+## EXP-053  LoRA balance sweep: best-balanced 4-way direction — 2026-06-24
+
+`scripts/lora_sweep.sh`: warm-start clean + LoRA + the directional counterfactual-override objective
+(`--mm-cf-lookup --s2-cf-ratio`), varying DiT lr / cf-ratio / LoRA rank. `clean_lora` step 1200 is the
+best-balanced 4-way: **LR-balance 0.96, UD-balance 0.93** (`eval_balance.py`), selectivity 1.00 in-env
+on SuperTuxKart; the lowlr/lowcf/rank32 configs did not beat it. Checkpoint: `clean_lora_s1200`.
+
+## EXP-054  In-env counterfactual override still needs envs (gold-token, not plan-text) — 2026-06-24
+
+`stage2_2b_override`: env-free counterfactual override works via **GOLD-TOKEN injection** (a strong
+training-teacher token + CFG w≈16 + multi-seed), NOT plan text (too weak to flip a strong frame prior).
+Verified in Cave Story (gold-left drove Quote x 160→125; plan-text → 211). In the TARGET racing env
+(STK) "steer left"/"steer right" gave only **+0.12** jL_x separation at w=1, breaking down at higher CFG
+— concrete in-env evidence that left/right STEERING needs RL/environments (up/down works, 0.998).
+Consistent with the 0.8B verdict's override ceiling. Checkpoint: `override_s2000`.
+
+## Infrastructure built alongside (2026-06-22 → 06-25)
+
+- **Eval-env harness**: 38 games under Xvfb (30 boot; `planner_poc/env_healthcheck.py`,
+  `run_poc.list_envs()`/`BROKEN_ENVS`); in-process emulator envs (mGBA GB/GBC/GBA, stable-retro SNES)
+  with frame-exact save/load — the eval+RL substrate the 06-19 verdict asked for.
+- **State export DE-FORKED** (no source/quest fork): TheXTech via `/proc/<pid>/mem` on a stock
+  RelWithDebInfo build (`thextech_memread.py`); Solarus via an auto-applied quest overlay.
+- **Record/play server** (`record_play_server.py`): browser human gold-trajectory collection (lag-free
+  step mode) on a headless box.
+- **Data-bootstrap pipeline** (the path forward): `yt_farm.py` (YouTube → frames), `objective_label_demo.py`
+  (frozen VLM → grounded objectives for free), `idm_gen_emulator_data.py` (emulator ground-truth
+  (frame, action) for a VPT-style IDM). Strategy: emulator/IDM supplies System-1 actions, the VLM
+  supplies System-2 objectives, emulator save-states verify counterfactuals (dense reward → RL). See
+  `LITERATURE.md §E` (VPT) and `AGENTS.md §3C`.

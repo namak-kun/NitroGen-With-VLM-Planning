@@ -40,6 +40,15 @@ See [`docs/DATAFLOW.md`](docs/DATAFLOW.md) for the exact module/tensor path,
 [`AGENTS.md`](AGENTS.md) for the **start-here handoff** (task state, run commands, what's next).
 Per-checkpoint training detail is in [`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md).
 
+### Demo — plan-conditioned rollout
+
+![Plan-conditioned NitroGen playing Prince of Persia (SDLPoP)](docs/assets/sdlpop_a2_demo.gif)
+
+The planner re-plans every A=2 chunks ("Jump to the right to avoid the enemy and continue…") and the
+plan token steers the frozen DiT's actions; the overlay shows the live plan + the executed
+stick/buttons. More annotated rollouts in [`docs/horizon_play_grounded/`](docs/horizon_play_grounded)
+(STK, SDLPoP, Solarus, TheXTech at A=2 and A=4).
+
 ## Capabilities demonstrated (Stage-1, frozen base)
 
 | Capability | Result | Where |
@@ -56,7 +65,8 @@ Per-checkpoint training detail is in [`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md
 contrastive loss are the lever); *fine* cross-modal/temporal routing (a specific button in
 a specific half, exact transition timing) is where DiT capacity via **LoRA** helps.
 
-Full experiment log: [`EXPERIMENTS.md`](EXPERIMENTS.md) (EXP-000..034).
+Full experiment log: [`EXPERIMENTS.md`](EXPERIMENTS.md) (EXP-000..049b, 0.8B era); the 2B Stage-2
+checkpoints are detailed in [`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md).
 
 ## Repository layout (fork additions)
 
@@ -66,11 +76,16 @@ nitrogen/flow_matching_transformer/
     nitrogen.py                             # plan injection, masked-null, order-aware contrastive
     lora.py                                 # LoRA on the DiT cross-attention
 nitrogen/training/{plans,dataset,actions,video}.py   # synthetic + cross-chunk plans, data pipeline
+nitrogen/eval/envs/                         # 38 game envs: proc/Xvfb + in-process emulators (save/load)
 scripts/train_planner.py                    # Stage-1 alignment trainer
 scripts/{extract_cc_frames,download_more_videos}.py  # frame/data tooling
-planner_poc/                                # behavioral evals + probes
-docs/{DATAFLOW,INDEX}.md                    # architecture + navigation
-DESIGN.md  MULTICHUNK_DESIGN.md  LITERATURE.md  EXPERIMENTS.md
+planner_poc/                                # behavioral evals + probes; record server; data tooling
+    record_play_server.py                   #   browser play-and-record (human gold trajectories)
+    env_healthcheck.py  run_poc.py          #   boot-test + env factory
+    yt_farm.py  objective_label_demo.py     #   YouTube farming + VLM objective labels (data bootstrap)
+    idm_gen_emulator_data.py                #   emulator ground-truth (frame, action) for an IDM
+docs/{DATAFLOW,INDEX,CHECKPOINTS,SETUP_EVAL}.md      # architecture + navigation + setup
+AGENTS.md  DESIGN.md  MULTICHUNK_DESIGN.md  LITERATURE.md  EXPERIMENTS.md
 ```
 
 ## Setup
@@ -104,24 +119,46 @@ Useful flags: `--num-chunks A --cross-chunk` (long-horizon cursor), `--lora-dit 
 (fine button/timing routing), `--resampler-self-attn` (Q-former toggle),
 `--cc-pool {hold,nested,hold4}`, `--cc-posthoc` (real-action-target R0).
 
+## Eval environments & gold-data recording
+
+A headless eval harness runs **38 games** under Xvfb (30 boot cleanly; `run_poc.list_envs()`), driven
+via synthetic keyboard/gamepad input. It includes **in-process emulator envs** (mGBA for GB/GBC/GBA,
+stable-retro for SNES) with **frame-exact save/load** — the substrate for save-state RL. Ground-truth
+state for the native FOSS games (TheXTech, Solarus) is read **without any source fork** (TheXTech via
+`/proc/<pid>/mem` on a stock debug-symbol build; Solarus via an auto-applied quest overlay).
+
+A **browser play-and-record server** lets you collect human gold trajectories on a remote/headless box:
+
+```bash
+python planner_poc/record_play_server.py --env thextech_get_flower --port 8123
+# forward port 8123 to your laptop and open it; play with your keyboard. STEP mode is lag-immune
+# (game-time is locked to delivered frames). Recordings -> docs/recordings/<env>_<ts>/.
+```
+
+See [`docs/SETUP_EVAL.md`](docs/SETUP_EVAL.md) for the full setup (apt packages, `pip install -e
+".[eval]"`, deno for YouTube, emulator backends) and [`AGENTS.md`](AGENTS.md) §3B/§5 for details.
+
 ## Status & next directions
 
-- Stage-1 (synthetic-plan alignment) is **working** across the capabilities above.
-- A query self-attention (true Q-former) toggle exists but gave no measurable benefit on
-  synthetic tasks (EXP-032); its intended test is Stage-2.
-- **Stage-2 transcripts** are available (captions for most videos) but commentary-heavy —
-  the plan here is to LLM-**relabel** them into terse intents rather than condition on raw
-  text (EXP-033).
-- Long-horizon **counterfactual** play (R2) is expected to need a game environment: no
-  reusable world model was found in NitroGen's DiT internals (EXP-034), so counterfactual
-  futures can't be manufactured offline.
-- Cross-game **abstraction** (a shared plan/skill space over NitroGen's many games) is the
-  main remaining direction that stays env-free.
+- **Stage-1** (synthetic-plan alignment) is **working** across the capabilities above (frozen 0.8B
+  backbone era; full log EXP-000..049b in `EXPERIMENTS.md`).
+- **Stage-2, 2B backbone** (the released `stage2_2b_*` checkpoints — see
+  [`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md)): the resampler/adapter moved to the backbone's native
+  2048-dim. Achieved combined **direction + 5/5 button steering** (`btn_s600`), and **recovered env-free
+  left/right** by cleaning contrastive label noise (`clean_s2000`: token sep 0.50→0.688). Diagnosis
+  localized the left/right loss to the PlanAdapter, not the VLM.
+- **Data bootstrapping** (the path forward, scaffolded): popular-game ROMs + YouTube longplays + a
+  VPT-style IDM. The frozen VLM emits grounded **objectives for free** on frames; the **emulator**
+  supplies ground-truth actions to train an IDM that then pseudo-labels YouTube at scale; emulator
+  **save-states verify counterfactuals** (dense reward → RL). See `AGENTS.md §3C` + `LITERATURE.md §E`.
+- Long-horizon **counterfactual** play is expected to need a game environment: no reusable world model
+  was found in NitroGen's DiT internals (EXP-034), so counterfactual futures can't be manufactured
+  purely offline — hence the emulator/RL substrate above.
 
 > Sidenote: Stage-1 happens to be fully **env-free** (synthetic plans, no game rollouts)
 > and **parameter-efficient** (frozen base, optional LoRA). These are conveniences of the
-> synthetic alignment stage, not goals of the method — later stages are expected to fine-
-> tune the DiT and may require a live environment.
+> synthetic alignment stage, not goals of the method — later stages fine-tune the DiT
+> (LoRA) and use a live environment (emulators).
 
 ## Citation
 
