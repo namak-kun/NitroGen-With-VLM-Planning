@@ -104,7 +104,10 @@ Status legend: ✅ solved/working · ⚠️ partial/caveated · 🔬 diagnostic 
   launch with python -u. ~7-9 it/s after cache warms.
 
 ## Doc map
-- **EXPERIMENTS.md** — full configs/results, EXP-000..032 (authoritative).
+- **AGENTS.md** — start-here handoff (task memory, run commands, what's next). Read first.
+- **CHECKPOINTS.md** — extreme-detail per-checkpoint training recipes + data + results (the 2B/clean/
+  dir/btn/override era; supersedes EXPERIMENTS.md for those checkpoints).
+- **EXPERIMENTS.md** — full configs/results, EXP-000..049b (authoritative for the 0.8B/synthetic era).
 - **DATAFLOW.md** — architecture / tensor path (System-2 → System-1), updated EXP-032.
 - **MULTICHUNK_DESIGN.md** — long-horizon design (R0/R1/R2, K×A, world-model probe).
 - **DESIGN.md** — original architecture + the "no pixels" dataset finding.

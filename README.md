@@ -35,8 +35,10 @@ plan text + frames ─▶ frozen Qwen3.5-0.8B ─▶ resampler (K queries) ─�
                                             ─▶ 18-step action chunk
 ```
 
-See [`docs/DATAFLOW.md`](docs/DATAFLOW.md) for the exact module/tensor path and
-[`docs/INDEX.md`](docs/INDEX.md) for a capability → experiment → checkpoint map.
+See [`docs/DATAFLOW.md`](docs/DATAFLOW.md) for the exact module/tensor path,
+[`docs/INDEX.md`](docs/INDEX.md) for a capability → experiment → checkpoint map, and
+[`AGENTS.md`](AGENTS.md) for the **start-here handoff** (task state, run commands, what's next).
+Per-checkpoint training detail is in [`docs/CHECKPOINTS.md`](docs/CHECKPOINTS.md).
 
 ## Capabilities demonstrated (Stage-1, frozen base)
 
