@@ -49,6 +49,10 @@ plan text + recent frames ─▶ frozen VLM (Qwen3.5-2B) ─▶ resampler (K=8 q
 
 ---
 
+> **Exact internals:** §9 below = the precise loss functions (flow-matching velocity MSE, SupCon contrastive,
+> the KL-anchor) with code; §10 = the exact data structures (demo.npz → `map_action` 25-dim → chunk → the
+> `forward(data)` batch dict). Read those for byte-level detail.
+
 ## 2. The data (human demos)
 
 Human gameplay demos recorded via the browser record-server, stored as
@@ -112,6 +116,10 @@ mapped to:
 ---
 
 ## 4. The three training recipes (exact commands + hyperparameters)
+
+> The loss each recipe optimizes is spelled out byte-for-byte in **§9** (e.g. a `kl` step =
+> `velocity_MSE·actions_mask + 0.3·‖plan_tok − frozen_ref‖²`); the batch it consumes is in **§10**.
+
 
 Common prefix (uv venv, isolate from any outer virtualenv):
 ```bash
@@ -228,3 +236,132 @@ Or via the tools that already do it: `furthest_rollout.py --delta <pt> --mode pl
 - **Caveat (see HANDOFF §infra):** RAM `screen_x` MAGNITUDE is not cross-level comparable (warp/underground
   scaling) and misses some deaths; the VLM video-judge is the RAM-free cross-check (but it FALSE-POSITIVES
   deaths). Trust a game HUD counter (TIME/lives/rings) as the final arbiter.
+
+---
+
+## 9. The exact loss functions (code-grounded)
+
+Four losses. In **Stage-3 demo-fit (pooled/kl/situ) only #1 (and #3 for `kl`) are active** — the contrastive
+and distill terms belong to Stage-1/2. Code refs in `nitrogen/flow_matching_transformer/nitrogen.py` and
+`planner_poc/demo_bc.py`.
+
+### 9.1 Action loss — flow-matching velocity MSE (always on) — `nitrogen.py:642-693`
+The DiT is a **flow-matching** model: it predicts a *velocity field* between noise and data, not the action.
+```python
+noise  = randn_like(actions)                    # (B,18,25)
+t      = sample_time(B)                          # ~U(0,1) -> (B,1,1)
+noisy  = (1 - t)*noise + t*actions               # straight-line noise->data interpolation
+v_tgt  = actions - noise                         # the velocity target
+pred   = DiT(noisy, t, context=[image|plan])     # predicts the velocity
+raw    = mse_loss(pred, v_tgt, reduction="none")  # (B,18,25)
+mask   = has_real_action[:,None,None] * actions_mask
+action_loss = (raw*mask).sum() / (mask.sum()+1e-6)
+```
+- It is a **velocity MSE**, not a direct action MSE; the action is recovered at inference by integrating the
+  field (Euler steps) from pure noise.
+- `actions_mask` is a **per-dim weight** (not just a length mask). Plain demo-fit = all-ones. With the residual
+  option (§9.4) it gates gradient to the dims where the human chunk deviates from the base DiT.
+
+### 9.2 Plan contrastive loss — SupCon (Stage-1/2 lever, de-collinearizes directions) — `nitrogen.py:756`
+Pushes apart plan tokens of opposite `plan_label` (direction) so left/right don't collapse.
+```python
+pos = (labels[:,None]==labels[None,:]) & ~eye            # same-label positive pairs
+def supcon(z):                                            # z: (n, dim), the per-row representation
+    z   = normalize(z); sim = (z@z.t())/temp             # temp=0.1
+    sim = sim - sim.max(1,keepdim=True).values.detach()  # numerical stability
+    exp = exp(sim)*(~eye)                                 # exclude self
+    log_prob = sim - log(exp.sum(1)+1e-9)
+    return -(log_prob*pos).sum(1)[has_pos] / pos.sum(1)[has_pos]
+loss += contrastive_weight * supcon(z)                    # weight 1.0
+```
+Representation `z` per `contrastive_mode`: `mean` = pool over K (order-blind); `flatten` = concat K*d
+(order-aware); **`pertoken`** (shipped) = SupCon independently at each of the K positions then concat — forces
+every query position to be label-discriminative (the EXP-043 fix for the left/right collapse).
+
+### 9.3 KL-anchor loss — the `kl` model's defining term — `demo_bc.py:354-362`
+A **functional L2 on the plan-TOKEN output** to a FROZEN pre-fit copy of the plan-head, over a BROAD plan
+distribution. Added in the demo-fit loop (not in nitrogen.py):
+```python
+a_loss = mse_loss( m.plan_head(pool_h)[0],               # current plan tokens
+                   plan_head_ref(pool_h)[0].detach() )    # frozen reference (pre-fit btn_s600 head)
+loss   = action_loss + 0.3 * a_loss                       # lambda = kl_anchor = 0.3
+```
+- `pool_h` = `build_anchor_pool` (`demo_bc.py:218`): 32 encoded `(demo-frame x random-anchor-plan)` pairs, where
+  anchor plans = `SIT_PLANS` values + `DUCK_PLANS` texts + the correct plan.
+- Effect: pins "what the plan tokens MEAN" across duck/retreat/up/wait while the action loss adapts advance ->
+  adds the skill WITHOUT collapsing the rest of the action vocabulary. Anchor loss stays ~0.001 (already near
+  the reference -> non-distorting). = CoTTA stochastic-restoration in functional form.
+
+### 9.4 (optional) distillation + residual-mask
+- **Distill** (`_plan_distill_loss`, `nitrogen.py:733`, EXP-045): `mse(student,teacher) + 0.5*(InfoNCE(s,t) +
+  InfoNCE(t,s))` (cosine logits / `distill_temp`). Transfers a stronger action-augmented "teacher" plan token
+  into a base-plan student. Off in the shipped deltas.
+- **Residual mask** (`build_batch`, `rwbc_actor_adapt.py:151`): `actions_mask = clip((|action - base_null| -
+  |base_null - base_null2|)/scale, floor, 1)` — gradient only where the chunk DEVIATES from the base DiT's own
+  null output; frame-determined dims (sprint-right) -> floor (prevents the suicide-sprint collapse). Off by
+  default in demo-fit.
+
+> **So a Stage-3 `kl` step is exactly:** `loss = velocity_MSE(pred, actions-noise)*actions_mask + 0.3*||plan_tok
+> - frozen_ref||^2`, with gradient flowing ONLY to the 38 `plan_head.*` tensors (DiT/LoRA/VLM frozen).
+
+---
+
+## 10. The exact data structures (from demo.npz to the model batch)
+
+### 10.1 Raw demo on disk — `docs/demos/demos/<Game>/<ts>/demo.npz`
+```
+observations : (N+1, H, W, 3) uint8     # frames
+actions      : (N, 12)        binary    # RAW console buttons, 60 fps
+initial.state: gzip'd emulator save-state (eval start; demo_start_states())
+```
+`demo.npz` rewards/dones are all-zero (record server didn't log them) -> death is NOT auto-detectable; the
+death-tail trim (`docs/demos/demo_trim.json`, per-demo tail seconds) is dropped BEFORE chunking.
+
+### 10.2 `map_action`: 12 console buttons -> 25-dim NitroGen row — `demo_bc.py:88`
+The 25-dim row defaults to NEUTRAL (sticks centered). D-pad maps to the ANALOG STICK, not separate dims:
+```python
+a = zeros(25); a[JLX=21]=a[JLY=22]=0.5; a[23]=a[24]=0.5            # neutral
+# SNES_BTN_TO_NITRO = {0:18, 1:20, 2:0, 3:19, 8:5, 9:10, 10:7, 11:14}  (B,Y,SELECT,START,A,X,L,R -> dims)
+for s_idx,n_dim in SNES_BTN_TO_NITRO: if pressed: a[n_dim]=1.0
+if LEFT(6):  a[JLX]=0.0      if RIGHT(7): a[JLX]=1.0
+if UP(4):    a[JLY]=0.0      if DOWN(5):  a[JLY]=1.0
+```
+=> **human DOWN lives in stick dim22**; the base model often ducks via a D-pad dim -> demo-fit can only TRAIN
+the stick channel (the dim22 vs dim1 nuance throughout the results logs). Sonic uses the Genesis 6-button order.
+
+### 10.3 A training "chunk" — `load_demo_chunks` (`demo_bc.py:105`)
+Slides over `actions` with `H=18, stride=2` (18 rows over 36 frames ~= 0.6s), stepping `chunk_stride=18`
+(non-overlapping):
+```python
+chunk = stack([map_action(acts[i + 2*k]) for k in range(18)])     # (18,25) target
+sample = {"frame": obs[i],            # (H,W,3) uint8 decision-point frame
+          "action": chunk,            # (18,25) float SUPERVISED TARGET
+          "plan": <text>,             # 'correct' plan, or SIT_PLANS[label] if situational
+          "label": "advance|duck|retreat|wait|jump",   # label_chunk, priority duck>retreat>wait>jump>advance
+          "reward": 1.0}
+```
+
+### 10.4 The model `forward(data)` batch dict — `build_batch` (`rwbc_actor_adapt.py:127`)
+| key | shape | meaning |
+|---|---|---|
+| `images` | (B,1,H,W,3) | the frame -> 256 image tokens |
+| `vl_token_ids` | (B,S) | typed VL slots; `_GAME_ID_TOKEN=6`, `_PLAN_TOKEN=7` mark game/plan positions |
+| `sa_token_ids` | (B,·) | state/action token ids |
+| `vl_attn_mask` | (B,S) | 1/0 validity — **masked-null zeroes the K plan positions here for dropped rows** |
+| `actions` | (B,18,25) | the **target** action chunk (already packed by map_action) |
+| `actions_mask` | (B,18,25) | per-dim loss weight (ones, or §9.4 residual) |
+| `plan_hidden` | (B,L,2048) | **frozen VLM hidden states** from `encode_multimodal(frame, plan)`, padded to L |
+| `plan_key_padding_mask` | (B,L) | which `plan_hidden` positions are real |
+| `plan_dropped` | (B,) bool | rows to run null (train: prob `plan_dropout`=0.15; eval: all-false) |
+| `plan_cursor` | (B,) | cross-chunk block selector in [0,A) |
+| `embodiment_id`,`game_id`,`has_real_action` | (B,) | embodiment / game-id-token / real-action flag |
+
+The VLM runs **once, offline per sample** to produce `plan_hidden` (it's frozen -> just cached features). Only
+the resampler+adapter consuming `plan_hidden` get gradient.
+
+### 10.5 batch -> plan tokens -> injection — `compute_plan_tokens` (`nitrogen.py:567`)
+```
+plan_hidden  --plan_head(plan_hidden, kpm, dropped, cursor)-->  plan_tokens (B,8,1024)
+   -> prepare_input_embs writes the 8 vectors into the _PLAN_TOKEN slots of vl_embs
+   -> apply_null_mask zeroes those slots in vl_attn_mask for dropped rows (== base exactly)
+```
