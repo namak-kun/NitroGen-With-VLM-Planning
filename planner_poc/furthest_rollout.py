@@ -42,12 +42,16 @@ def _font(sz):
     return ImageFont.load_default()
 
 
-def overlay(frame, tag, rv, scale=3):
+def overlay(frame, tag, rv, scale=3, plan=None):
     im = Image.fromarray(frame).convert("RGB").resize(
         (frame.shape[1] * scale, frame.shape[0] * scale), Image.NEAREST)
     dr = ImageDraw.Draw(im); f = _font(15)
     dr.rectangle([0, 0, im.width, 22], fill=(0, 0, 0))
     dr.text((4, 3), f"{tag}  {rv}", fill=(120, 220, 255), font=f)
+    if plan:
+        pf = _font(13)
+        dr.rectangle([0, im.height - 20, im.width, im.height], fill=(0, 0, 0))
+        dr.text((4, im.height - 17), ("PLAN: " + plan)[:80], fill=(255, 220, 120), font=pf)
     return np.asarray(im)
 
 
@@ -59,7 +63,8 @@ def ffmpeg_writer(path, w, h, fps):
 
 
 @torch.no_grad()
-def run(pol, env, state, mode, game, seconds, A=2, cfg=8.0, exec_rows=6, reset_drop=40.0, judge_frames=24):
+def run(pol, env, state, mode, game, seconds, A=2, cfg=8.0, exec_rows=6, reset_drop=40.0, judge_frames=24,
+        log_plans=False):
     """Closed-loop rollout until death/level-reset or `seconds`. Returns dict with frames(for video), a small
     evenly-sampled set of RAW frames (for the VLM judge), RAM screen_x trace, survived, died."""
     env.reset(); env.load_state(state)
@@ -70,10 +75,12 @@ def run(pol, env, state, mode, game, seconds, A=2, cfg=8.0, exec_rows=6, reset_d
     plan, null = "", (mode == "base"); hist = [env.frame()]; ci = 0; emu = 0
     x0 = env._var(env.reward_var); best = 0.0; prev = x0; lives_seen = _lives(env)
     vid = []; raw = [env.frame().copy()]; xtrace = [0.0]; died = False
+    plan_log = []  # [(t_sec, progress, plan_text)] -- what System-2 said, when (for the attribution diagnostic)
     while emu < total:
         if mode == "plan" and ci % A == 0:
             plan = _first_sentence(pol.pl.generate_plan(hist[-4:], pol.device, instruction=INSTR,
                                    system=SYS[sk], max_new_tokens=32) or "move right")
+            plan_log.append((round(emu / fps, 1), round(env._var(env.reward_var) - x0, 1), plan))
         cur = env.frame()
         ch = np.asarray(pol._sample_chunk(cur, plan, cfg, plan_frames=[cur], null=null), np.float32)
         for r in range(min(exec_rows, len(ch))):
@@ -86,14 +93,16 @@ def run(pol, env, state, mode, game, seconds, A=2, cfg=8.0, exec_rows=6, reset_d
             best = max(best, rv - x0); prev = rv
             if lv is not None and lives_seen is not None:
                 lives_seen = max(lives_seen, lv)
-            vid.append(overlay(env.frame(), mode.upper(), f"{env.reward_var}={rv:.0f}"))
+            vid.append(overlay(env.frame(), mode.upper(), f"{env.reward_var}={rv:.0f}",
+                               plan=plan if log_plans else None))
             raw.append(env.frame().copy()); xtrace.append(rv - x0)
             emu += fpr
             if emu >= total:
                 break
         if died:
             for _ in range(int(fps)):
-                vid.append(overlay(env.frame(), mode.upper() + " DIED", f"{env.reward_var}={env._var(env.reward_var):.0f}"))
+                vid.append(overlay(env.frame(), mode.upper() + " DIED", f"{env.reward_var}={env._var(env.reward_var):.0f}",
+                                   plan=plan if log_plans else None))
             break
         hist.append(env.frame()); ci += 1
     # evenly sample judge frames
@@ -101,7 +110,8 @@ def run(pol, env, state, mode, game, seconds, A=2, cfg=8.0, exec_rows=6, reset_d
     judge = [raw[i] for i in idx]
     return {"video": vid, "judge_frames": judge, "judge_t": [round(i / (fps / fpr), 1) for i in idx],
             "xtrace": xtrace, "screen_x_reached": float(best), "survived_rows": len(xtrace) - 1,
-            "survived_sec": round((len(xtrace) - 1) * fpr / fps, 1), "died": died, "cap_fps": fps / fpr}
+            "survived_sec": round((len(xtrace) - 1) * fpr / fps, 1), "died": died, "cap_fps": fps / fpr,
+            "plan_log": plan_log}
 
 
 def main():
@@ -117,6 +127,9 @@ def main():
     ap.add_argument("--A", type=int, default=2)
     ap.add_argument("--cfg", type=float, default=8.0)
     ap.add_argument("--out", default="docs/furthest/smw")
+    ap.add_argument("--log-plans", action="store_true",
+                    help="overlay the live System-2 plan on the video + write <tag>__state<N>.plans.json "
+                         "[(t_sec, progress, plan_text)] for the plan-quality-vs-DiT-adherence diagnostic")
     args = ap.parse_args()
     mode = args.mode or ("base" if not args.delta else "plan")
 
@@ -135,7 +148,7 @@ def main():
     st = states[args.state]
     env = make_env(GAME_CFG[args.game]["env"])
     try:
-        res = run(pol, env, st, mode, args.game, args.seconds, A=args.A, cfg=args.cfg)
+        res = run(pol, env, st, mode, args.game, args.seconds, A=args.A, cfg=args.cfg, log_plans=args.log_plans)
     finally:
         env.close()
 
@@ -155,6 +168,10 @@ def main():
     meta = {k: res[k] for k in ("screen_x_reached", "survived_rows", "survived_sec", "died", "judge_t")}
     meta.update(tag=args.tag, mode=mode, state=args.state, game=args.game, seconds=args.seconds)
     json.dump(meta, open(base + ".json", "w"), indent=1)
+    if args.log_plans and res.get("plan_log"):
+        json.dump([{"t": t, "progress": p, "plan": txt} for t, p, txt in res["plan_log"]],
+                  open(base + ".plans.json", "w"), indent=1)
+        print(f"[furthest] logged {len(res['plan_log'])} plans -> {base}.plans.json", flush=True)
     print(f"[furthest] {args.tag} state{args.state}: screen_x +{res['screen_x_reached']:.0f}, "
           f"survived {res['survived_sec']}s, died={res['died']} -> {base}.mp4", flush=True)
 
