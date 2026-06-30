@@ -21,9 +21,14 @@ plan text + frames ─▶ frozen Qwen3.5 ─▶ resampler (K=8 queries) ─▶ a
 
 **👉 If you are catching up on the project, read in this order:**
 1. This README (architecture + training + status + future).
-2. [`docs/TRAINING_RECIPE.md`](docs/TRAINING_RECIPE.md) — exact recipes for the shipped models + every text plan.
+2. [`docs/TRAINING_RECIPE.md`](docs/TRAINING_RECIPE.md) — exact recipes for the shipped models + every text plan + losses + data structures.
 3. [`docs/HANDOFF_2026-06-30.md`](docs/HANDOFF_2026-06-30.md) — infra catches + next steps.
 4. [`AGENTS.md`](AGENTS.md) — full task memory / run commands. [`docs/research/`](docs/research/) — war-room + results.
+
+**📚 For the whole picture:** [`docs/PAPER.md`](docs/PAPER.md) is a full academic-style writeup
+(abstract → method → results → limitations → future); [`docs/ATLAS.md`](docs/ATLAS.md) is a navigable map of the
+*entire* graph — research arc, architecture decisions, every experiment (EXP-000..054 + war-room R1–R13),
+checkpoints, and discussions, with links.
 
 ---
 

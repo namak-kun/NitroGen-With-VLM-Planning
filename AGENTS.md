@@ -7,9 +7,11 @@ run everything.
 
 > **2026-06-30 HANDOFF:** start with [`docs/HANDOFF_2026-06-30.md`](docs/HANDOFF_2026-06-30.md) (infra catches +
 > next steps incl. the "learning tokens" direction), [`docs/TRAINING_RECIPE.md`](docs/TRAINING_RECIPE.md) (what
-> base/pooled/kl/situ are + every text plan), and [`docs/research/`](docs/research/) (the full war-room R1–R13,
-> lit reviews, results logs, and the S2→S1 `FORWARD_S2_TO_S1.md` + demo `VERIFY_*.md` reports — persisted out of
-> the ephemeral session dir). All root content `.md` were moved into `docs/`.
+> base/pooled/kl/situ are + every text plan + losses + data structures), and [`docs/research/`](docs/research/)
+> (the full war-room R1–R13, lit reviews, results logs, and the S2→S1 `FORWARD_S2_TO_S1.md` + demo `VERIFY_*.md`
+> reports — persisted out of the ephemeral session dir). All root content `.md` were moved into `docs/`.
+> For the whole picture: **[`docs/PAPER.md`](docs/PAPER.md)** (academic writeup) and
+> **[`docs/ATLAS.md`](docs/ATLAS.md)** (navigable map of the entire graph — experiments, war-room, checkpoints).
 
 ---
 
