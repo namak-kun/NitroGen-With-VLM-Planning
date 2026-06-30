@@ -65,13 +65,19 @@ def meta(url: str) -> dict:
                           "title": c.get("title")} for c in (d.get("chapters") or [])]}
 
 
-def grab(url: str, sections: list[str], fps: float = 4.0, height: int = 360) -> Path:
-    """Download the given second-ranges (e.g. '600-660') and extract frames at fps. Returns out dir."""
+def grab(url: str, sections: list[str], fps: float = 4.0, height: int = 360, fmt: str | None = None) -> Path:
+    """Download the given second-ranges (e.g. '600-660') and extract frames at fps. Returns out dir.
+
+    Format: prefer PROGRESSIVE (combined audio+video) streams. yt-dlp video-ONLY formats (`bestvideo...`)
+    reliably 403 on `--download-sections` range fetches (confirmed); progressive `best[...]` / itag 18 (360p
+    mp4) work. Order progressive first, fall back to muxed video+audio only as a last resort."""
     vid = url.rsplit("=", 1)[-1].rsplit("/", 1)[-1]
     out_dir = OUT_ROOT / vid
     (out_dir / "frames").mkdir(parents=True, exist_ok=True)
+    fstr = fmt or (f"best[height<={height}][ext=mp4]/18/best[height<={height}]/"
+                   f"bestvideo[height<={height}][ext=mp4]+bestaudio/best")
     cmd = _base_cmd() + [
-        "-f", f"bestvideo[height<={height}][ext=mp4]/best[height<={height}]",
+        "-f", fstr,
         "-o", str(out_dir / "clip_%(section_start)s.%(ext)s"),
     ]
     for s in sections:
@@ -100,6 +106,7 @@ def main():
     g = sub.add_parser("grab"); g.add_argument("url")
     g.add_argument("--sections", nargs="+", required=True, help="second ranges e.g. 600-660 1200-1260")
     g.add_argument("--fps", type=float, default=4.0); g.add_argument("--height", type=int, default=360)
+    g.add_argument("--format", default=None, help="override yt-dlp -f format string (else progressive default)")
     a = ap.parse_args()
     if a.cmd == "search":
         for r in search(a.query, a.n):
@@ -107,7 +114,7 @@ def main():
     elif a.cmd == "meta":
         print(json.dumps(meta(a.url), indent=2))
     elif a.cmd == "grab":
-        grab(a.url, a.sections, a.fps, a.height)
+        grab(a.url, a.sections, a.fps, a.height, a.format)
 
 
 if __name__ == "__main__":

@@ -18,8 +18,8 @@ import sys
 import torch
 from PIL import Image
 
-sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
+import os; sys.path.insert(0, os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "planner_poc"))
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
 from transformers import AutoProcessor, AutoModelForImageTextToText
 
 MODEL = os.environ.get("VLM", "Qwen/Qwen3.5-9B")

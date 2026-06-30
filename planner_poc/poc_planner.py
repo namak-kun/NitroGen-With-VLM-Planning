@@ -13,7 +13,7 @@ Goal of this PoC (NOT training):
      predicted velocities for the same frame/noise/timestep.
 
 Run:
-  cd /home/t-nagupta/NitroGen && source .venv/bin/activate && \
+  cd /home/t-nagupta/NitroGen-With-VLM-Planning && source .venv/bin/activate && \
   python3 files/poc_planner.py   # (path adjusted; see __main__)
 """
 import os, sys, json, time
@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-REPO = "/home/t-nagupta/NitroGen"
+import os; REPO = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning")
 NG_CKPT = os.path.join(REPO, "ckpts/nitrogen/ng.pt")
 QWEN_DIR = os.path.join(REPO, "ckpts/qwen35-0.8b")
 sys.path.insert(0, REPO)

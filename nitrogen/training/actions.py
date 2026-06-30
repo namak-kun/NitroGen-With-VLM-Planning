@@ -161,11 +161,18 @@ def _stick_dir(xy, eps: float = 0.25) -> str:
     return "-".join(parts) if parts else "neutral"
 
 
-def summarize_chunk(chunk: dict, n_seg: int = 3) -> str:
+def summarize_chunk(chunk: dict, n_seg: int = 3, btn_label: dict | None = None) -> str:
     """Terse natural-language description of an 18-step action chunk: left-stick motion over
     n_seg sub-segments + any buttons pressed (with rough duration). Used as the action-grounded
     CONTEXT for VLM plan generation and as the privileged action text for distillation teachers.
-    Canonical home (planner_poc/action_summary.py re-exports this)."""
+    Canonical home (planner_poc/action_summary.py re-exports this).
+
+    btn_label: optional per-game {button_name -> human label} override. The default _BTN_LABEL is an
+    Xbox/PLATFORMER vocabulary ("south"->"A/jump", "west"->"X/attack"), which is WRONG for top-down
+    (Minish: no jump) or turn-based (Fire Emblem: confirm, not jump) games and makes the VLM hallucinate
+    moves (e.g. Sonic "spin-dash"). Pass a per-game map so the action trace names buttons correctly. A
+    mapping to "" (empty string) SUPPRESSES that button (use for buttons with no game meaning)."""
+    labels = btn_label if btn_label is not None else _BTN_LABEL
     H = chunk["buttons"].shape[0]
     jl = chunk["j_left"]; btn = chunk["buttons"]
     seg = max(1, H // n_seg)
@@ -186,7 +193,9 @@ def summarize_chunk(chunk: dict, n_seg: int = 3) -> str:
     for name, idx in _BTN_IDX.items():
         frac = float((btn[:, idx] > 0.5).mean())
         if frac > 0.1:
-            label = _BTN_LABEL.get(name, name)
+            label = labels.get(name, name if btn_label is None else "")
+            if not label:                 # suppressed (no game meaning for this button)
+                continue
             when = "throughout" if frac > 0.7 else ("briefly" if frac < 0.35 else "for a while")
             held.append(f"{label} {when}")
     parts.append("buttons: " + ", ".join(held) if held else "no buttons")

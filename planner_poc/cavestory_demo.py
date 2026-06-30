@@ -4,7 +4,7 @@ env class works end-to-end. Run: python planner_poc/cavestory_demo.py
 """
 import sys
 import numpy as np
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
 
 from nitrogen.eval import Scenario, ACTION_DIM, JLX
 from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK

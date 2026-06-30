@@ -22,7 +22,7 @@ import sys
 import numpy as np
 import torch
 
-REPO = "/home/t-nagupta/NitroGen"
+import os; REPO = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning")
 sys.path.insert(0, REPO)
 sys.path.insert(0, REPO + "/planner_poc")
 
@@ -129,7 +129,7 @@ class NitroGenPolicy(Policy):
         return chunk
 
     # ---- plan-CFG sampling on a live frame --------------------------------------------
-    def _prep(self, frame_rgb, text, plan_frames=None):
+    def _prep(self, frame_rgb, text, plan_frames=None, plan_hidden_override=None):
         pv = self.ip([np.asarray(frame_rgb)], return_tensors="pt")["pixel_values"][0].numpy()
         ex = self.tok.encode({"frames": pv[None], "dropped_frames": np.zeros((1,), bool)})
         d = {k: torch.as_tensor(np.asarray(ex[k])).unsqueeze(0).to(self.device)
@@ -137,7 +137,14 @@ class NitroGenPolicy(Policy):
         d["images"] = d["images"].float()
         d["embodiment_id"] = torch.zeros(1, dtype=torch.long, device=self.device)
         d["game_ids"] = torch.zeros(1, dtype=torch.long, device=self.device)
-        if self.mm_mode:
+        if plan_hidden_override is not None:
+            # STALENESS TTA: reuse a precomputed (frame-grounded) plan_hidden instead of re-encoding it on the
+            # live frame. `cached` mode passes t=0 hiddens (fully stale); `fresh_ema` passes EMA'd hiddens. The
+            # DiT still sees the LIVE frame (images above) -- only the PLAN tokens' grounding is overridden.
+            h, kpm = plan_hidden_override
+            d["plan_hidden"] = h.to(self.device)
+            d["plan_key_padding_mask"] = kpm.to(self.device)
+        elif self.mm_mode:
             # FRAME-CONDITIONED (EXP-050): the plan hidden is computed from the recent game
             # frame(s) + plan text via the frozen VLM (encode_multimodal), matching how the mm
             # student was trained. plan_frames = recent history (defaults to the current frame).
@@ -192,11 +199,19 @@ class NitroGenPolicy(Policy):
         return actions[0].float().cpu().numpy()  # (H, 25)
 
     @torch.no_grad()
-    def _sample_chunk(self, frame_rgb, plan_text, w, plan_frames=None, null=False):
+    def _sample_chunk(self, frame_rgb, plan_text, w, plan_frames=None, null=False,
+                      noise_sigma=0.0, noise_last_n=4, noise_seed=None, plan_hidden_override=None):
+        """Sample an 18-step action chunk via flow-matching Euler integration. noise_sigma>0 makes the
+        sampler STOCHASTIC (SDE-style: add sigma*sqrt(dt)*N(0,1) on the LAST noise_last_n steps) for DDPO
+        exploration — diverse chunks from the same (frame, plan). 0 = deterministic (default, unchanged).
+        plan_hidden_override=(h,kpm): use a precomputed plan_hidden (staleness TTA cached/EMA modes)."""
         m = self.m
-        d = self._prep(frame_rgb, plan_text, plan_frames=plan_frames)
+        d = self._prep(frame_rgb, plan_text, plan_frames=plan_frames, plan_hidden_override=plan_hidden_override)
         H_, A_dim = m.config.action_horizon, m.config.action_dim
         num_steps = m.num_inference_timesteps; dt = 1.0 / num_steps
+        gen = None
+        if noise_seed is not None:
+            gen = torch.Generator(device=self.device).manual_seed(int(noise_seed))
         with torch.autocast("cuda", dtype=torch.bfloat16):
             vis = m.encode_images(d["images"])
             dc = dict(d); dc["plan_dropped"] = torch.tensor([False], device=self.device)
@@ -207,7 +222,7 @@ class NitroGenPolicy(Policy):
             vlm_u = m.apply_null_mask(d["vl_token_ids"], d["vl_attn_mask"], pdp_u)
             pc_c = m.plan_head.adaln_cond(pt_c, torch.tensor([False], device=self.device)) if pt_c is not None else None
             pc_u = m.plan_head.adaln_cond(pt_u, torch.tensor([True], device=self.device)) if pt_u is not None else None
-            actions = torch.randn(1, H_, A_dim, device=self.device, dtype=torch.float32)
+            actions = torch.randn(1, H_, A_dim, device=self.device, dtype=torch.float32, generator=gen)
 
             def vel(acts, tb, pt, vlm, pc):
                 af = m.action_encoder(acts.to(vis.dtype), tb, d["embodiment_id"])
@@ -230,6 +245,9 @@ class NitroGenPolicy(Policy):
                     v_c = vel(actions, tb, pt_c, vlm_c, pc_c)
                     v_u = vel(actions, tb, pt_u, vlm_u, pc_u)
                     actions = actions + dt * (v_u + w * (v_c - v_u))
+                if noise_sigma > 0 and i >= num_steps - noise_last_n:
+                    actions = actions + noise_sigma * (dt ** 0.5) * torch.randn(
+                        actions.shape, device=self.device, dtype=actions.dtype, generator=gen)
         return actions[0].float().cpu().numpy()  # (H, 25)
 
 

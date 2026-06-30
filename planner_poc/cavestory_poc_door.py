@@ -15,7 +15,7 @@ Out: docs/cavestory_play/poc_door.mp4 + poc_door.txt (trajectory + plan log)
 import os, sys, subprocess
 import numpy as np
 from PIL import Image
-sys.path.insert(0, "/home/t-nagupta/NitroGen"); sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; _R = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"); sys.path.insert(0, _R); sys.path.insert(0, os.path.join(_R, "planner_poc"))
 from nitrogen.eval import Scenario, JLX, JLY
 from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK, SKIP
 from nitrogen.eval.envs.virtual_gamepad import MENU_BUTTONS, _NAME2IDX, B_NORTH, B_DDOWN
@@ -92,7 +92,7 @@ def main():
                    f"net dx={None if x0 is None else (nx - x0):+.1f} (negative=moved LEFT, counterfactual)")
     finally:
         env.close()
-    outdir = "/home/t-nagupta/NitroGen/docs/cavestory_play"
+    outdir = os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "docs/cavestory_play")
     subprocess.run(["ffmpeg", "-loglevel", "quiet", "-y", "-framerate", "6",
                     "-i", f"{OUT}/f%04d.png", "-pix_fmt", "yuv420p",
                     "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", f"{outdir}/poc_door.mp4"])

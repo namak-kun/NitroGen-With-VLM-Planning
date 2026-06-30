@@ -14,8 +14,8 @@ import os, sys, subprocess, re
 import numpy as np
 import torch
 from PIL import Image
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
-sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
+import os; sys.path.insert(0, os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "planner_poc"))
 
 from transformers import AutoProcessor, AutoModelForImageTextToText
 from nitrogen.eval import Scenario, JLX, JLY
@@ -109,7 +109,7 @@ def main():
             print(f"  chunk {c:2d}: Quote@({pos[0]},{pos[1]})  plan={plan!r}", flush=True)
     finally:
         env.close()
-    outdir = "/home/t-nagupta/NitroGen/docs/cavestory_play"
+    outdir = os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "docs/cavestory_play")
     outmp4 = f"{outdir}/closed_loop.mp4"
     subprocess.run(["ffmpeg", "-loglevel", "quiet", "-y", "-framerate", "6",
                     "-i", f"{OUT}/f%04d.png", "-pix_fmt", "yuv420p",

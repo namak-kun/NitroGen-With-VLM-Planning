@@ -18,7 +18,7 @@ import os
 import subprocess
 import sys
 
-REPO = "/home/t-nagupta/NitroGen"
+import os; REPO = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning")
 
 
 def _probe_one(name: str) -> dict:

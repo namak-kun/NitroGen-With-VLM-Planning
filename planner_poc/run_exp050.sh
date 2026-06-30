@@ -3,8 +3,9 @@
 # Run A: pure distillation (matches EXP-045 recipe, frame input). Run B: + outcome-contrastive
 # (EXP-043/046 de-collinearization on top). Frozen DiT, warm-started from the text student.
 set -e
-cd /home/t-nagupta/NitroGen
-export PYTHONPATH=/home/t-nagupta/NitroGen
+NITROGEN_REPO="${NITROGEN_REPO:-/home/t-nagupta/NitroGen-With-VLM-Planning}"
+cd "$NITROGEN_REPO"
+export PYTHONPATH="$NITROGEN_REPO"
 PY=.venv/bin/python
 
 COMMON=(

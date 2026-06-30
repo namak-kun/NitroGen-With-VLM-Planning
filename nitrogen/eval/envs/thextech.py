@@ -30,13 +30,16 @@ class TheXTechEnv(ProcGameEnv):
     control = "keyboard"
 
     def __init__(self, width: int = 800, height: int = 600, boot_wait: float = 15.0,
-                 binary: str = "/tmp/TheXTech/build/output/bin/thextech",
-                 asset_dir: str = "/tmp/TheXTech/aod-assets/usr/share/games/TheXTech/aod",
-                 user_dir: str = "/tmp/TheXTech/nitrogen-user-aod",
+                 binary: str | None = None,
+                 asset_dir: str | None = None,
+                 user_dir: str | None = None,
                  level: str = "worlds/the first adventure/bonus1.lvlx", **kw):
-        self.binary = binary
-        self.asset_dir = asset_dir
-        self.user_dir = user_dir
+        build_root = REPO / ".nitrogen-env-build" / "TheXTech"
+        self.binary = binary or str(build_root / "build" / "output" / "bin" / "thextech")
+        self.asset_dir = asset_dir or str(
+            build_root / "aod-assets" / "thextech-adventure-of-demo-assets-full-v1.3.7.2"
+        )
+        self.user_dir = user_dir or str(build_root / "nitrogen-user-aod")
         self.level = level
         # Ground-truth state is read from the live process memory (no source fork) — see
         # thextech_memread.TheXTechMemReader. Requires a NON-STRIPPED build (RelWithDebInfo). The reader
@@ -45,7 +48,7 @@ class TheXTechEnv(ProcGameEnv):
         self._mem_reader = None
         try:
             from .thextech_memread import TheXTechMemReader
-            self._mem_reader = TheXTechMemReader(binary)
+            self._mem_reader = TheXTechMemReader(self.binary)
         except Exception:
             self._mem_reader = None
         super().__init__(width=width, height=height, boot_wait=boot_wait, **kw)
@@ -56,7 +59,7 @@ class TheXTechEnv(ProcGameEnv):
             "env",
             "SDL_AUDIODRIVER=dummy",
             "SDL_VIDEODRIVER=x11",
-            "LD_LIBRARY_PATH=/tmp/TheXTech/build/output/lib",
+            f"LD_LIBRARY_PATH={REPO / '.nitrogen-env-build' / 'TheXTech' / 'build' / 'output' / 'lib'}",
             self.binary,
             "-s",                 # no sound
             "-p",                 # keep running if focus changes

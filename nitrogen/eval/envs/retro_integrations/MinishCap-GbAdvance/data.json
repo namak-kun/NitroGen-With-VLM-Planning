@@ -1,0 +1,8 @@
+{
+  "info": {
+    "x": {"address": 50336142, "type": "<u2"},
+    "y": {"address": 50336146, "type": "<u2"},
+    "area": {"address": 33779316, "type": "|u1"},
+    "room": {"address": 33779750, "type": "|u1"}
+  }
+}

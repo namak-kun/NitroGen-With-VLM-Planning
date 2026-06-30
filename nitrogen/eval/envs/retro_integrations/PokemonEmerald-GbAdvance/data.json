@@ -1,0 +1,8 @@
+{
+  "info": {
+    "x": {"address": 33779256, "type": "<u2"},
+    "y": {"address": 33779258, "type": "<u2"},
+    "map_bank": {"address": 33779226, "type": "|u1"},
+    "map_id": {"address": 33779227, "type": "|u1"}
+  }
+}

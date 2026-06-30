@@ -21,7 +21,7 @@ import sys
 import numpy as np
 import torch
 
-REPO = "/home/t-nagupta/NitroGen"
+import os; REPO = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning")
 sys.path.insert(0, REPO); sys.path.insert(0, REPO + "/planner_poc")
 from PIL import Image
 from eval_policy import NitroGenPolicy

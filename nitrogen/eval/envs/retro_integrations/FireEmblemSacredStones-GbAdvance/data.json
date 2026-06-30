@@ -1,0 +1,8 @@
+{
+  "info": {
+    "cursor_x": {"address": 33733876, "type": "|u1"},
+    "cursor_y": {"address": 33733878, "type": "|u1"},
+    "chapter": {"address": 33733900, "type": "|u1"},
+    "turn": {"address": 33733944, "type": "|u1"}
+  }
+}

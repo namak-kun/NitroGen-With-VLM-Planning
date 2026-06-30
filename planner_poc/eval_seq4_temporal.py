@@ -13,7 +13,7 @@ Quarters with H=18: round(0.25*18)=4, round(0.5*18)=9, round(0.75*18)=14 (banker
 import os, sys, glob
 import numpy as np
 import torch
-REPO = "/home/t-nagupta/NitroGen"
+import os; REPO = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning")
 sys.path.insert(0, REPO)
 import transformers
 if not isinstance(getattr(transformers.SiglipVisionModel, "vision_model", None), property):

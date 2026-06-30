@@ -14,7 +14,7 @@ Run: PYTHONPATH=. python planner_poc/eval_cfg_override.py
 import os, sys
 import numpy as np
 from PIL import Image
-sys.path.insert(0, "/home/t-nagupta/NitroGen"); sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; _R = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"); sys.path.insert(0, _R); sys.path.insert(0, os.path.join(_R, "planner_poc"))
 from eval_policy import NitroGenPolicy
 
 JLX, JLY, I_SOUTH = 21, 22, 18

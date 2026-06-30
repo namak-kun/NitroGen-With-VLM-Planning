@@ -8,8 +8,8 @@ Run: PYTHONPATH=. python planner_poc/button_probe.py
 """
 import sys
 import numpy as np
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
-sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
+import os; sys.path.insert(0, os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "planner_poc"))
 
 from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK, SKIP
 from nitrogen.eval.envs.virtual_gamepad import _NAME2IDX, JLX, JLY

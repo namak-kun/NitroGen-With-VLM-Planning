@@ -6,7 +6,7 @@ Probe setup used a locally generated legal NES homebrew ROM that cycles the back
 
 ```bash
 SDL_VIDEODRIVER=x11 SDL_AUDIODRIVER=dummy MEDNAFEN_HOME=/path/to/isolated/home \
-LD_PRELOAD=/home/t-nagupta/NitroGen/nitrogen/eval/speedhack/libspeedhack.so \
+LD_PRELOAD=/home/t-nagupta/NitroGen-With-VLM-Planning/nitrogen/eval/speedhack/libspeedhack.so \
 SPEEDHACK_CTRL=/path/to/speedhack.ctl \
 mednafen -force_module nes -sound 0 -video.driver softfb -video.fs 0 \
   -nes.xscale 2 -nes.yscale 2 -nes.stretch 0 -nothrottle 0 game.nes

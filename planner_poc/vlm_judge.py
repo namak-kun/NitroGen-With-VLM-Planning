@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # smoke test: load the planner backbone + judge a trivial pair of frames.
     import os
     import sys
-    sys.path.insert(0, "/home/t-nagupta/NitroGen"); sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+    import os; _R = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"); sys.path.insert(0, _R); sys.path.insert(0, os.path.join(_R, "planner_poc"))
     from nitrogen.planner import PlanEncoder, PlannerConfig
     qwen = os.environ.get("QWEN", "Qwen/Qwen3.5-2B")
     pl = PlanEncoder(PlannerConfig(backbone_name_or_path=qwen)); pl.load()

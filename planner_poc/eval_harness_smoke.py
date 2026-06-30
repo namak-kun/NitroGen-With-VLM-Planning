@@ -7,7 +7,7 @@
 Run: python planner_poc/eval_harness_smoke.py
 """
 import sys
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
 
 from nitrogen.eval import (
     EpisodeRunner, EvalProtocol, ScriptedDirectionPolicy, Scenario,

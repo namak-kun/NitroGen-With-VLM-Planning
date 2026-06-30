@@ -26,7 +26,7 @@ import time
 
 import numpy as np
 
-REPO = "/home/t-nagupta/NitroGen"
+import os; REPO = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning")
 sys.path.insert(0, REPO); sys.path.insert(0, REPO + "/planner_poc")
 
 from nitrogen.eval import Scenario, EpisodeRunner
@@ -77,7 +77,8 @@ ENV_REGISTRY = {
 # Special-cased env names handled explicitly in factory() (custom args / custom levels / emulators).
 SPECIAL_ENVS = {"stk", "sdlpop", "thextech", "thextech_get_flower", "notebook_adventure",
                 "blind_jump", "castlevania_godot", "xmoto", "trigger_rally", "solarus_zelda",
-                "chromium_bsu", "blobwars", "witchblast"}
+                "chromium_bsu", "blobwars", "witchblast", "gba_minish_cap", "gba_pokemon_emerald",
+                "gba_fire_emblem_sacred_stones"}
 KNOWN_ENVS = SPECIAL_ENVS | set(ENV_REGISTRY)
 
 # Envs whose build ARTIFACTS were lost (verified by planner_poc/env_healthcheck.py 2026-06-24): they
@@ -143,6 +144,9 @@ def make_env_factory(name, **kw):
         if name == "witchblast":
             from nitrogen.eval.envs.witchblast import WitchBlastEnv
             return WitchBlastEnv(boot_wait=kw.get("boot_wait", 12.0), freeze_during_inference=kw.get("freeze", True))
+        if name.startswith("gba_"):
+            from nitrogen.eval.envs.gba_env import make_gba_eval_env
+            return make_gba_eval_env(name)
         if name in ENV_REGISTRY:
             mod, cls, bw = ENV_REGISTRY[name]
             import importlib

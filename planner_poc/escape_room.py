@@ -6,7 +6,7 @@ Run: PYTHONPATH=. python planner_poc/escape_room.py
 """
 import os, sys
 import numpy as np
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
 from nitrogen.eval import Scenario
 from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK, SKIP
 from nitrogen.eval.envs.virtual_gamepad import _NAME2IDX, JLX, JLY

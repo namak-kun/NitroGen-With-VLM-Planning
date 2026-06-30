@@ -16,7 +16,7 @@ import sys
 import numpy as np
 import torch
 
-REPO = "/home/t-nagupta/NitroGen"
+import os; REPO = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning")
 sys.path.insert(0, REPO)
 from nitrogen.training.actions import load_chunk_actions, assemble_chunk
 

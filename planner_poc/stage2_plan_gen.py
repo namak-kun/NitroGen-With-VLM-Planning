@@ -22,8 +22,8 @@ import sys
 import numpy as np
 import torch
 from PIL import Image
-sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
+import os; sys.path.insert(0, os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "planner_poc"))
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
 from transformers import AutoProcessor, AutoModelForImageTextToText
 from nitrogen.training.actions import load_chunk_actions, assemble_chunk
 from nitrogen.training.video import VideoFrameFetcher, VideoFetchConfig
@@ -32,8 +32,8 @@ from vtt_align import parse_vtt, window_text, best_vtt
 
 H, STRIDE, FPS = 18, 2, 60.0
 TS_DIR = "/tmp/transcripts"
-fetcher = VideoFrameFetcher(VideoFetchConfig(cache_dir="/home/t-nagupta/NitroGen/frame_cache",
-                                             cookies_file="/home/t-nagupta/NitroGen/cookies.txt"))
+fetcher = VideoFrameFetcher(VideoFetchConfig(cache_dir=os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "frame_cache"),
+                                             cookies_file=os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "cookies.txt")))
 
 SYS = (
     "You are a gameplay analyst producing a concise PLAN that explains the player's "

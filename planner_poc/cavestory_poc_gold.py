@@ -18,7 +18,7 @@ import os, sys, subprocess
 import numpy as np
 import torch
 from PIL import Image
-sys.path.insert(0, "/home/t-nagupta/NitroGen"); sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; _R = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"); sys.path.insert(0, _R); sys.path.insert(0, os.path.join(_R, "planner_poc"))
 from nitrogen.eval import Scenario, JLX, JLY
 from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK, SKIP
 from nitrogen.eval.envs.virtual_gamepad import MENU_BUTTONS, _NAME2IDX, B_NORTH, B_DDOWN, B_SOUTH
@@ -98,7 +98,7 @@ def main():
                    f"(start {x0:.1f}) -> moved LEFT {x0-minx:+.1f} tiles (counterfactual override)")
     finally:
         env.close()
-    outdir = "/home/t-nagupta/NitroGen/docs/cavestory_play"
+    outdir = os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "docs/cavestory_play")
     subprocess.run(["ffmpeg", "-loglevel", "quiet", "-y", "-framerate", "6",
                     "-i", f"{OUT}/f%04d.png", "-pix_fmt", "yuv420p",
                     "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", f"{outdir}/poc_gold.mp4"])

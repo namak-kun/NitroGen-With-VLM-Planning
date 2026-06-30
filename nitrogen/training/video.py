@@ -24,7 +24,7 @@ import numpy as np
 
 @dataclass
 class VideoFetchConfig:
-    cache_dir: str = "/home/t-nagupta/NitroGen/frame_cache"
+    cache_dir: str = os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "frame_cache")
     cookies_file: Optional[str] = None      # Netscape cookies.txt for YouTube auth
     cookies_from_browser: Optional[str] = None  # e.g. "chrome", "firefox"
     proxy: Optional[str] = None

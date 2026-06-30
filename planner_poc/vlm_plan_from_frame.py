@@ -11,7 +11,7 @@ import time
 import numpy as np
 import torch
 from PIL import Image
-sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; sys.path.insert(0, os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "planner_poc"))
 from vtt_align import parse_vtt, window_text, best_vtt
 from transformers import AutoProcessor, AutoModelForImageTextToText
 

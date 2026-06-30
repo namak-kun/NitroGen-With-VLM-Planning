@@ -30,3 +30,27 @@ docs/yt_farm/
 # Emulator/recorded gameplay frames (ROM-derived data, not code)
 docs/idm_data/
 docs/recordings/
+
+# --- handoff 2026-06-30: large/binary/copyright outputs (keep code + .md docs only) ---
+*.zip
+error.txt
+*.egg-info/
+handoff_zips/
+docs/furthest/
+docs/demo_videos/
+docs/demo_videos_base/
+docs/demo_videos_pooled/
+docs/demos/
+docs/demo_plans/
+docs/graded/
+docs/multigenre/
+docs/bench/
+docs/eval_review/
+docs/idm_gate/
+docs/rl_data/
+docs/poc/
+docs/horizon_play/
+docs/horizon_play_grounded/
+docs/cavestory_play/
+docs/cavestory_shots/
+docs/prompt_bench/

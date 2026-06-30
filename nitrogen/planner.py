@@ -237,11 +237,20 @@ class PlanEncoder(nn.Module):
     @torch.no_grad()
     def generate_plan(self, frames, device, instruction: str = "What should I do next?",
                       system: str | None = None, max_new_tokens: int = 24,
-                      prev_plan: str | None = None) -> str:
+                      prev_plan: str | None = None, temperature: float = 0.0,
+                      top_p: float = 0.9, enable_thinking: bool | None = None) -> str:
         """Look at a list of recent frames (np.uint8 HxWx3 or PIL.Image, oldest->newest) and
         GENERATE a short plan string. This is the System-2 step: frames -> plan text. The text
         is then encoded by encode_text/the resampler, keeping the (text-trained) adapter
         in-distribution. `prev_plan`, if given, is shown so the planner can revise a stuck plan.
+
+        `temperature>0` SAMPLES the plan (nucleus, top_p) instead of greedy decoding — for RL
+        EXPLORATION (diverse plans so reward-weighted updates can discover, not just sharpen). 0 = greedy.
+
+        `enable_thinking` (Qwen3+/reasoning models): False injects an empty <think></think> so the model
+        answers DIRECTLY (recommended for the short plan budget — otherwise a reasoning model spends
+        max_new_tokens on chain-of-thought and never emits the plan). None = template default (unchanged).
+        Any <think>...</think> block that does slip through is stripped from the output.
         """
         self.load()
         if self.processor is None:
@@ -258,12 +267,59 @@ class PlanEncoder(nn.Module):
         user_content.append({"type": "text", "text": prompt})
         msgs = [{"role": "system", "content": system or self.DEFAULT_SYS},
                 {"role": "user", "content": user_content}]
-        text = self.processor.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        tkw = {} if enable_thinking is None else {"enable_thinking": enable_thinking}
+        text = self.processor.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, **tkw)
         inp = self.processor(text=[text], images=imgs, return_tensors="pt").to(device)
-        out = self.backbone.generate(**inp, max_new_tokens=max_new_tokens, do_sample=False)
+        gen_kwargs = dict(max_new_tokens=max_new_tokens)
+        if temperature and temperature > 0:
+            gen_kwargs.update(do_sample=True, temperature=float(temperature), top_p=float(top_p))
+        else:
+            gen_kwargs.update(do_sample=False)
+        out = self.backbone.generate(**inp, **gen_kwargs)
         gen = self.processor.batch_decode(
             out[:, inp["input_ids"].shape[1]:], skip_special_tokens=True)[0]
+        if "</think>" in gen:                          # strip any reasoning block that leaked through
+            gen = gen.split("</think>")[-1]
+        gen = gen.replace("<think>", "").strip()
         return gen.strip().strip('"').strip()
+
+    @torch.no_grad()
+    def generate_interleaved(self, items, device, instruction: str, system: str | None = None,
+                             max_new_tokens: int = 64, enable_thinking: bool | None = False,
+                             temperature: float = 0.0, top_p: float = 0.9) -> str:
+        """Generate from an INTERLEAVED sequence of frames and text (e.g. frame, action-label, frame, ...).
+        `items` is an ordered list of either np.uint8 HxWx3 / PIL.Image (a frame) or str (a text segment such
+        as the GOLD ACTION taken at that step). This lets the VLM see the real (frame, action) trajectory --
+        many frames interleaved with what was actually pressed -- so its narration is grounded in evidence
+        (it can SAY 'duck under the bullet' because it was shown DOWN was held), matching how inference feeds
+        frames+actions. `instruction` is appended last. Returns the decoded text (reasoning stripped)."""
+        self.load()
+        if self.processor is None:
+            raise RuntimeError("generate_interleaved requires a VL processor.")
+        if next(self.backbone.parameters()).device != torch.device(device):
+            self.backbone.to(device)
+        from PIL import Image
+        content, imgs = [], []
+        for it in items:
+            if isinstance(it, str):
+                content.append({"type": "text", "text": it})
+            else:
+                im = it if isinstance(it, Image.Image) else Image.fromarray(np.asarray(it)).convert("RGB")
+                imgs.append(im); content.append({"type": "image"})
+        content.append({"type": "text", "text": instruction})
+        msgs = [{"role": "system", "content": system or self.DEFAULT_SYS},
+                {"role": "user", "content": content}]
+        tkw = {} if enable_thinking is None else {"enable_thinking": enable_thinking}
+        text = self.processor.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, **tkw)
+        inp = self.processor(text=[text], images=imgs, return_tensors="pt").to(device)
+        gk = dict(max_new_tokens=max_new_tokens)
+        gk.update(dict(do_sample=True, temperature=float(temperature), top_p=float(top_p))
+                  if temperature and temperature > 0 else dict(do_sample=False))
+        out = self.backbone.generate(**inp, **gk)
+        gen = self.processor.batch_decode(out[:, inp["input_ids"].shape[1]:], skip_special_tokens=True)[0]
+        if "</think>" in gen:
+            gen = gen.split("</think>")[-1]
+        return gen.replace("<think>", "").strip().strip('"').strip()
 
 
 class PlanHead(nn.Module):

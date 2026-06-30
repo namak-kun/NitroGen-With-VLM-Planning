@@ -4,8 +4,9 @@
 # 600-balanced / 1200-left-lean drift: DiT learning rate, cf-ratio (override pressure), and LoRA rank.
 # Frequent checkpoints (--save-every 250) so we can map the balance trajectory per config.
 set -u
-cd /home/t-nagupta/NitroGen
-export PYTHONPATH=/home/t-nagupta/NitroGen:/home/t-nagupta/NitroGen/planner_poc
+NITROGEN_REPO="${NITROGEN_REPO:-/home/t-nagupta/NitroGen-With-VLM-Planning}"
+cd "$NITROGEN_REPO"
+export PYTHONPATH="$NITROGEN_REPO:$NITROGEN_REPO/planner_poc"
 
 COMMON=(scripts/train_planner.py
   --ng-ckpt ckpts/nitrogen/ng.pt --qwen Qwen/Qwen3.5-2B

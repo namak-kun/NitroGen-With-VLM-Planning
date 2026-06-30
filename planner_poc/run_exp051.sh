@@ -5,8 +5,9 @@
 #   051a: LoRA + factual distillation (capacity amplifies the plan where it agrees w/ the frame).
 #   051b: LoRA + counterfactual override (s2_cf_ratio: plan contradicts the frame -> teach OVERRIDE).
 set -e
-cd /home/t-nagupta/NitroGen
-export PYTHONPATH=/home/t-nagupta/NitroGen
+NITROGEN_REPO="${NITROGEN_REPO:-/home/t-nagupta/NitroGen-With-VLM-Planning}"
+cd "$NITROGEN_REPO"
+export PYTHONPATH="$NITROGEN_REPO"
 PY=.venv/bin/python
 LORA_RANK=${LORA_RANK:-16}
 

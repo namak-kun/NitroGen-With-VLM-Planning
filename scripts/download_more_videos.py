@@ -7,7 +7,7 @@ safe to run in the background while training uses the GPU. Bounded by --max-chun
 import argparse, glob, json, os, shutil, sys, time
 import numpy as np
 from PIL import Image
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
 from nitrogen.training.video import VideoFrameFetcher, VideoFetchConfig
 
 SHARD = "/tmp/ds_real/SHARD_0000"
@@ -36,8 +36,8 @@ def main():
     os.makedirs(OUT_CHUNKS, exist_ok=True)
     os.makedirs(OUT_FRAMES, exist_ok=True)
     f = VideoFrameFetcher(VideoFetchConfig(
-        cache_dir="/home/t-nagupta/NitroGen/frame_cache",
-        cookies_file="/home/t-nagupta/NitroGen/cookies.txt",
+        cache_dir=os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "frame_cache"),
+        cookies_file=os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "cookies.txt"),
     ))
 
     have = have_videos()

@@ -8,8 +8,8 @@ Run: PYTHONPATH=. python planner_poc/shoot_button_test.py [ckpt] [cfg]
 import os, sys
 import numpy as np
 from PIL import Image
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
-sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
+import os; sys.path.insert(0, os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "planner_poc"))
 from nitrogen.shared import BUTTON_ACTION_TOKENS
 from eval_policy import NitroGenPolicy
 

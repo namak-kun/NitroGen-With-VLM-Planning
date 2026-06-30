@@ -7,7 +7,7 @@ an up+jump-specific or capacity bug.
 import os, sys, glob
 import numpy as np
 import torch
-REPO = "/home/t-nagupta/NitroGen"
+import os; REPO = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning")
 sys.path.insert(0, REPO)
 import transformers
 if not isinstance(getattr(transformers.SiglipVisionModel, "vision_model", None), property):

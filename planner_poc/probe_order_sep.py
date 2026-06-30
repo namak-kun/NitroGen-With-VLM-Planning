@@ -3,7 +3,7 @@ final plan tokens (flattened). Low (~0.1-0.2) = orderings separated (good); high
 = collapsed (the EXP-032 regression). Usage: python probe_order_sep.py <ckpt> [which] [self_attn]
 """
 import os, sys, torch, numpy as np
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
 import transformers
 if not isinstance(getattr(transformers.SiglipVisionModel, "vision_model", None), property):
     transformers.SiglipVisionModel.vision_model = property(lambda s: s)
@@ -13,9 +13,9 @@ from nitrogen.planner import PlanEncoder, PlannerConfig
 from nitrogen.training.dataset import PlanHiddenCache
 
 dev = "cuda"; K = 8
-ck = torch.load("/home/t-nagupta/NitroGen/ckpts/nitrogen/ng.pt", map_location="cpu", weights_only=False)
+ck = torch.load(os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "ckpts/nitrogen/ng.pt"), map_location="cpu", weights_only=False)
 CC = CkptConfig.model_validate(ck["ckpt_config"])
-pl = PlanEncoder(PlannerConfig(backbone_name_or_path="/home/t-nagupta/NitroGen/ckpts/qwen35-0.8b")); pl.load()
+pl = PlanEncoder(PlannerConfig(backbone_name_or_path=os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "ckpts/qwen35-0.8b"))); pl.load()
 cache = PlanHiddenCache(pl, dev)
 
 

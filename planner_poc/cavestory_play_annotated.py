@@ -10,8 +10,8 @@ Out: docs/cavestory_play/annotated_<tag>.mp4
 import os, sys, subprocess
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-sys.path.insert(0, "/home/t-nagupta/NitroGen")
-sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; sys.path.insert(0, os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"))
+import os; sys.path.insert(0, os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "planner_poc"))
 
 from nitrogen.eval import Scenario, JLX, JLY
 from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK, SKIP
@@ -111,7 +111,7 @@ def main():
             print(f"  chunk {c:2d}: Quote@({pos[0]},{pos[1]})  ({fi} frames)", flush=True)
     finally:
         env.close()
-    outdir = "/home/t-nagupta/NitroGen/docs/cavestory_play"
+    outdir = os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "docs/cavestory_play")
     os.makedirs(outdir, exist_ok=True)
     outmp4 = f"{outdir}/annotated_{tag}.mp4"
     subprocess.run(["ffmpeg", "-loglevel", "quiet", "-y", "-framerate", "6",

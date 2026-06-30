@@ -1,9 +1,15 @@
 # AGENTS.md — start here
 
 Entry point for any agent (or human) continuing this work. Read this first, then
-[`docs/INDEX.md`](docs/INDEX.md) (capability→checkpoint map) and [`EXPERIMENTS.md`](EXPERIMENTS.md)
+[`docs/INDEX.md`](docs/INDEX.md) (capability→checkpoint map) and [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md)
 (full log). This file is the **task memory**: what this project is, what works, what's next, and how to
 run everything.
+
+> **2026-06-30 HANDOFF:** start with [`docs/HANDOFF_2026-06-30.md`](docs/HANDOFF_2026-06-30.md) (infra catches +
+> next steps incl. the "learning tokens" direction), [`docs/TRAINING_RECIPE.md`](docs/TRAINING_RECIPE.md) (what
+> base/pooled/kl/situ are + every text plan), and [`docs/research/`](docs/research/) (the full war-room R1–R13,
+> lit reviews, results logs, and the S2→S1 `FORWARD_S2_TO_S1.md` + demo `VERIFY_*.md` reports — persisted out of
+> the ephemeral session dir). All root content `.md` were moved into `docs/`.
 
 ---
 
@@ -67,7 +73,7 @@ override; `dir_s2500` = NEGATIVE control (collapsed left/right), comparison only
 ### A. Plan-conditioning (the core research) — `nitrogen/`, `scripts/train_planner.py`, `planner_poc/`
 Mature. Train with `scripts/train_planner.py` (see §5). Behavioral evals + probes in `planner_poc/`
 (`eval_buttons.py`, `eval_balance.py`, `probe_*.py`, `cf_*` counterfactual scorers). Read `docs/INDEX.md`
-+ `EXPERIMENTS.md`.
++ `docs/EXPERIMENTS.md`.
 
 ### B. Eval environments + record server — `nitrogen/eval/envs/`, `planner_poc/run_poc.py`,
 `planner_poc/record_play_server.py`
@@ -116,7 +122,8 @@ Strategy doc: session `files/BOOTSTRAP_DATA_STRATEGY.md` (also summarized in pla
 
 Common env prefix (the repo uses a uv `.venv`; isolate from any outer virtualenv):
 ```bash
-ENVP='env -u VIRTUAL_ENV -u PYTHONPATH PYTHONPATH=/home/t-nagupta/NitroGen:/home/t-nagupta/NitroGen/planner_poc QWEN=Qwen/Qwen3.5-2B'
+ENVP='env -u VIRTUAL_ENV -u PYTHONPATH PYTHONPATH=/home/t-nagupta/NitroGen-With-VLM-Planning:/home/t-nagupta/NitroGen-With-VLM-Planning/planner_poc QWEN=Qwen/Qwen3.5-2B'
+# (repo path is now overridable via the NITROGEN_REPO env var; scripts default to the path above)
 PY=.venv/bin/python      # uv-managed; install pkgs with `uv pip install <x> --python .venv/bin/python`
 ```
 
@@ -216,8 +223,11 @@ $ENVP .venv/bin/python planner_poc/idm_gen_emulator_data.py --rom "Game data/Sup
 |---|---|
 | `docs/INDEX.md` | capability → experiment → checkpoint map (read after this) |
 | `docs/CHECKPOINTS.md` | **extreme-detail per-checkpoint training recipes, data lineage, results** |
-| `EXPERIMENTS.md` | full experiment log (EXP-000..049b; predates the 2B/clean/btn era — see CHECKPOINTS.md for that) |
-| `DESIGN.md`, `MULTICHUNK_DESIGN.md`, `LITERATURE.md` | architecture + lit |
+| `docs/EXPERIMENTS.md` | full experiment log (EXP-000..049b; predates the 2B/clean/btn era — see CHECKPOINTS.md for that) |
+| `docs/DESIGN.md`, `docs/MULTICHUNK_DESIGN.md`, `docs/LITERATURE.md` | architecture + lit |
+| `docs/TRAINING_RECIPE.md` | **base/pooled/kl/situ recipes + every text plan + reload (2026-06-30)** |
+| `docs/HANDOFF_2026-06-30.md` | **infra catches + next steps (learning tokens, consolidate-duck, RL)** |
+| `docs/research/` | persisted war-room R1–R13, lit, results, FORWARD_S2_TO_S1.md, VERIFY_*.md |
 | `nitrogen/planner.py` | PlanEncoder / resampler / adapter / PlanHead / `generate_plan` |
 | `nitrogen/flow_matching_transformer/nitrogen.py`, `lora.py` | plan injection, masked-null, DiT LoRA |
 | `scripts/train_planner.py` | Stage-1 trainer |

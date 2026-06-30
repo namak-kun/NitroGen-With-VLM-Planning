@@ -7,7 +7,7 @@ data-quality problem, not a modeling one.
 """
 import glob, json, os, re, subprocess, sys, tempfile
 
-COOKIES = "/home/t-nagupta/NitroGen/cookies.txt"
+COOKIES = os.path.join(os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"), "cookies.txt")
 DENO = os.path.expanduser("~/.deno/bin")
 if DENO not in os.environ.get("PATH", ""):
     os.environ["PATH"] = DENO + os.pathsep + os.environ.get("PATH", "")

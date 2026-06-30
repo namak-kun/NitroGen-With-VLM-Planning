@@ -6,7 +6,7 @@ Run: PYTHONPATH=. python planner_poc/ingame_dir_test.py [ckpt] [cfg] [nchunks]  
 """
 import os, sys
 import numpy as np
-sys.path.insert(0, "/home/t-nagupta/NitroGen"); sys.path.insert(0, "/home/t-nagupta/NitroGen/planner_poc")
+import os; _R = os.environ.get("NITROGEN_REPO", "/home/t-nagupta/NitroGen-With-VLM-Planning"); sys.path.insert(0, _R); sys.path.insert(0, os.path.join(_R, "planner_poc"))
 from nitrogen.eval import Scenario
 from nitrogen.eval.envs.cavestory import CaveStoryEnv, MENU_OK, SKIP
 from nitrogen.eval.envs.virtual_gamepad import MENU_BUTTONS, B_NORTH
