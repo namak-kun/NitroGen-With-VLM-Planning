@@ -131,25 +131,30 @@ Full log: [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md) (EXP-000..049b); 2B check
 
 ## 4. Quickstart
 
+**Recover all checkpoints on a fresh box (one command):**
 ```bash
-# setup (uv venv recommended; isolate from any outer virtualenv)
-pip install -e .                          # or: uv pip install -e .
-hf download nvidia/NitroGen ng.pt         # base DiT  -> ckpts/nitrogen/ng.pt
-hf download Qwen/Qwen3.5-2B               # planner backbone
+hf auth login                              # the handoff weights repo is private
+bash scripts/recover_checkpoints.sh        # -> ng.pt, Qwen, full base ckpt, 9 deltas, rwbc, 56 demos
+```
+This pulls the NVIDIA base DiT + Qwen backbone + our private handoff repo
+(`nmk-kun/nitrogen-vlm-planner-handoff`) and **reconstructs the full eval checkpoint**
+`ckpts/btn_s600_full.pt` from `ng.pt` + the slim base (verified bit-faithful). Idempotent; skips what's
+already there. Then:
 
+```bash
 ENVP='env -u VIRTUAL_ENV -u PYTHONPATH PYTHONPATH=.:planner_poc QWEN=Qwen/Qwen3.5-2B'
 PY=.venv/bin/python
 ```
 
 ```bash
 # longest closed-loop rollout until death, base vs a trained delta (writes mp4 + frames + RAM json)
-$ENVP $PY planner_poc/furthest_rollout.py --game smw --tag base   --state 7 --seconds 90 --out docs/furthest/smw
+$ENVP $PY planner_poc/furthest_rollout.py --game smw --tag base   --state 7 --seconds 90 --out out/
 $ENVP $PY planner_poc/furthest_rollout.py --game smw --tag kl --mode plan \
-    --delta <kl_delta.pt> --state 7 --seconds 90 --log-plans --out docs/furthest/smw
+    --delta ckpts/deltas/r9_smw_kl_s0.pt --state 7 --seconds 90 --log-plans --out out/
 
 # RAM-free verification: a VLM watches the frames and judges progress/death
 QWEN=google/gemma-4-12B-it $ENVP $PY planner_poc/vlm_video_judge.py \
-    describe --frames docs/furthest/smw/kl__state7.frames.npz --game smw
+    describe --frames out/kl__state7.frames.npz --game smw
 
 # train a plan-OOD demo-fit (the KL-anchor winner)
 $ENVP $PY planner_poc/demo_bc.py --game smw --train plan_head --use-correct-plan \
